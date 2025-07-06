@@ -1,24 +1,39 @@
-// /app/api/anime/[id]/route.ts
-import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { NextResponse } from "next/server"
+import { supabase } from "@/lib/supabase"
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
-    const { id } = params;
-    
+    const { id } = params
+
+    // Проверяем, что ID выглядит как shikimori_id (число или строка с числом)
+    if (!id || id === "popular" || id === "search" || id === "database") {
+      return NextResponse.json({ error: "Invalid anime ID" }, { status: 400 })
+    }
+
+    console.log("🎬 Fetching anime data for shikimori_id:", id)
+
+    // Ищем по shikimori_id в нашем VIEW
     const { data, error } = await supabase
       .from("animes_with_relations")
       .select("*")
       .eq("shikimori_id", id)
-      .single();
+      .limit(1)
+      .maybeSingle() // Используем maybeSingle вместо single
 
-    if (error || !data) {
-      return NextResponse.json({ error: "Anime not found" }, { status: 404 });
+    if (error) {
+      console.error(`❌ Database error for shikimori_id ${id}:`, error)
+      return NextResponse.json({ error: "Database error" }, { status: 500 })
     }
-    
-    return NextResponse.json(data);
+
+    if (!data) {
+      console.log(`❌ Anime with shikimori_id ${id} not found`)
+      return NextResponse.json({ error: "Anime not found" }, { status: 404 })
+    }
+
+    console.log("✅ Anime found:", data.title)
+    return NextResponse.json(data)
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Неизвестная ошибка";
-    return NextResponse.json({ status: "error", message }, { status: 500 });
+    console.error("❌ Error in anime API:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

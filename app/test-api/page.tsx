@@ -44,8 +44,12 @@ export default function TestApiPage() {
   }
 
   return (
-    <main className="container mx-auto px-4 py-8 pt-24">
-      <h1 className="text-3xl font-bold mb-8">🧪 API Test Dashboard</h1>
+    <main className="min-h-screen flex flex-col items-center justify-center gap-6 p-10">
+      <h1 className="text-3xl font-bold">/test-api</h1>
+      <p className="text-muted-foreground">
+        Это вспомогательная страница для проверки работоспособности проекта. Здесь можно разместить тестовые вызовы API
+        или отладочную информацию.
+      </p>
 
       {/* Buttons */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">

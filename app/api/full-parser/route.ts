@@ -4,7 +4,6 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import type { KodikAnimeData, AnimeRecord } from "@/lib/types";
 
-// Вспомогательная функция для обработки связей
 async function processRelations(
   anime_id: number,
   items: string[],
@@ -25,7 +24,6 @@ async function processRelations(
   }
 }
 
-// Основной обработчик POST-запроса
 export async function POST() {
   const output: string[] = [];
   const log = (message: string) => {
@@ -35,15 +33,13 @@ export async function POST() {
 
   try {
     log("🚀 Запуск ПОЛНОЙ синхронизации базы данных...");
-
     const KODIK_TOKEN = process.env.KODIK_API_TOKEN;
     if (!KODIK_TOKEN) throw new Error("KODIK_API_TOKEN не настроен");
 
     let currentPageUrl: string | null = "https://kodikapi.com/list";
     let pagesParsed = 0;
-    let totalNew = 0;
-    let totalUpdated = 0;
-
+    let totalProcessed = 0;
+    
     // Цикл для обхода всех страниц Kodik API
     while (currentPageUrl) {
       pagesParsed++;
@@ -55,7 +51,7 @@ export async function POST() {
       
       if (!response.ok) {
         log(`❗️ Ошибка от Kodik API на странице ${pagesParsed}, пропускаем...`);
-        await new Promise(resolve => setTimeout(resolve, 5000)); // Ждем 5 секунд и пробуем дальше
+        await new Promise(resolve => setTimeout(resolve, 5000));
         continue;
       }
 
@@ -63,42 +59,36 @@ export async function POST() {
       const animeList: KodikAnimeData[] = data.results || [];
       log(`🔄 Получено ${animeList.length} записей для обработки.`);
 
-      // Создаем массив записей для операции upsert
       const recordsToUpsert = animeList
-        .filter(anime => anime.shikimori_id) // Убираем записи без shikimori_id
+        .filter(anime => anime.shikimori_id)
         .map(anime => {
           const material = anime.material_data || {};
           return {
-            shikimori_id: anime.shikimori_id, // Ключ для проверки конфликта
+            shikimori_id: anime.shikimori_id,
             kodik_id: anime.id,
             title: anime.title,
-            title_orig: anime.title_orig,
             year: anime.year,
-            poster_url: material.anime_poster_url || material.poster_url, // Правильный приоритет постеров
+            poster_url: material.anime_poster_url || material.poster_url,
             player_link: anime.link,
             description: material.description || material.anime_description,
             type: anime.type,
             status: material.anime_status,
-            episodes_count: anime.episodes_count,
+            episodes_count: anime.episodes_count || material.episodes_total,
             shikimori_rating: material.shikimori_rating,
             shikimori_votes: material.shikimori_votes,
             updated_at_kodik: anime.updated_at,
           };
         });
 
-      // Выполняем массовый upsert
-      const { data: upsertedData, error } = await supabase
-        .from('animes')
-        .upsert(recordsToUpsert, { onConflict: 'shikimori_id' })
-        .select('id, shikimori_id');
-
-      if (error) {
-        log(`❌ Ошибка массового сохранения: ${error.message}`);
-        continue;
+      if (recordsToUpsert.length > 0) {
+        const { error: upsertError } = await supabase.from('animes').upsert(recordsToUpsert, { onConflict: 'shikimori_id' });
+        if (upsertError) {
+          log(`❌ Ошибка массового сохранения: ${upsertError.message}`);
+        } else {
+          totalProcessed += recordsToUpsert.length;
+          log(`✅ Обработано и сохранено/обновлено ${recordsToUpsert.length} записей.`);
+        }
       }
-
-      log(`✅ Сохранено/обновлено ${upsertedData?.length || 0} аниме в базе.`);
-      totalUpdated += upsertedData?.length || 0;
       
       currentPageUrl = data.next_page;
       if (!currentPageUrl) log("🏁 Достигнут конец списка Kodik API.");
@@ -107,7 +97,7 @@ export async function POST() {
 
     log("=" .repeat(50));
     log(`🎉 Полная синхронизация завершена! Обработано страниц: ${pagesParsed}.`);
-    log(`📊 Всего обновлено/добавлено: ${totalUpdated} записей.`);
+    log(`📊 Всего обработано записей: ${totalProcessed}.`);
     
     return NextResponse.json({ status: 'success', output: output.join('\n') });
 

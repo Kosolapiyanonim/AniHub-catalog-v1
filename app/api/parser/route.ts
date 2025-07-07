@@ -15,18 +15,19 @@ async function processRelations(
   for (const name of items) {
     if (!name?.trim()) continue;
     try {
-      const { data: relData, error: relErr } = await supabase
+      const { data: relData } = await supabase
         .from(tableName)
         .upsert({ name: name.trim() }, { onConflict: "name" })
         .select("id")
         .single();
-      if (relErr) throw relErr;
-      await supabase
-        .from("anime_relations")
-        .upsert(
-          { anime_id, relation_id: relData.id, relation_type },
-          { onConflict: "anime_id,relation_id,relation_type" }
-        );
+      if (relData) {
+        await supabase
+          .from("anime_relations")
+          .upsert(
+            { anime_id, relation_id: relData.id, relation_type },
+            { onConflict: "anime_id,relation_id,relation_type" }
+          );
+      }
     } catch (error) {
       console.error(`Ошибка обработки связи ${relation_type} - ${name}:`, error);
     }
@@ -45,10 +46,10 @@ export async function POST(request: Request) {
     log("🚀 Запуск TypeScript-парсера...");
     const body = await request.json().catch(() => ({}));
     const pagesToParse = body.pagesToParse || 1;
-    let currentPageUrl: string | null = `https://kodikapi.com/list`;
+    let currentPageUrl: string | null = "https://kodikapi.com/list";
     let pagesParsed = 0;
-    let newAnimeCount = 0;
-    let updatedAnimeCount = 0;
+    let totalNew = 0;
+    let totalUpdated = 0;
 
     const KODIK_TOKEN = process.env.KODIK_API_TOKEN;
     if (!KODIK_TOKEN) throw new Error("KODIK_API_TOKEN не настроен");
@@ -65,23 +66,48 @@ export async function POST(request: Request) {
         limit: "100",
         types: "anime,anime-serial",
         with_material_data: "true",
-        sort: "shikimori_rating",
+        sort: "updated_at", // Сортируем по последним обновленным, чтобы получать новинки
         order: "desc",
       });
 
       const response = await fetch(`${currentPageUrl}?${params.toString()}`);
-      if (!response.ok) throw new Error(`Ошибка от Kodik API: ${response.statusText}`);
+      if (!response.ok) {
+        log(`❗️ Ошибка от Kodik API на странице ${pagesParsed}, пропускаем...`);
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        continue;
+      }
 
       const data = await response.json();
-      const animeList: KodikAnimeData[] = data.results || [];
-      log(`🔄 Получено ${animeList.length} записей для обработки.`);
+      const animeListFromKodik: KodikAnimeData[] = data.results || [];
+      log(`🔄 Получено ${animeListFromKodik.length} записей для обработки.`);
+      
+      if (animeListFromKodik.length === 0) {
+        currentPageUrl = data.next_page;
+        continue;
+      }
 
-      for (const anime of animeList) {
-        if (!anime.shikimori_id) continue; // Пропускаем записи без ID
+      // 1. Собираем все shikimori_id со страницы от Kodik
+      const shikimoriIdsFromPage = animeListFromKodik
+        .map(anime => anime.shikimori_id)
+        .filter(Boolean) as string[];
+
+      // 2. Узнаем, какие из этих ID уже есть в нашей базе
+      const { data: existingAnimes, error: dbError } = await supabase
+        .from('animes')
+        .select('shikimori_id')
+        .in('shikimori_id', shikimoriIdsFromPage);
+      
+      if (dbError) throw dbError;
+
+      const existingIdsSet = new Set(existingAnimes.map(a => a.shikimori_id));
+      log(`🔍 Из ${shikimoriIdsFromPage.length} аниме, ${existingIdsSet.size} уже есть в базе. Будут обновлены. ${shikimoriIdsFromPage.length - existingIdsSet.size} будут добавлены.`);
+
+      // 3. Обрабатываем каждое аниме
+      for (const anime of animeListFromKodik) {
+        if (!anime.shikimori_id) continue;
 
         const material = anime.material_data || {};
         
-        // Формируем запись для базы данных
         const record: AnimeRecord = {
           kodik_id: anime.id,
           shikimori_id: anime.shikimori_id,
@@ -89,13 +115,13 @@ export async function POST(request: Request) {
           title: anime.title,
           title_orig: anime.title_orig,
           year: anime.year,
-          // Отдаем приоритет постеру с Shikimori
-          poster_url: material.anime_poster_url || material.poster_url,
+          poster_url: material.anime_poster_url || material.poster_url, // Приоритет Shikimori
           player_link: anime.link,
-          description: material.description || material.anime_description,
+          // Расширенная логика получения данных
+          description: material.description || material.anime_description || "Описание отсутствует.",
           type: anime.type,
           status: material.anime_status,
-          episodes_count: anime.episodes_count,
+          episodes_count: anime.episodes_count || material.episodes_total || 0,
           rating_mpaa: material.rating_mpaa,
           kinopoisk_rating: material.kinopoisk_rating,
           shikimori_rating: material.shikimori_rating,
@@ -105,11 +131,10 @@ export async function POST(request: Request) {
           updated_at_kodik: anime.updated_at,
         };
 
-        // upsert - это "умная" команда: она обновит запись, если она есть, или создаст новую, если ее нет.
         const { data: upserted, error: upsertError } = await supabase
           .from('animes')
           .upsert(record, { onConflict: 'shikimori_id' })
-          .select('created_at') // Запрашиваем created_at, чтобы понять, новая ли запись
+          .select('id')
           .single();
 
         if (upsertError) {
@@ -117,32 +142,28 @@ export async function POST(request: Request) {
           continue;
         }
 
-        // Проверяем, была ли запись создана только что
-        const isNew = new Date().getTime() - new Date(upserted.created_at).getTime() < 5000; // 5 секунд
-        if (isNew) {
-          newAnimeCount++;
-          log(`  - ✅ Добавлено новое: ${anime.title}`);
-        } else {
-          updatedAnimeCount++;
+        // Логика для статистики
+        if (existingIdsSet.has(anime.shikimori_id)) {
+          totalUpdated++;
           log(`  - 🔄 Обновлено: ${anime.title}`);
+        } else {
+          totalNew++;
+          log(`  - ✅ Добавлено новое: ${anime.title}`);
         }
-
-        const { data: animeEntry } = await supabase.from('animes').select('id').eq('shikimori_id', anime.shikimori_id).single();
-        if (animeEntry) {
-            await processRelations(animeEntry.id, material.anime_genres || [], 'genre');
-            await processRelations(animeEntry.id, material.anime_studios || [], 'studio');
-            await processRelations(animeEntry.id, material.countries || [], 'country');
-        }
+        
+        await processRelations(upserted.id, material.anime_genres || [], 'genre');
+        await processRelations(upserted.id, material.anime_studios || [], 'studio');
+        await processRelations(upserted.id, material.countries || [], 'country');
       }
       
       currentPageUrl = data.next_page;
       if (!currentPageUrl) log("🏁 Достигнут конец списка Kodik API.");
-      await new Promise(resolve => setTimeout(resolve, 500)); // Пауза между волнами
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Пауза между волнами
     }
 
     log("=" .repeat(50));
     log(`🎉 Парсинг завершен!`);
-    log(`📊 Результат: Добавлено ${newAnimeCount} новых, обновлено ${updatedAnimeCount}.`);
+    log(`📊 Результат: Добавлено ${totalNew} новых, обновлено ${totalUpdated}.`);
 
     return NextResponse.json({ status: 'success', output: output.join('\n') });
 

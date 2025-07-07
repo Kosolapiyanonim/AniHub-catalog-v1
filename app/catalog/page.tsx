@@ -8,12 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useDebounce } from '@/hooks/use-debounce';
-import { Search } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 
 // Определяем типы данных
 interface Anime {
   id: number;
-  kodik_id: string;
+  kodik_id: string; // Используется для совместимости, если нужно
   shikimori_id: string;
   title: string;
   poster_url?: string;
@@ -27,9 +27,16 @@ interface Filters {
   order: string;
   genres: string[];
   year: string;
-  status: string[];
+  status: string; // Изменено на строку для простоты
   title: string;
 }
+
+const STATUS_OPTIONS = {
+  'all': 'Все статусы',
+  'ongoing': 'Онгоинг',
+  'released': 'Вышел',
+  'anons': 'Анонс',
+};
 
 export default function CatalogPage() {
   const [animes, setAnimes] = useState<Anime[]>([]);
@@ -37,6 +44,7 @@ export default function CatalogPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  const [total, setTotal] = useState(0);
 
   // Состояние для всех фильтров
   const [filters, setFilters] = useState<Filters>({
@@ -46,7 +54,7 @@ export default function CatalogPage() {
     order: 'desc',
     genres: [],
     year: 'all',
-    status: [],
+    status: 'all',
     title: '',
   });
 
@@ -78,6 +86,7 @@ export default function CatalogPage() {
     });
     if (currentFilters.title) params.append('title', currentFilters.title);
     if (currentFilters.year !== 'all') params.append('year', currentFilters.year);
+    if (currentFilters.status !== 'all') params.append('status', currentFilters.status);
     if (currentFilters.genres.length > 0) params.append('genres', currentFilters.genres.join(','));
 
     try {
@@ -87,6 +96,7 @@ export default function CatalogPage() {
       const data = await response.json();
       setAnimes(prev => isNewFilter ? data.results : [...prev, ...data.results]);
       setHasMore(data.hasMore);
+      if(isNewFilter) setTotal(data.total || 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Неизвестная ошибка");
     } finally {
@@ -97,10 +107,9 @@ export default function CatalogPage() {
 
   // Эффект для перезагрузки данных при изменении фильтров
   useEffect(() => {
-    // Создаем новый объект фильтров для сброса пагинации
     const newFilters = { ...filters, page: 1, title: debouncedSearchTerm };
     fetchCatalogData(newFilters, true);
-  }, [debouncedSearchTerm, filters.sort, filters.order, filters.genres, filters.year, fetchCatalogData]);
+  }, [debouncedSearchTerm, filters.sort, filters.order, filters.genres, filters.year, filters.status, fetchCatalogData]);
 
 
   const loadMore = () => {
@@ -110,42 +119,81 @@ export default function CatalogPage() {
       fetchCatalogData(newFilters, false);
     }
   };
+  
+  const handleGenreToggle = (genre: string) => {
+    const newGenres = filters.genres.includes(genre)
+      ? filters.genres.filter(g => g !== genre)
+      : [...filters.genres, genre];
+    setFilters(prev => ({ ...prev, genres: newGenres, page: 1 }));
+  };
 
-  const handleFilterChange = (key: keyof Filters, value: any) => {
+  const handleFilterChange = (key: keyof Omit<Filters, 'genres'>, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value, page: 1 }));
   };
 
   return (
     <div className="container mx-auto px-4 py-8 pt-24">
-      <h1 className="text-3xl font-bold mb-8">Каталог аниме</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-3xl font-bold">Каталог аниме</h1>
+        {!loading && <span className="text-muted-foreground">Найдено: {total}</span>}
+      </div>
       
       {/* Панель фильтров */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 p-4 bg-slate-800 rounded-lg">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-          <Input 
-            placeholder="Поиск по названию..." 
-            className="pl-10"
-            value={filters.title}
-            onChange={e => handleFilterChange('title', e.target.value)}
-          />
+      <div className="space-y-4 mb-8 p-4 bg-card rounded-lg border">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input 
+              placeholder="Поиск по названию..." 
+              className="pl-10"
+              value={filters.title}
+              onChange={e => handleFilterChange('title', e.target.value)}
+            />
+          </div>
+          <Select value={filters.year} onValueChange={value => handleFilterChange('year', value)}>
+            <SelectTrigger><SelectValue placeholder="Год" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Все года</SelectItem>
+              {yearsList.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
+            </SelectContent>
+          </Select>
+           <Select value={filters.status} onValueChange={value => handleFilterChange('status', value)}>
+            <SelectTrigger><SelectValue placeholder="Статус" /></SelectTrigger>
+            <SelectContent>
+              {Object.entries(STATUS_OPTIONS).map(([key, value]) => (
+                <SelectItem key={key} value={key}>{value}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filters.sort} onValueChange={value => handleFilterChange('sort', value)}>
+            <SelectTrigger><SelectValue placeholder="Сортировка" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="shikimori_rating">По рейтингу</SelectItem>
+              <SelectItem value="shikimori_votes">По популярности</SelectItem>
+              <SelectItem value="year">По году</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <Select value={filters.year} onValueChange={value => handleFilterChange('year', value)}>
-          <SelectTrigger><SelectValue placeholder="Год" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Все года</SelectItem>
-            {yearsList.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filters.sort} onValueChange={value => handleFilterChange('sort', value)}>
-          <SelectTrigger><SelectValue placeholder="Сортировка" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="shikimori_rating">По рейтингу</SelectItem>
-            <SelectItem value="shikimori_votes">По популярности</SelectItem>
-            <SelectItem value="year">По году</SelectItem>
-          </SelectContent>
-        </Select>
-        {/* Фильтр по жанрам можно сделать более сложным, например, с мультиселектом */}
+        <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">Жанры</p>
+            <div className="flex flex-wrap gap-2">
+                {genresList.slice(0, 18).map(genre => (
+                    <Button 
+                        key={genre}
+                        variant={filters.genres.includes(genre) ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handleGenreToggle(genre)}
+                    >
+                        {genre}
+                    </Button>
+                ))}
+                {filters.genres.length > 0 && (
+                    <Button variant="ghost" size="sm" onClick={() => handleFilterChange('genres', [])}>
+                        <X className="w-4 h-4 mr-2" /> Сбросить
+                    </Button>
+                )}
+            </div>
+        </div>
       </div>
 
       {loading && animes.length === 0 ? (
@@ -153,7 +201,7 @@ export default function CatalogPage() {
       ) : error ? (
         <div className="text-center text-red-500">{error}</div>
       ) : animes.length === 0 ? (
-        <p className="text-center text-muted-foreground">По вашему запросу ничего не найдено.</p>
+        <p className="text-center text-muted-foreground py-16">По вашему запросу ничего не найдено.</p>
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">

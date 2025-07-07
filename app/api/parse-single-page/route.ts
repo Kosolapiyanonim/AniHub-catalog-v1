@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import type { KodikAnimeData } from "@/lib/types";
 
-// Вспомогательная функция для пакетной обработки связей
+// Пакетная функция для обработки связей (жанры, студии, страны)
 async function processAllRelations(supabaseClient: any, relationsToProcess: any[], animeIdMap: Map<string, number>) {
     const allGenres = new Set<string>();
     const allStudios = new Set<string>();
@@ -16,6 +16,7 @@ async function processAllRelations(supabaseClient: any, relationsToProcess: any[
         rel.countries?.forEach((c: string) => allCountries.add(c));
     });
 
+    // Пакетно сохраняем все уникальные жанры, студии, страны
     const { data: genresData } = await supabaseClient.from('genres').upsert(Array.from(allGenres).map(name => ({ name })), { onConflict: 'name' }).select();
     const { data: studiosData } = await supabaseClient.from('studios').upsert(Array.from(allStudios).map(name => ({ name })), { onConflict: 'name' }).select();
     const { data: countriesData } = await supabaseClient.from('countries').upsert(Array.from(allCountries).map(name => ({ name })), { onConflict: 'name' }).select();
@@ -49,15 +50,12 @@ export async function POST(request: Request) {
   try {
     const { nextPageUrl } = await request.json();
     
-    // **ИСПРАВЛЕНИЕ:** Переписана логика формирования URL для надежности
     const baseDomain = "https://kodikapi.com";
     let requestUrl: string;
 
     if (nextPageUrl) {
-      // Если есть ссылка на следующую страницу, используем ее
       requestUrl = `${baseDomain}${nextPageUrl}`;
     } else {
-      // Для самого первого запроса формируем URL с параметрами
       const params = new URLSearchParams({
         token: KODIK_TOKEN,
         types: 'anime,anime-serial',

@@ -4,37 +4,41 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import type { KodikAnimeData } from "@/lib/types";
 
-// ... (вспомогательная функция processRelations остается без изменений)
-async function processRelations(
-  supabaseClient: any,
-  anime_id: number,
-  items: string[] | undefined,
-  relation_type: "genre" | "studio" | "country"
-) {
-  if (!items || items.length === 0) return;
-  const tableName = relation_type === "country" ? "countries" : `${relation_type}s`;
-  
-  for (const name of items) {
-    if (!name?.trim()) continue;
-    try {
-      const { data: relData } = await supabaseClient
-        .from(tableName)
-        .upsert({ name: name.trim() }, { onConflict: "name" })
-        .select("id")
-        .single();
+// Новая, пакетная функция для обработки связей
+async function processAllRelations(supabaseClient: any, relationsToProcess: any[], animeIdMap: Map<string, number>) {
+    const allGenres = new Set<string>();
+    const allStudios = new Set<string>();
+    const allCountries = new Set<string>();
 
-      if (relData) {
-        await supabaseClient
-          .from("anime_relations")
-          .upsert(
-            { anime_id, relation_id: relData.id, relation_type },
-            { onConflict: "anime_id,relation_id,relation_type" }
-          );
-      }
-    } catch (error) {}
-  }
+    relationsToProcess.forEach(rel => {
+        rel.genres?.forEach((g: string) => allGenres.add(g));
+        rel.studios?.forEach((s: string) => allStudios.add(s));
+        rel.countries?.forEach((c: string) => allCountries.add(c));
+    });
+
+    // Пакетно сохраняем все уникальные жанры, студии, страны
+    const { data: genresData } = await supabaseClient.from('genres').upsert(Array.from(allGenres).map(name => ({ name })), { onConflict: 'name' }).select();
+    const { data: studiosData } = await supabaseClient.from('studios').upsert(Array.from(allStudios).map(name => ({ name })), { onConflict: 'name' }).select();
+    const { data: countriesData } = await supabaseClient.from('countries').upsert(Array.from(allCountries).map(name => ({ name })), { onConflict: 'name' }).select();
+
+    const genreMap = new Map(genresData?.map(g => [g.name, g.id]));
+    const studioMap = new Map(studiosData?.map(s => [s.name, s.id]));
+    const countryMap = new Map(countriesData?.map(c => [c.name, c.id]));
+    
+    const relationsToUpsert: any[] = [];
+    relationsToProcess.forEach(rel => {
+        const animeId = animeIdMap.get(rel.shikimori_id);
+        if (!animeId) return;
+
+        rel.genres?.forEach((name: string) => relationsToUpsert.push({ anime_id: animeId, relation_id: genreMap.get(name), relation_type: 'genre' }));
+        rel.studios?.forEach((name: string) => relationsToUpsert.push({ anime_id: animeId, relation_id: studioMap.get(name), relation_type: 'studio' }));
+        rel.countries?.forEach((name: string) => relationsToUpsert.push({ anime_id: animeId, relation_id: countryMap.get(name), relation_type: 'country' }));
+    });
+
+    if (relationsToUpsert.length > 0) {
+        await supabaseClient.from('anime_relations').upsert(relationsToUpsert.filter(r => r.relation_id), { onConflict: 'anime_id,relation_id,relation_type' });
+    }
 }
-
 
 export async function POST(request: Request) {
   const KODIK_TOKEN = process.env.KODIK_API_TOKEN;
@@ -58,7 +62,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: `Страница пуста.`, processed: 0, nextPageUrl: data.next_page || null });
     }
 
-    // --- ОПТИМИЗАЦИЯ ---
     const animeRecordsToUpsert: any[] = [];
     const relationsToProcess: any[] = [];
     const translationsToUpsertMap = new Map();
@@ -104,7 +107,6 @@ export async function POST(request: Request) {
       });
     }
 
-    // 1. Пакетно сохраняем основную информацию об аниме
     const { data: upsertedAnimes, error: animeError } = await supabase
       .from('animes')
       .upsert(animeRecordsToUpsert, { onConflict: 'shikimori_id' })
@@ -112,28 +114,15 @@ export async function POST(request: Request) {
 
     if (animeError) throw animeError;
 
-    // 2. Пакетно сохраняем озвучки
     const translationRecords = upsertedAnimes!.map(anime => ({
         anime_id: anime.id,
         ...translationsToUpsertMap.get(anime.shikimori_id),
     }));
 
-    const { error: translationError } = await supabase
-      .from('translations')
-      .upsert(translationRecords, { onConflict: 'kodik_id' });
+    await supabase.from('translations').upsert(translationRecords, { onConflict: 'kodik_id' });
 
-    if (translationError) throw translationError;
-
-    // 3. Обрабатываем связи (этот шаг оставляем в цикле, т.к. он сложнее для пакетирования)
     const animeIdMap = new Map(upsertedAnimes!.map(a => [a.shikimori_id, a.id]));
-    for (const rel of relationsToProcess) {
-        const animeId = animeIdMap.get(rel.shikimori_id);
-        if (animeId) {
-            await processRelations(supabase, animeId, rel.genres, 'genre');
-            await processRelations(supabase, animeId, rel.studios, 'studio');
-            await processRelations(supabase, animeId, rel.countries, 'country');
-        }
-    }
+    await processAllRelations(supabase, relationsToProcess, animeIdMap);
     
     return NextResponse.json({
       message: `Обработано. Сохранено/обновлено: ${upsertedAnimes!.length} записей.`,
@@ -143,6 +132,7 @@ export async function POST(request: Request) {
 
   } catch (err) {
     const message = err instanceof Error ? err.message : "Неизвестная ошибка";
+    console.error("Parser Error:", err);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

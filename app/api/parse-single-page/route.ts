@@ -32,7 +32,7 @@ async function processRelations(
           );
       }
     } catch (error) {
-      // Игнорируем ошибки, чтобы не останавливать парсинг
+      // Игнорируем ошибки
     }
   }
 }
@@ -75,62 +75,69 @@ export async function POST(request: Request) {
 
     let processedCount = 0;
     for (const anime of animeList) {
+      if (!anime.shikimori_id) {
+        continue;
+      }
+
       const material = anime.material_data || {};
       
-      // **ИСПРАВЛЕНИЕ:** Реализована логика приоритетов при создании записи
-      const record = {
-        kodik_id: anime.id,
+      // **ИСПРАВЛЕНИЕ:** В этом объекте больше нет поля kodik_id,
+      // так как мы его удалили из таблицы animes.
+      const animeRecord = {
         shikimori_id: anime.shikimori_id,
         kinopoisk_id: anime.kinopoisk_id,
-
-        // Приоритет названий: Shikimori -> Kodik
         title: material.anime_title || anime.title,
         title_orig: anime.title_orig,
-
         year: anime.year,
-
-        // Приоритет постера: Shikimori -> Другой источник
         poster_url: material.anime_poster_url || material.poster_url,
-
-        player_link: anime.link,
-
-        // Приоритет описания: Shikimori -> Другой источник
         description: material.anime_description || material.description,
-
         type: anime.type,
-
-        // Приоритет статуса: Shikimori
         status: material.anime_status,
-
         episodes_count: anime.episodes_count || material.episodes_total,
         rating_mpaa: material.rating_mpaa,
-
-        // Рейтинги и голоса сохраняются из всех доступных источников
         kinopoisk_rating: material.kinopoisk_rating,
         imdb_rating: material.imdb_rating,
         shikimori_rating: material.shikimori_rating,
-
         kinopoisk_votes: material.kinopoisk_votes,
         shikimori_votes: material.shikimori_votes,
-
         screenshots: { screenshots: anime.screenshots || [] },
         updated_at_kodik: anime.updated_at,
       };
 
-      const { data: upserted, error } = await supabase
+      const { data: upsertedAnime, error: animeError } = await supabase
         .from('animes')
-        .upsert(record, { onConflict: 'kodik_id' })
+        .upsert(animeRecord, { onConflict: 'shikimori_id' })
         .select('id')
         .single();
 
-      if (error) {
-        console.error(`Ошибка сохранения '${anime.title}':`, error.message);
+      if (animeError) {
+        console.error(`Ошибка сохранения аниме '${anime.title}':`, animeError.message);
         continue;
       }
 
-      await processRelations(supabase, upserted.id, material.anime_genres, 'genre');
-      await processRelations(supabase, upserted.id, material.anime_studios, 'studio');
-      await processRelations(supabase, upserted.id, material.countries, 'country');
+      // Информация об озвучке сохраняется в отдельную таблицу 'translations'
+      const translationRecord = {
+          anime_id: upsertedAnime.id,
+          kodik_id: anime.id,
+          title: anime.translation.title,
+          type: anime.translation.type,
+          quality: anime.quality,
+          player_link: anime.link,
+      };
+
+      const { error: translationError } = await supabase
+        .from('translations')
+        .upsert(translationRecord, { onConflict: 'kodik_id' });
+      
+      if (translationError) {
+          console.error(`Ошибка сохранения озвучки для '${anime.title}':`, translationError.message);
+          continue;
+      }
+
+      await processRelations(supabase, upsertedAnime.id, material.anime_genres, 'genre');
+      await processRelations(supabase, upsertedAnime.id, material.anime_studios, 'studio');
+      await processRelations(supabase, upsertedAnime.id, material.countries, 'country');
+      
       processedCount++;
     }
 

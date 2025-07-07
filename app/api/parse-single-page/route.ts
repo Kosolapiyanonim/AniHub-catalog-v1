@@ -46,7 +46,6 @@ export async function POST(request: Request) {
   try {
     const { nextPageUrl } = await request.json();
     
-    // **ИСПРАВЛЕНИЕ:** Вместо page используем nextPageUrl
     const baseUrl = "https://kodikapi.com/list";
     const requestUrl = nextPageUrl 
       ? `https://kodikapi.com${nextPageUrl}` 
@@ -55,7 +54,6 @@ export async function POST(request: Request) {
     const response = await fetch(requestUrl);
     if (!response.ok) {
         const errorText = await response.text();
-        // Пытаемся распарсить JSON, если не получается - показываем как текст
         try {
             const errorJson = JSON.parse(errorText);
             throw new Error(`Ошибка от API Kodik: ${response.status} - ${errorJson.error || errorText}`);
@@ -77,11 +75,11 @@ export async function POST(request: Request) {
 
     let processedCount = 0;
     for (const anime of animeList) {
-      if (!anime.shikimori_id) continue;
-
+      // **ИСПРАВЛЕНИЕ:** Убрана проверка на shikimori_id.
+      // Главное, чтобы был kodik_id, который есть всегда.
       const material = anime.material_data || {};
       const record = {
-        kodik_id: anime.id,
+        kodik_id: anime.id, // Это и есть kodik_id
         shikimori_id: anime.shikimori_id,
         kinopoisk_id: anime.kinopoisk_id,
         title: anime.title,
@@ -102,9 +100,10 @@ export async function POST(request: Request) {
         updated_at_kodik: anime.updated_at,
       };
 
+      // **ИСПРАВЛЕНИЕ:** Конфликт теперь решается по kodik_id.
       const { data: upserted, error } = await supabase
         .from('animes')
-        .upsert(record, { onConflict: 'shikimori_id' })
+        .upsert(record, { onConflict: 'kodik_id' })
         .select('id')
         .single();
 
@@ -122,7 +121,6 @@ export async function POST(request: Request) {
     return NextResponse.json({
       message: `Обработано. Сохранено/обновлено: ${processedCount} из ${animeList.length}.`,
       processed: processedCount,
-      // **ИСПРАВЛЕНИЕ:** Возвращаем новую ссылку на следующую страницу
       nextPageUrl: data.next_page || null,
     });
 

@@ -1,4 +1,4 @@
-// /components/anime-card.tsx
+// Замените содержимое файла: /components/anime-card.tsx
 'use client';
 
 import Link from 'next/link';
@@ -6,8 +6,9 @@ import Image from 'next/image';
 
 interface AnimeCardProps {
   anime: {
-    id: number;
-    shikimori_id: string;
+    id: number; // Внутренний ID из базы
+    kodik_id: string; // ID от Kodik
+    shikimori_id?: string; // Опциональный ID
     title: string;
     poster_url?: string;
     year?: number;
@@ -15,10 +16,14 @@ interface AnimeCardProps {
 }
 
 export function AnimeCard({ anime }: AnimeCardProps) {
-  if (!anime) return null;
+  // **ИСПРАВЛЕНИЕ:** Проверяем наличие kodik_id.
+  if (!anime || !anime.kodik_id) {
+    return null;
+  }
 
   return (
-    <Link href={`/anime/${anime.shikimori_id}`} key={anime.id} className="group cursor-pointer block">
+    // **ИСПРАВЛЕНИЕ:** Ссылка теперь строится на основе kodik_id.
+    <Link href={`/anime/${anime.kodik_id}`} key={anime.id} className="group cursor-pointer block">
       <div className="aspect-[2/3] overflow-hidden rounded-lg bg-slate-800 relative">
         {anime.poster_url ? (
           <Image

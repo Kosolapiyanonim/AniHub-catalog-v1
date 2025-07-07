@@ -1,39 +1,41 @@
+// Замените содержимое файла: /app/api/anime/[id]/route.ts
 import { NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
-    const { id } = params
+    const { id } = params;
 
-    // Проверяем, что ID выглядит как shikimori_id (число или строка с числом)
-    if (!id || id === "popular" || id === "search" || id === "database") {
-      return NextResponse.json({ error: "Invalid anime ID" }, { status: 400 })
+    // **ИСПРАВЛЕНИЕ:** ID теперь является kodik_id (например, "serial-12345").
+    // Проверяем, что он не пустой и не "undefined".
+    if (!id || id === "undefined") {
+      return NextResponse.json({ error: "Invalid anime ID format" }, { status: 400 });
     }
 
-    console.log("🎬 Fetching anime data for shikimori_id:", id)
+    console.log("🎬 Fetching anime data for kodik_id:", id);
 
-    // Ищем по shikimori_id в нашем VIEW
+    // **ИСПРАВЛЕНИЕ:** Ищем по kodik_id в нашем VIEW.
     const { data, error } = await supabase
       .from("animes_with_relations")
       .select("*")
-      .eq("shikimori_id", id)
+      .eq("kodik_id", id) // Ищем по kodik_id
       .limit(1)
-      .maybeSingle() // Используем maybeSingle вместо single
+      .single();
 
     if (error) {
-      console.error(`❌ Database error for shikimori_id ${id}:`, error)
-      return NextResponse.json({ error: "Database error" }, { status: 500 })
+      if (error.code === 'PGRST116') {
+         console.log(`❌ Anime with kodik_id ${id} not found in DB.`);
+         return NextResponse.json({ error: "Anime not found" }, { status: 404 });
+      }
+      console.error(`❌ Database error for kodik_id ${id}:`, error);
+      return NextResponse.json({ error: "Database error" }, { status: 500 });
     }
 
-    if (!data) {
-      console.log(`❌ Anime with shikimori_id ${id} not found`)
-      return NextResponse.json({ error: "Anime not found" }, { status: 404 })
-    }
+    console.log("✅ Anime found:", data.title);
+    return NextResponse.json(data);
 
-    console.log("✅ Anime found:", data.title)
-    return NextResponse.json(data)
   } catch (error) {
-    console.error("❌ Error in anime API:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error("❌ Error in anime API:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

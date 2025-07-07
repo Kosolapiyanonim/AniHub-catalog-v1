@@ -7,13 +7,13 @@ import { LoadingSpinner } from '@/components/loading-spinner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { useDebounce } from '@/hooks/use-debounce';
-import { Search, X } from 'lucide-react';
+import { Search, X, ChevronDown } from 'lucide-react';
 
 // Определяем типы данных
 interface Anime {
   id: number;
-  kodik_id: string; // Используется для совместимости, если нужно
   shikimori_id: string;
   title: string;
   poster_url?: string;
@@ -27,7 +27,7 @@ interface Filters {
   order: string;
   genres: string[];
   year: string;
-  status: string; // Изменено на строку для простоты
+  status: string;
   title: string;
 }
 
@@ -46,7 +46,6 @@ export default function CatalogPage() {
   const [hasMore, setHasMore] = useState(true);
   const [total, setTotal] = useState(0);
 
-  // Состояние для всех фильтров
   const [filters, setFilters] = useState<Filters>({
     page: 1,
     limit: 24,
@@ -62,17 +61,15 @@ export default function CatalogPage() {
   const [yearsList, setYearsList] = useState<number[]>([]);
   const debouncedSearchTerm = useDebounce(filters.title, 500);
 
-  // Загрузка списков для фильтров (жанры, года)
   useEffect(() => {
     fetch('/api/genres').then(res => res.json()).then(data => setGenresList(data.genres || []));
     fetch('/api/years').then(res => res.json()).then(data => setYearsList(data.years || []));
   }, []);
 
-  // Основная функция для загрузки данных
   const fetchCatalogData = useCallback(async (currentFilters: Filters, isNewFilter = false) => {
     if (isNewFilter) {
       setLoading(true);
-      setAnimes([]); // Очищаем список при новом фильтре
+      setAnimes([]);
     } else {
       setLoadingMore(true);
     }
@@ -105,7 +102,6 @@ export default function CatalogPage() {
     }
   }, []);
 
-  // Эффект для перезагрузки данных при изменении фильтров
   useEffect(() => {
     const newFilters = { ...filters, page: 1, title: debouncedSearchTerm };
     fetchCatalogData(newFilters, true);
@@ -139,8 +135,8 @@ export default function CatalogPage() {
       </div>
       
       {/* Панель фильтров */}
-      <div className="space-y-4 mb-8 p-4 bg-card rounded-lg border">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8 p-4 bg-card rounded-lg border">
+        <div className="lg:col-span-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input 
@@ -150,50 +146,47 @@ export default function CatalogPage() {
               onChange={e => handleFilterChange('title', e.target.value)}
             />
           </div>
-          <Select value={filters.year} onValueChange={value => handleFilterChange('year', value)}>
-            <SelectTrigger><SelectValue placeholder="Год" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Все года</SelectItem>
-              {yearsList.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
-            </SelectContent>
-          </Select>
-           <Select value={filters.status} onValueChange={value => handleFilterChange('status', value)}>
-            <SelectTrigger><SelectValue placeholder="Статус" /></SelectTrigger>
-            <SelectContent>
-              {Object.entries(STATUS_OPTIONS).map(([key, value]) => (
-                <SelectItem key={key} value={key}>{value}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={filters.sort} onValueChange={value => handleFilterChange('sort', value)}>
-            <SelectTrigger><SelectValue placeholder="Сортировка" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="shikimori_rating">По рейтингу</SelectItem>
-              <SelectItem value="shikimori_votes">По популярности</SelectItem>
-              <SelectItem value="year">По году</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
-        <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">Жанры</p>
-            <div className="flex flex-wrap gap-2">
-                {genresList.slice(0, 18).map(genre => (
-                    <Button 
-                        key={genre}
-                        variant={filters.genres.includes(genre) ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handleGenreToggle(genre)}
-                    >
-                        {genre}
-                    </Button>
-                ))}
-                {filters.genres.length > 0 && (
-                    <Button variant="ghost" size="sm" onClick={() => handleFilterChange('genres', [])}>
-                        <X className="w-4 h-4 mr-2" /> Сбросить
-                    </Button>
-                )}
-            </div>
-        </div>
+        
+        {/* **УЛУЧШЕНИЕ:** Фильтр по жанрам в виде выпадающего меню */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="w-full justify-between">
+              <span>{filters.genres.length > 0 ? `Жанры: ${filters.genres.length}` : 'Все жанры'}</span>
+              <ChevronDown className="h-4 w-4 opacity-50" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56 max-h-96 overflow-y-auto">
+            <DropdownMenuLabel>Выберите жанры</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {genresList.map((genre) => (
+              <DropdownMenuCheckboxItem
+                key={genre}
+                checked={filters.genres.includes(genre)}
+                onCheckedChange={() => handleGenreToggle(genre)}
+              >
+                {genre}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <Select value={filters.year} onValueChange={value => handleFilterChange('year', value)}>
+          <SelectTrigger><SelectValue placeholder="Год" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Все года</SelectItem>
+            {yearsList.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        
+        <Select value={filters.sort} onValueChange={value => handleFilterChange('sort', value)}>
+          <SelectTrigger><SelectValue placeholder="Сортировка" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="shikimori_rating">По рейтингу</SelectItem>
+            <SelectItem value="shikimori_votes">По популярности</SelectItem>
+            <SelectItem value="year">По году</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {loading && animes.length === 0 ? (

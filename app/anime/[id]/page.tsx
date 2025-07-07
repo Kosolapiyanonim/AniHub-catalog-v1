@@ -1,216 +1,146 @@
-import { supabase } from "@/lib/supabase"
-import Image from "next/image"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { notFound } from "next/navigation"
-import { Play, Star, Calendar, Clock, Users } from "lucide-react"
-import type { Metadata } from "next"
-import type { CatalogAnime } from "@/lib/types"
+// Создайте новый файл: /app/anime/[id]/page.tsx
+'use client';
 
-interface AnimePageProps {
-  params: {
-    id: string
-  }
+import { useState, useEffect } from 'react';
+import Image from 'next/image';
+import { notFound } from 'next/navigation';
+import { LoadingSpinner } from '@/components/loading-spinner';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Star, Tv, Film } from 'lucide-react';
+
+// Определяем типы данных, которые мы ожидаем от нашего API
+interface Translation {
+  id: number;
+  kodik_id: string;
+  title: string;
+  type: string;
+  quality: string;
+  player_link: string;
 }
 
-async function getAnimeData(shikimoriId: string): Promise<CatalogAnime | null> {
-  try {
-    console.log("🎬 Fetching anime data for shikimori_id:", shikimoriId)
+interface AnimeDetails {
+  id: number;
+  title: string;
+  poster_url?: string;
+  description?: string;
+  year?: number;
+  status?: string;
+  type?: string;
+  shikimori_rating?: number;
+  genres?: string[];
+  studios?: string[];
+  translations: Translation[];
+}
 
-    // Ищем по shikimori_id в нашем VIEW
-    const { data, error } = await supabase
-      .from("animes_with_relations")
-      .select("*")
-      .eq("shikimori_id", shikimoriId)
-      .single()
+export default function AnimePage({ params }: { params: { id: string } }) {
+  const [anime, setAnime] = useState<AnimeDetails | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTranslation, setActiveTranslation] = useState<Translation | null>(null);
 
-    if (error) {
-      console.error(`❌ Anime with shikimori_id ${shikimoriId} not found:`, error)
-      return null
+  useEffect(() => {
+    if (params.id) {
+      fetch(`/api/anime/${params.id}`)
+        .then(res => {
+          if (res.status === 404) {
+            notFound();
+          }
+          if (!res.ok) {
+            throw new Error('Failed to fetch anime data');
+          }
+          return res.json();
+        })
+        .then((data: AnimeDetails) => {
+          setAnime(data);
+          // Устанавливаем первую озвучку как активную по умолчанию
+          if (data.translations && data.translations.length > 0) {
+            setActiveTranslation(data.translations[0]);
+          }
+        })
+        .catch(err => setError(err.message))
+        .finally(() => setLoading(false));
     }
+  }, [params.id]);
 
-    console.log("✅ Anime found:", data.title)
-    return data as CatalogAnime
-  } catch (error) {
-    console.error("❌ Error fetching anime:", error)
-    return null
-  }
-}
-
-export async function generateMetadata({ params }: AnimePageProps): Promise<Metadata> {
-  const anime = await getAnimeData(params.id)
-
-  return {
-    title: anime ? `${anime.title} - Смотреть онлайн` : "Аниме не найдено",
-    description: anime?.description || "Смотреть аниме онлайн бесплатно",
-  }
-}
-
-export default async function AnimePage({ params }: AnimePageProps) {
-  const anime = await getAnimeData(params.id)
-
-  if (!anime) {
-    notFound()
+  if (loading) {
+    return <div className="flex justify-center items-center min-h-screen"><LoadingSpinner size="lg" /></div>;
   }
 
-  const posterUrl = anime.poster_url || "/placeholder.svg?height=600&width=400"
-  const playerUrl = anime.player_link?.startsWith("http") ? anime.player_link : `https:${anime.player_link}`
+  if (error || !anime) {
+    return <div className="text-center text-red-500 pt-32">Ошибка: Не удалось загрузить данные.</div>;
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 pt-16">
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Постер */}
-          <div className="lg:col-span-1">
-            <Card className="overflow-hidden">
-              <div className="relative aspect-[3/4]">
-                <Image
-                  src={posterUrl || "/placeholder.svg"}
-                  alt={anime.title}
-                  fill
-                  className="object-cover"
-                  priority
-                  unoptimized
-                />
-              </div>
-            </Card>
+    <div className="container mx-auto px-4 py-8 pt-24">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
+        {/* Левая колонка с постером */}
+        <aside className="md:col-span-1 lg:col-span-1">
+          <div className="aspect-[2/3] relative rounded-lg overflow-hidden">
+            <Image
+              src={anime.poster_url || '/placeholder.svg'}
+              alt={`Постер ${anime.title}`}
+              fill
+              className="object-cover"
+              unoptimized
+            />
           </div>
-
-          {/* Информация и плеер */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Заголовок и метаданные */}
-            <div>
-              <h1 className="text-4xl font-bold text-white mb-2">{anime.title}</h1>
-              {anime.title_orig && <p className="text-xl text-gray-300 mb-4">{anime.title_orig}</p>}
-
-              <div className="flex flex-wrap gap-4 mb-6">
-                {anime.shikimori_rating && anime.shikimori_rating > 0 && (
-                  <div className="flex items-center gap-1 bg-yellow-500 text-black px-3 py-1 rounded-full">
-                    <Star className="w-4 h-4 fill-current" />
-                    <span className="font-semibold">{anime.shikimori_rating}</span>
-                  </div>
-                )}
-
-                {anime.year && (
-                  <div className="flex items-center gap-1 bg-blue-500 text-white px-3 py-1 rounded-full">
-                    <Calendar className="w-4 h-4" />
-                    <span>{anime.year}</span>
-                  </div>
-                )}
-
-                {anime.episodes_count && (
-                  <div className="flex items-center gap-1 bg-green-500 text-white px-3 py-1 rounded-full">
-                    <Clock className="w-4 h-4" />
-                    <span>{anime.episodes_count} эп.</span>
-                  </div>
-                )}
-
-                {anime.shikimori_votes && anime.shikimori_votes > 0 && (
-                  <div className="flex items-center gap-1 bg-purple-500 text-white px-3 py-1 rounded-full">
-                    <Users className="w-4 h-4" />
-                    <span>{anime.shikimori_votes.toLocaleString()}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Жанры */}
-              {anime.genres && anime.genres.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {anime.genres.slice(0, 8).map((genre) => (
-                    <Badge key={genre} variant="secondary">
-                      {genre}
-                    </Badge>
-                  ))}
+          <div className="mt-4 space-y-2">
+             {anime.shikimori_rating && (
+                <div className="flex items-center gap-2 text-lg">
+                    <Star className="w-5 h-5 text-yellow-400" />
+                    <span className="font-bold">{anime.shikimori_rating}</span>
+                    <span className="text-sm text-muted-foreground">/ 10</span>
                 </div>
-              )}
+             )}
+             <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                {anime.type === 'anime-serial' ? <Tv className="w-4 h-4" /> : <Film className="w-4 h-4" />}
+                <span>{anime.year}</span>
+                <span className="font-bold">·</span>
+                <span>{anime.status}</span>
+             </div>
+          </div>
+        </aside>
+
+        {/* Правая колонка с информацией и плеером */}
+        <main className="md:col-span-2 lg:col-span-3">
+          <h1 className="text-4xl font-bold mb-4">{anime.title}</h1>
+          <div className="flex flex-wrap gap-2 mb-6">
+            {anime.genres?.map(genre => <Badge key={genre} variant="secondary">{genre}</Badge>)}
+          </div>
+          <p className="text-muted-foreground mb-8">{anime.description || "Описание отсутствует."}</p>
+
+          {/* Плеер */}
+          <div className="aspect-video bg-black rounded-lg mb-4">
+            {activeTranslation ? (
+              <iframe
+                src={activeTranslation.player_link}
+                frameBorder="0"
+                allowFullScreen
+                className="w-full h-full rounded-lg"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-muted-foreground">Выберите озвучку для просмотра</div>
+            )}
+          </div>
+          
+          {/* Переключатель озвучек */}
+          <div>
+            <h3 className="text-xl font-semibold mb-3">Озвучки:</h3>
+            <div className="flex flex-wrap gap-2">
+              {anime.translations.map(tr => (
+                <Button
+                  key={tr.id}
+                  variant={activeTranslation?.id === tr.id ? "default" : "outline"}
+                  onClick={() => setActiveTranslation(tr)}
+                >
+                  {tr.title}
+                </Button>
+              ))}
             </div>
-
-            {/* Плеер */}
-            {playerUrl && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Play className="w-5 h-5" />
-                    Смотреть онлайн
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="aspect-video bg-black rounded-lg overflow-hidden">
-                    <iframe
-                      src={playerUrl}
-                      className="w-full h-full"
-                      allowFullScreen
-                      title={anime.title}
-                      frameBorder="0"
-                    />
-                  </div>
-                  <div className="mt-4 flex items-center justify-between">
-                    <div className="text-sm text-gray-600">
-                      <p>Качество: HD</p>
-                      <p>Озвучка: Русская</p>
-                    </div>
-                    <Button size="lg">
-                      <Play className="w-4 h-4 mr-2" />
-                      Смотреть
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Описание */}
-            {anime.description && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Описание</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-700 leading-relaxed">{anime.description}</p>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Дополнительная информация */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Дополнительная информация</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {anime.status && (
-                    <div>
-                      <span className="font-semibold">Статус:</span>
-                      <span className="ml-2">{anime.status}</span>
-                    </div>
-                  )}
-
-                  {anime.studios && anime.studios.length > 0 && (
-                    <div>
-                      <span className="font-semibold">Студия:</span>
-                      <span className="ml-2">{anime.studios.join(", ")}</span>
-                    </div>
-                  )}
-
-                  {anime.countries && anime.countries.length > 0 && (
-                    <div>
-                      <span className="font-semibold">Страна:</span>
-                      <span className="ml-2">{anime.countries.join(", ")}</span>
-                    </div>
-                  )}
-
-                  {anime.episodes_count && (
-                    <div>
-                      <span className="font-semibold">Эпизоды:</span>
-                      <span className="ml-2">{anime.episodes_count}</span>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
           </div>
-        </div>
+        </main>
       </div>
     </div>
-  )
+  );
 }

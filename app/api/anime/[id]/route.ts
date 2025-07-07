@@ -1,41 +1,54 @@
 // Замените содержимое файла: /app/api/anime/[id]/route.ts
-import { NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
+import { NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
     const { id } = params;
 
-    // **ИСПРАВЛЕНИЕ:** ID теперь является kodik_id (например, "serial-12345").
-    // Проверяем, что он не пустой и не "undefined".
-    if (!id || id === "undefined") {
+    // ID теперь является shikimori_id, так как он уникален для аниме в целом
+    if (!id || id === "undefined" || !/^\d+$/.test(id)) {
       return NextResponse.json({ error: "Invalid anime ID format" }, { status: 400 });
     }
 
-    console.log("🎬 Fetching anime data for kodik_id:", id);
+    console.log("🎬 Fetching anime data for shikimori_id:", id);
 
-    // **ИСПРАВЛЕНИЕ:** Ищем по kodik_id в нашем VIEW.
-    const { data, error } = await supabase
+    // Шаг 1: Находим основную информацию об аниме
+    const { data: animeData, error: animeError } = await supabase
       .from("animes_with_relations")
       .select("*")
-      .eq("kodik_id", id) // Ищем по kodik_id
-      .limit(1)
+      .eq("shikimori_id", id)
       .single();
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-         console.log(`❌ Anime with kodik_id ${id} not found in DB.`);
+    if (animeError) {
+      if (animeError.code === 'PGRST116') {
          return NextResponse.json({ error: "Anime not found" }, { status: 404 });
       }
-      console.error(`❌ Database error for kodik_id ${id}:`, error);
-      return NextResponse.json({ error: "Database error" }, { status: 500 });
+      throw animeError;
     }
 
-    console.log("✅ Anime found:", data.title);
-    return NextResponse.json(data);
+    // Шаг 2: Находим все связанные озвучки
+    const { data: translationsData, error: translationsError } = await supabase
+      .from("translations")
+      .select("*")
+      .eq("anime_id", animeData.id)
+      .order("title");
+
+    if (translationsError) {
+      throw translationsError;
+    }
+
+    // Шаг 3: Объединяем все в один ответ
+    const responseData = {
+      ...animeData,
+      translations: translationsData || [],
+    };
+
+    return NextResponse.json(responseData);
 
   } catch (error) {
-    console.error("❌ Error in anime API:", error);
+    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error("❌ Error in anime API [id]:", message);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

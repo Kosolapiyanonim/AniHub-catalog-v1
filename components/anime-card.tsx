@@ -7,8 +7,7 @@ import Image from 'next/image';
 interface AnimeCardProps {
   anime: {
     id: number; // Внутренний ID из базы
-    kodik_id: string; // ID от Kodik
-    shikimori_id?: string; // Опциональный ID
+    shikimori_id: string; // ID от Shikimori
     title: string;
     poster_url?: string;
     year?: number;
@@ -16,14 +15,14 @@ interface AnimeCardProps {
 }
 
 export function AnimeCard({ anime }: AnimeCardProps) {
-  // **ИСПРАВЛЕНИЕ:** Проверяем наличие kodik_id, так как он используется для ссылки.
-  if (!anime || !anime.kodik_id) {
+  // Проверяем, что у аниме есть shikimori_id, так как он используется для ссылки.
+  if (!anime || !anime.shikimori_id) {
     return null;
   }
 
   return (
-    // **ИСПРАВЛЕНИЕ:** Ссылка теперь всегда строится на основе kodik_id.
-    <Link href={`/anime/${anime.kodik_id}`} key={anime.id} className="group cursor-pointer block">
+    // Ссылка теперь всегда строится на основе shikimori_id.
+    <Link href={`/anime/${anime.shikimori_id}`} key={anime.id} className="group cursor-pointer block">
       <div className="aspect-[2/3] overflow-hidden rounded-lg bg-slate-800 relative">
         {anime.poster_url ? (
           <Image

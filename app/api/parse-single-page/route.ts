@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import type { KodikAnimeData } from "@/lib/types";
 
-// Вспомогательная функция для обработки связей (жанры, студии, страны)
+// ... (вспомогательная функция processRelations остается без изменений)
 async function processRelations(
   supabaseClient: any,
   anime_id: number,
@@ -31,11 +31,10 @@ async function processRelations(
             { onConflict: "anime_id,relation_id,relation_type" }
           );
       }
-    } catch (error) {
-      // Игнорируем ошибки
-    }
+    } catch (error) {}
   }
 }
+
 
 export async function POST(request: Request) {
   const KODIK_TOKEN = process.env.KODIK_API_TOKEN;
@@ -45,45 +44,30 @@ export async function POST(request: Request) {
 
   try {
     const { nextPageUrl } = await request.json();
-    
     const baseUrl = "https://kodikapi.com/list";
     const requestUrl = nextPageUrl 
       ? `https://kodikapi.com${nextPageUrl}` 
       : `${baseUrl}?token=${KODIK_TOKEN}&types=anime,anime-serial&with_material_data=true&limit=100`;
 
     const response = await fetch(requestUrl);
-    if (!response.ok) {
-        const errorText = await response.text();
-        try {
-            const errorJson = JSON.parse(errorText);
-            throw new Error(`Ошибка от API Kodik: ${response.status} - ${errorJson.error || errorText}`);
-        } catch {
-            throw new Error(`Ошибка от API Kodik: ${response.status} - ${errorText}`);
-        }
-    }
+    if (!response.ok) throw new Error(`Ошибка от API Kodik: ${response.status}`);
 
     const data = await response.json();
     const animeList: KodikAnimeData[] = data.results || [];
-
     if (animeList.length === 0) {
-      return NextResponse.json({
-        message: `Страница пуста или это конец.`,
-        processed: 0,
-        nextPageUrl: data.next_page || null,
-      });
+      return NextResponse.json({ message: `Страница пуста.`, processed: 0, nextPageUrl: data.next_page || null });
     }
 
-    let processedCount = 0;
-    for (const anime of animeList) {
-      if (!anime.shikimori_id) {
-        continue;
-      }
+    // --- ОПТИМИЗАЦИЯ ---
+    const animeRecordsToUpsert: any[] = [];
+    const relationsToProcess: any[] = [];
+    const translationsToUpsertMap = new Map();
 
+    for (const anime of animeList) {
+      if (!anime.shikimori_id) continue;
       const material = anime.material_data || {};
       
-      // **ИСПРАВЛЕНИЕ:** В этом объекте больше нет поля kodik_id,
-      // так как мы его удалили из таблицы animes.
-      const animeRecord = {
+      animeRecordsToUpsert.push({
         shikimori_id: anime.shikimori_id,
         kinopoisk_id: anime.kinopoisk_id,
         title: material.anime_title || anime.title,
@@ -102,48 +86,58 @@ export async function POST(request: Request) {
         shikimori_votes: material.shikimori_votes,
         screenshots: { screenshots: anime.screenshots || [] },
         updated_at_kodik: anime.updated_at,
-      };
+      });
 
-      const { data: upsertedAnime, error: animeError } = await supabase
-        .from('animes')
-        .upsert(animeRecord, { onConflict: 'shikimori_id' })
-        .select('id')
-        .single();
-
-      if (animeError) {
-        console.error(`Ошибка сохранения аниме '${anime.title}':`, animeError.message);
-        continue;
-      }
-
-      // Информация об озвучке сохраняется в отдельную таблицу 'translations'
-      const translationRecord = {
-          anime_id: upsertedAnime.id,
+      translationsToUpsertMap.set(anime.shikimori_id, {
           kodik_id: anime.id,
           title: anime.translation.title,
           type: anime.translation.type,
           quality: anime.quality,
           player_link: anime.link,
-      };
+      });
 
-      const { error: translationError } = await supabase
-        .from('translations')
-        .upsert(translationRecord, { onConflict: 'kodik_id' });
-      
-      if (translationError) {
-          console.error(`Ошибка сохранения озвучки для '${anime.title}':`, translationError.message);
-          continue;
-      }
-
-      await processRelations(supabase, upsertedAnime.id, material.anime_genres, 'genre');
-      await processRelations(supabase, upsertedAnime.id, material.anime_studios, 'studio');
-      await processRelations(supabase, upsertedAnime.id, material.countries, 'country');
-      
-      processedCount++;
+      relationsToProcess.push({
+          shikimori_id: anime.shikimori_id,
+          genres: material.anime_genres,
+          studios: material.anime_studios,
+          countries: material.countries,
+      });
     }
 
+    // 1. Пакетно сохраняем основную информацию об аниме
+    const { data: upsertedAnimes, error: animeError } = await supabase
+      .from('animes')
+      .upsert(animeRecordsToUpsert, { onConflict: 'shikimori_id' })
+      .select('id, shikimori_id');
+
+    if (animeError) throw animeError;
+
+    // 2. Пакетно сохраняем озвучки
+    const translationRecords = upsertedAnimes!.map(anime => ({
+        anime_id: anime.id,
+        ...translationsToUpsertMap.get(anime.shikimori_id),
+    }));
+
+    const { error: translationError } = await supabase
+      .from('translations')
+      .upsert(translationRecords, { onConflict: 'kodik_id' });
+
+    if (translationError) throw translationError;
+
+    // 3. Обрабатываем связи (этот шаг оставляем в цикле, т.к. он сложнее для пакетирования)
+    const animeIdMap = new Map(upsertedAnimes!.map(a => [a.shikimori_id, a.id]));
+    for (const rel of relationsToProcess) {
+        const animeId = animeIdMap.get(rel.shikimori_id);
+        if (animeId) {
+            await processRelations(supabase, animeId, rel.genres, 'genre');
+            await processRelations(supabase, animeId, rel.studios, 'studio');
+            await processRelations(supabase, animeId, rel.countries, 'country');
+        }
+    }
+    
     return NextResponse.json({
-      message: `Обработано. Сохранено/обновлено: ${processedCount} из ${animeList.length}.`,
-      processed: processedCount,
+      message: `Обработано. Сохранено/обновлено: ${upsertedAnimes!.length} записей.`,
+      processed: upsertedAnimes!.length,
       nextPageUrl: data.next_page || null,
     });
 

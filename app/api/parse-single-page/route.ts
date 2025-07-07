@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import type { KodikAnimeData } from "@/lib/types";
 
-// ... (вспомогательная функция processAllRelations остается без изменений)
+// Вспомогательная функция для пакетной обработки связей
 async function processAllRelations(supabaseClient: any, relationsToProcess: any[], animeIdMap: Map<string, number>) {
     const allGenres = new Set<string>();
     const allStudios = new Set<string>();

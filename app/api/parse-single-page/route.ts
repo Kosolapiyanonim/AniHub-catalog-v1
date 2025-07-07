@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import type { KodikAnimeData } from "@/lib/types";
 
-// Пакетная функция для обработки связей (жанры, студии, страны)
+// ... (вспомогательная функция processAllRelations остается без изменений)
 async function processAllRelations(supabaseClient: any, relationsToProcess: any[], animeIdMap: Map<string, number>) {
     const allGenres = new Set<string>();
     const allStudios = new Set<string>();
@@ -16,7 +16,6 @@ async function processAllRelations(supabaseClient: any, relationsToProcess: any[
         rel.countries?.forEach((c: string) => allCountries.add(c));
     });
 
-    // Пакетно сохраняем все уникальные жанры, студии, страны
     const { data: genresData } = await supabaseClient.from('genres').upsert(Array.from(allGenres).map(name => ({ name })), { onConflict: 'name' }).select();
     const { data: studiosData } = await supabaseClient.from('studios').upsert(Array.from(allStudios).map(name => ({ name })), { onConflict: 'name' }).select();
     const { data: countriesData } = await supabaseClient.from('countries').upsert(Array.from(allCountries).map(name => ({ name })), { onConflict: 'name' }).select();
@@ -50,22 +49,23 @@ export async function POST(request: Request) {
   try {
     const { nextPageUrl } = await request.json();
     
-    const baseDomain = "https://kodikapi.com";
-    let requestUrl: string;
+    // **ИСПРАВЛЕНИЕ:** Используем конструктор URL для 100% надежности
+    const baseUrl = "https://kodikapi.com";
+    let targetUrl: URL;
 
     if (nextPageUrl) {
-      requestUrl = `${baseDomain}${nextPageUrl}`;
+      // nextPageUrl приходит как "/list?cursor=..."
+      targetUrl = new URL(nextPageUrl, baseUrl);
     } else {
-      const params = new URLSearchParams({
-        token: KODIK_TOKEN,
-        types: 'anime,anime-serial',
-        with_material_data: 'true',
-        limit: '100'
-      });
-      requestUrl = `${baseDomain}/list?${params.toString()}`;
+      // Для первого запроса
+      targetUrl = new URL("/list", baseUrl);
+      targetUrl.searchParams.set("token", KODIK_TOKEN);
+      targetUrl.searchParams.set("types", "anime,anime-serial");
+      targetUrl.searchParams.set("with_material_data", "true");
+      targetUrl.searchParams.set("limit", "100");
     }
 
-    const response = await fetch(requestUrl);
+    const response = await fetch(targetUrl);
     if (!response.ok) throw new Error(`Ошибка от API Kodik: ${response.status}`);
 
     const data = await response.json();

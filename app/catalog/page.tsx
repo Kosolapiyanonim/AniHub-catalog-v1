@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { AnimeCard } from '@/components/anime-card';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { Button } from '@/components/ui/button';
-import { CatalogFilters } from '@/components/catalog-filters'; // Импортируем новый компонент
+import { CatalogFilters } from '@/components/catalog-filters'; // Импортируем ваш компонент
 
 // --- Типы и константы ---
 interface Anime {
@@ -20,7 +20,7 @@ const INITIAL_FILTERS = {
   page: 1, limit: 28, sort: 'shikimori_rating', order: 'desc',
   genres: [], studios: [], yearFrom: '', yearTo: '',
   episodesFrom: '', episodesTo: '', ratingFrom: '', ratingTo: '',
-  status: 'all', type: [], title: '',
+  status: 'all', type: [], title: '', tags: [],
 };
 
 // --- Основной компонент страницы ---
@@ -44,9 +44,9 @@ export default function CatalogPage() {
       sort: currentFilters.sort,
       order: currentFilters.order,
     });
-    // Добавляем все фильтры в параметры запроса
+    
     Object.entries(currentFilters).forEach(([key, value]) => {
-      if (key !== 'page' && key !== 'limit' && key !== 'sort' && key !== 'order') {
+      if (!['page', 'limit', 'sort', 'order'].includes(key)) {
         if (Array.isArray(value) && value.length > 0) {
           params.append(key, value.join(','));
         } else if (typeof value === 'string' && value && value !== 'all') {
@@ -75,6 +75,11 @@ export default function CatalogPage() {
     setFilters(filtersToApply);
     fetchCatalogData(filtersToApply, true);
   };
+  
+  const handleResetFilters = () => {
+      setFilters(INITIAL_FILTERS);
+      fetchCatalogData(INITIAL_FILTERS, true);
+  }
 
   const loadMore = () => {
     if (!loadingMore && hasMore) {
@@ -92,15 +97,14 @@ export default function CatalogPage() {
   return (
     <div className="container mx-auto px-4 pt-20">
       <div className="flex flex-col lg:flex-row gap-8">
-        {/* Левая колонка с фильтрами */}
         <aside className="w-full lg:w-80 lg:sticky top-20 h-full">
             <CatalogFilters 
-                initialFilters={INITIAL_FILTERS}
+                onFiltersChange={setFilters}
                 onApplyFilters={handleApplyFilters}
+                onResetFilters={handleResetFilters}
             />
         </aside>
 
-        {/* Правая колонка с контентом */}
         <main className="flex-1">
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-2xl font-bold">Результаты</h1>

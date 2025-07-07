@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import type { KodikAnimeData } from "@/lib/types";
 
-// Вспомогательная функция для обработки связей
+// Вспомогательная функция для пакетной обработки связей
 async function processAllRelations(supabaseClient: any, relationsToProcess: any[], animeIdMap: Map<string, number>) {
     const allGenres = new Set<string>();
     const allStudios = new Set<string>();
@@ -16,6 +16,7 @@ async function processAllRelations(supabaseClient: any, relationsToProcess: any[
         rel.countries?.forEach((c: string) => allCountries.add(c));
     });
 
+    // Пакетно сохраняем все уникальные жанры, студии, страны
     const { data: genresData } = await supabaseClient.from('genres').upsert(Array.from(allGenres).map(name => ({ name })), { onConflict: 'name' }).select();
     const { data: studiosData } = await supabaseClient.from('studios').upsert(Array.from(allStudios).map(name => ({ name })), { onConflict: 'name' }).select();
     const { data: countriesData } = await supabaseClient.from('countries').upsert(Array.from(allCountries).map(name => ({ name })), { onConflict: 'name' }).select();
@@ -47,7 +48,17 @@ export async function POST(request: Request) {
   }
 
   try {
-    const requestUrl = `https://kodikapi.com/list?token=${KODIK_TOKEN}&types=anime,anime-serial&with_material_data=true&limit=100&sort=updated_at&order=desc`;
+    // Формируем URL для получения последних обновлений
+    const baseDomain = "https://kodikapi.com";
+    const params = new URLSearchParams({
+        token: KODIK_TOKEN,
+        types: 'anime,anime-serial',
+        with_material_data: 'true',
+        limit: '100',
+        sort: 'updated_at',
+        order: 'desc'
+    });
+    const requestUrl = `${baseDomain}/list?${params.toString()}`;
 
     const response = await fetch(requestUrl);
     if (!response.ok) throw new Error(`Ошибка от API Kodik: ${response.status}`);
@@ -59,7 +70,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: `Новых обновлений не найдено.`, processed: 0 });
     }
 
-    // **ИСПРАВЛЕНИЕ:** Аналогичная логика дедупликации
+    // Собираем уникальные аниме по shikimori_id, чтобы избежать дубликатов
     const uniqueAnimeMap = new Map<string, KodikAnimeData>();
     for (const anime of animeList) {
         if (anime.shikimori_id && !uniqueAnimeMap.has(anime.shikimori_id)) {
@@ -72,6 +83,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: `На странице не найдено записей с shikimori_id.`, processed: 0 });
     }
     
+    // Готовим записи только для уникальных аниме
     const animeRecordsToUpsert = uniqueAnimeList.map(anime => {
         const material = anime.material_data || {};
         return {
@@ -96,6 +108,7 @@ export async function POST(request: Request) {
         };
     });
 
+    // 1. Пакетно сохраняем УНИКАЛЬНУЮ информацию об аниме и получаем их ID
     const { data: upsertedAnimes, error: animeError } = await supabase
       .from('animes')
       .upsert(animeRecordsToUpsert, { onConflict: 'shikimori_id' })
@@ -105,6 +118,7 @@ export async function POST(request: Request) {
 
     const animeIdMap = new Map(upsertedAnimes!.map(a => [a.shikimori_id, a.id]));
 
+    // 2. Готовим ВСЕ озвучки из исходного списка для пакетной вставки
     const translationRecordsToUpsert = animeList.map(anime => {
         const anime_id = animeIdMap.get(anime.shikimori_id!);
         if (!anime_id) return null;
@@ -122,6 +136,7 @@ export async function POST(request: Request) {
         await supabase.from('translations').upsert(translationRecordsToUpsert, { onConflict: 'kodik_id' });
     }
     
+    // 3. Готовим и обрабатываем связи для уникальных аниме
     const relationsToProcess = uniqueAnimeList.map(anime => ({
         shikimori_id: anime.shikimori_id,
         genres: anime.material_data?.anime_genres,

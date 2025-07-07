@@ -48,10 +48,24 @@ export async function POST(request: Request) {
 
   try {
     const { nextPageUrl } = await request.json();
-    const baseUrl = "https://kodikapi.com/list";
-    const requestUrl = nextPageUrl 
-      ? `https://kodikapi.com${nextPageUrl}` 
-      : `${baseUrl}?token=${KODIK_TOKEN}&types=anime,anime-serial&with_material_data=true&limit=100`;
+    
+    // **ИСПРАВЛЕНИЕ:** Переписана логика формирования URL для надежности
+    const baseDomain = "https://kodikapi.com";
+    let requestUrl: string;
+
+    if (nextPageUrl) {
+      // Если есть ссылка на следующую страницу, используем ее
+      requestUrl = `${baseDomain}${nextPageUrl}`;
+    } else {
+      // Для самого первого запроса формируем URL с параметрами
+      const params = new URLSearchParams({
+        token: KODIK_TOKEN,
+        types: 'anime,anime-serial',
+        with_material_data: 'true',
+        limit: '100'
+      });
+      requestUrl = `${baseDomain}/list?${params.toString()}`;
+    }
 
     const response = await fetch(requestUrl);
     if (!response.ok) throw new Error(`Ошибка от API Kodik: ${response.status}`);
@@ -62,7 +76,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: `Страница пуста.`, processed: 0, nextPageUrl: data.next_page || null });
     }
 
-    // **ИСПРАВЛЕНИЕ:** Сначала собираем уникальные аниме по shikimori_id
     const uniqueAnimeMap = new Map<string, KodikAnimeData>();
     for (const anime of animeList) {
         if (anime.shikimori_id && !uniqueAnimeMap.has(anime.shikimori_id)) {
@@ -75,7 +88,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: `На странице не найдено записей с shikimori_id.`, processed: 0, nextPageUrl: data.next_page || null });
     }
     
-    // Готовим записи только для уникальных аниме
     const animeRecordsToUpsert = uniqueAnimeList.map(anime => {
         const material = anime.material_data || {};
         return {
@@ -100,7 +112,6 @@ export async function POST(request: Request) {
         };
     });
 
-    // 1. Пакетно сохраняем УНИКАЛЬНУЮ информацию об аниме и получаем их ID
     const { data: upsertedAnimes, error: animeError } = await supabase
       .from('animes')
       .upsert(animeRecordsToUpsert, { onConflict: 'shikimori_id' })
@@ -110,7 +121,6 @@ export async function POST(request: Request) {
 
     const animeIdMap = new Map(upsertedAnimes!.map(a => [a.shikimori_id, a.id]));
 
-    // 2. Готовим ВСЕ озвучки из исходного списка для пакетной вставки
     const translationRecordsToUpsert = animeList.map(anime => {
         const anime_id = animeIdMap.get(anime.shikimori_id!);
         if (!anime_id) return null;
@@ -128,7 +138,6 @@ export async function POST(request: Request) {
         await supabase.from('translations').upsert(translationRecordsToUpsert, { onConflict: 'kodik_id' });
     }
     
-    // 3. Готовим и обрабатываем связи для уникальных аниме
     const relationsToProcess = uniqueAnimeList.map(anime => ({
         shikimori_id: anime.shikimori_id,
         genres: anime.material_data?.anime_genres,

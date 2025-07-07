@@ -75,32 +75,48 @@ export async function POST(request: Request) {
 
     let processedCount = 0;
     for (const anime of animeList) {
-      // **ИСПРАВЛЕНИЕ:** Убрана проверка на shikimori_id.
-      // Главное, чтобы был kodik_id, который есть всегда.
       const material = anime.material_data || {};
+      
+      // **ИСПРАВЛЕНИЕ:** Реализована логика приоритетов при создании записи
       const record = {
-        kodik_id: anime.id, // Это и есть kodik_id
+        kodik_id: anime.id,
         shikimori_id: anime.shikimori_id,
         kinopoisk_id: anime.kinopoisk_id,
-        title: anime.title,
+
+        // Приоритет названий: Shikimori -> Kodik
+        title: material.anime_title || anime.title,
         title_orig: anime.title_orig,
+
         year: anime.year,
+
+        // Приоритет постера: Shikimori -> Другой источник
         poster_url: material.anime_poster_url || material.poster_url,
+
         player_link: anime.link,
-        description: material.description || material.anime_description,
+
+        // Приоритет описания: Shikimori -> Другой источник
+        description: material.anime_description || material.description,
+
         type: anime.type,
+
+        // Приоритет статуса: Shikimori
         status: material.anime_status,
+
         episodes_count: anime.episodes_count || material.episodes_total,
         rating_mpaa: material.rating_mpaa,
+
+        // Рейтинги и голоса сохраняются из всех доступных источников
         kinopoisk_rating: material.kinopoisk_rating,
+        imdb_rating: material.imdb_rating,
         shikimori_rating: material.shikimori_rating,
+
         kinopoisk_votes: material.kinopoisk_votes,
         shikimori_votes: material.shikimori_votes,
+
         screenshots: { screenshots: anime.screenshots || [] },
         updated_at_kodik: anime.updated_at,
       };
 
-      // **ИСПРАВЛЕНИЕ:** Конфликт теперь решается по kodik_id.
       const { data: upserted, error } = await supabase
         .from('animes')
         .upsert(record, { onConflict: 'kodik_id' })

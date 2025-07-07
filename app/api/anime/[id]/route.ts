@@ -4,20 +4,20 @@ import { supabase } from "@/lib/supabase";
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
-    const { id: shikimoriId } = params; // ID теперь является shikimori_id
+    const { id } = params;
 
-    // Проверяем, что ID является числом
-    if (!shikimoriId || !/^\d+$/.test(shikimoriId)) {
+    // ID теперь является shikimori_id, так как он уникален для аниме в целом
+    if (!id || id === "undefined" || !/^\d+$/.test(id)) {
       return NextResponse.json({ error: "Invalid anime ID format" }, { status: 400 });
     }
 
-    console.log("🎬 Fetching anime data for shikimori_id:", shikimoriId);
+    console.log("🎬 Fetching anime data for shikimori_id:", id);
 
-    // Шаг 1: Найти основную информацию об аниме по shikimori_id
+    // Шаг 1: Находим основную информацию об аниме
     const { data: animeData, error: animeError } = await supabase
       .from("animes_with_relations")
       .select("*")
-      .eq("shikimori_id", shikimoriId)
+      .eq("shikimori_id", id)
       .single();
 
     if (animeError) {
@@ -27,7 +27,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       throw animeError;
     }
 
-    // Шаг 2: Найти все связанные озвучки по главному ID аниме
+    // Шаг 2: Находим все связанные озвучки
     const { data: translationsData, error: translationsError } = await supabase
       .from("translations")
       .select("*")

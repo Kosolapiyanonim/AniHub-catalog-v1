@@ -11,7 +11,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuChe
 import { useDebounce } from '@/hooks/use-debounce';
 import { Search, X, ChevronDown } from 'lucide-react';
 
-// Определяем типы данных
+// --- Типы и константы для фильтров ---
 interface Anime {
   id: number;
   shikimori_id: string;
@@ -26,18 +26,19 @@ interface Filters {
   sort: string;
   order: string;
   genres: string[];
+  studios: string[];
   year: string;
   status: string;
+  type: string;
+  episodes: string;
   title: string;
 }
 
-const STATUS_OPTIONS = {
-  'all': 'Все статусы',
-  'ongoing': 'Онгоинг',
-  'released': 'Вышел',
-  'anons': 'Анонс',
-};
+const STATUS_OPTIONS = { 'all': 'Все статусы', 'ongoing': 'Онгоинг', 'released': 'Вышел', 'anons': 'Анонс' };
+const TYPE_OPTIONS = { 'all': 'Все типы', 'anime': 'Фильм', 'anime-serial': 'ТВ-сериал', 'OVA': 'OVA', 'ONA': 'ONA' };
+const EPISODE_OPTIONS = { 'all': 'Все серии', 'short': 'Короткие (1-6)', 'standard': 'Стандарт (7-26)', 'long': 'Длинные (27+)' };
 
+// --- Основной компонент страницы ---
 export default function CatalogPage() {
   const [animes, setAnimes] = useState<Anime[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,45 +47,44 @@ export default function CatalogPage() {
   const [hasMore, setHasMore] = useState(true);
   const [total, setTotal] = useState(0);
 
+  // Состояние для всех фильтров
   const [filters, setFilters] = useState<Filters>({
-    page: 1,
-    limit: 24,
-    sort: 'shikimori_rating',
-    order: 'desc',
-    genres: [],
-    year: 'all',
-    status: 'all',
-    title: '',
+    page: 1, limit: 24, sort: 'shikimori_rating', order: 'desc',
+    genres: [], studios: [], year: 'all', status: 'all',
+    type: 'all', episodes: 'all', title: '',
   });
 
+  // Списки для выпадающих меню
   const [genresList, setGenresList] = useState<string[]>([]);
+  const [studiosList, setStudiosList] = useState<string[]>([]);
   const [yearsList, setYearsList] = useState<number[]>([]);
+  
   const debouncedSearchTerm = useDebounce(filters.title, 500);
 
+  // Загрузка списков для фильтров
   useEffect(() => {
     fetch('/api/genres').then(res => res.json()).then(data => setGenresList(data.genres || []));
+    fetch('/api/studios').then(res => res.json()).then(data => setStudiosList(data.studios || []));
     fetch('/api/years').then(res => res.json()).then(data => setYearsList(data.years || []));
   }, []);
 
+  // Основная функция для загрузки данных
   const fetchCatalogData = useCallback(async (currentFilters: Filters, isNewFilter = false) => {
-    if (isNewFilter) {
-      setLoading(true);
-      setAnimes([]);
-    } else {
-      setLoadingMore(true);
-    }
+    if (isNewFilter) { setLoading(true); setAnimes([]); } 
+    else { setLoadingMore(true); }
     setError(null);
 
     const params = new URLSearchParams({
-      page: currentFilters.page.toString(),
-      limit: currentFilters.limit.toString(),
-      sort: currentFilters.sort,
-      order: currentFilters.order,
+      page: currentFilters.page.toString(), limit: currentFilters.limit.toString(),
+      sort: currentFilters.sort, order: currentFilters.order,
     });
     if (currentFilters.title) params.append('title', currentFilters.title);
     if (currentFilters.year !== 'all') params.append('year', currentFilters.year);
     if (currentFilters.status !== 'all') params.append('status', currentFilters.status);
+    if (currentFilters.type !== 'all') params.append('type', currentFilters.type);
+    if (currentFilters.episodes !== 'all') params.append('episodes', currentFilters.episodes);
     if (currentFilters.genres.length > 0) params.append('genres', currentFilters.genres.join(','));
+    if (currentFilters.studios.length > 0) params.append('studios', currentFilters.studios.join(','));
 
     try {
       const response = await fetch(`/api/catalog?${params.toString()}`);
@@ -97,16 +97,15 @@ export default function CatalogPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Неизвестная ошибка");
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      setLoading(false); setLoadingMore(false);
     }
   }, []);
 
+  // Эффект для перезагрузки данных при изменении любого фильтра
   useEffect(() => {
     const newFilters = { ...filters, page: 1, title: debouncedSearchTerm };
     fetchCatalogData(newFilters, true);
-  }, [debouncedSearchTerm, filters.sort, filters.order, filters.genres, filters.year, filters.status, fetchCatalogData]);
-
+  }, [debouncedSearchTerm, filters.sort, filters.order, filters.genres, filters.studios, filters.year, filters.status, filters.type, filters.episodes, fetchCatalogData]);
 
   const loadMore = () => {
     if (!loadingMore && hasMore) {
@@ -116,14 +115,15 @@ export default function CatalogPage() {
     }
   };
   
-  const handleGenreToggle = (genre: string) => {
-    const newGenres = filters.genres.includes(genre)
-      ? filters.genres.filter(g => g !== genre)
-      : [...filters.genres, genre];
-    setFilters(prev => ({ ...prev, genres: newGenres, page: 1 }));
+  const handleMultiSelectToggle = (key: 'genres' | 'studios', value: string) => {
+    const currentValues = filters[key];
+    const newValues = currentValues.includes(value)
+      ? currentValues.filter(v => v !== value)
+      : [...currentValues, value];
+    setFilters(prev => ({ ...prev, [key]: newValues, page: 1 }));
   };
 
-  const handleFilterChange = (key: keyof Omit<Filters, 'genres'>, value: any) => {
+  const handleFilterChange = (key: keyof Omit<Filters, 'genres' | 'studios'>, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value, page: 1 }));
   };
 
@@ -135,20 +135,14 @@ export default function CatalogPage() {
       </div>
       
       {/* Панель фильтров */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8 p-4 bg-card rounded-lg border">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8 p-4 bg-card rounded-lg border">
+        <div className="sm:col-span-2 xl:col-span-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input 
-              placeholder="Поиск по названию..." 
-              className="pl-10"
-              value={filters.title}
-              onChange={e => handleFilterChange('title', e.target.value)}
-            />
+            <Input placeholder="Поиск по названию..." className="pl-10" value={filters.title} onChange={e => handleFilterChange('title', e.target.value)} />
           </div>
         </div>
         
-        {/* **УЛУЧШЕНИЕ:** Фильтр по жанрам в виде выпадающего меню */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="w-full justify-between">
@@ -156,16 +150,30 @@ export default function CatalogPage() {
               <ChevronDown className="h-4 w-4 opacity-50" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56 max-h-96 overflow-y-auto">
+          <DropdownMenuContent className="w-64 max-h-96 overflow-y-auto">
             <DropdownMenuLabel>Выберите жанры</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {genresList.map((genre) => (
-              <DropdownMenuCheckboxItem
-                key={genre}
-                checked={filters.genres.includes(genre)}
-                onCheckedChange={() => handleGenreToggle(genre)}
-              >
+              <DropdownMenuCheckboxItem key={genre} checked={filters.genres.includes(genre)} onCheckedChange={() => handleMultiSelectToggle('genres', genre)}>
                 {genre}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="w-full justify-between">
+              <span>{filters.studios.length > 0 ? `Студии: ${filters.studios.length}` : 'Все студии'}</span>
+              <ChevronDown className="h-4 w-4 opacity-50" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-64 max-h-96 overflow-y-auto">
+            <DropdownMenuLabel>Выберите студии</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {studiosList.map((studio) => (
+              <DropdownMenuCheckboxItem key={studio} checked={filters.studios.includes(studio)} onCheckedChange={() => handleMultiSelectToggle('studios', studio)}>
+                {studio}
               </DropdownMenuCheckboxItem>
             ))}
           </DropdownMenuContent>
@@ -187,12 +195,39 @@ export default function CatalogPage() {
             <SelectItem value="year">По году</SelectItem>
           </SelectContent>
         </Select>
+
+        <Select value={filters.status} onValueChange={value => handleFilterChange('status', value)}>
+          <SelectTrigger><SelectValue placeholder="Статус" /></SelectTrigger>
+          <SelectContent>
+            {Object.entries(STATUS_OPTIONS).map(([key, value]) => (<SelectItem key={key} value={key}>{value}</SelectItem>))}
+          </SelectContent>
+        </Select>
+
+        <Select value={filters.type} onValueChange={value => handleFilterChange('type', value)}>
+          <SelectTrigger><SelectValue placeholder="Тип" /></SelectTrigger>
+          <SelectContent>
+            {Object.entries(TYPE_OPTIONS).map(([key, value]) => (<SelectItem key={key} value={key}>{value}</SelectItem>))}
+          </SelectContent>
+        </Select>
+
+        <Select value={filters.episodes} onValueChange={value => handleFilterChange('episodes', value)}>
+          <SelectTrigger><SelectValue placeholder="Кол-во серий" /></SelectTrigger>
+          <SelectContent>
+            {Object.entries(EPISODE_OPTIONS).map(([key, value]) => (<SelectItem key={key} value={key}>{value}</SelectItem>))}
+          </SelectContent>
+        </Select>
+
+        {(filters.genres.length > 0 || filters.studios.length > 0) && (
+             <Button variant="ghost" className="text-sm" onClick={() => { setFilters(prev => ({...prev, genres: [], studios: []})) }}>
+                 <X className="w-4 h-4 mr-2" /> Сбросить жанры/студии
+             </Button>
+        )}
       </div>
 
       {loading && animes.length === 0 ? (
         <div className="flex justify-center items-center h-64"><LoadingSpinner size="lg" /></div>
       ) : error ? (
-        <div className="text-center text-red-500">{error}</div>
+        <div className="text-center text-red-500 py-16">{error}</div>
       ) : animes.length === 0 ? (
         <p className="text-center text-muted-foreground py-16">По вашему запросу ничего не найдено.</p>
       ) : (

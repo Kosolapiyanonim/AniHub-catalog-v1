@@ -4,41 +4,56 @@ import { supabase } from "@/lib/supabase";
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
-    const { id } = params;
+    const { id: kodikId } = params; // ID теперь является kodik_id
 
-    // ID теперь является shikimori_id, так как он уникален для аниме в целом
-    if (!id || id === "undefined" || !/^\d+$/.test(id)) {
-      return NextResponse.json({ error: "Invalid anime ID format" }, { status: 400 });
+    if (!kodikId || kodikId === "undefined") {
+      return NextResponse.json({ error: "Invalid anime ID provided" }, { status: 400 });
     }
 
-    console.log("🎬 Fetching anime data for shikimori_id:", id);
+    console.log("🎬 Fetching anime data for kodik_id:", kodikId);
 
-    // Шаг 1: Находим основную информацию об аниме
+    // Шаг 1: Найти одну озвучку по kodik_id, чтобы узнать главный anime_id
+    const { data: translation, error: translationError } = await supabase
+      .from('translations')
+      .select('anime_id')
+      .eq('kodik_id', kodikId)
+      .single();
+    
+    if (translationError) {
+        if (translationError.code === 'PGRST116') {
+           return NextResponse.json({ error: "Translation not found for the given Kodik ID" }, { status: 404 });
+        }
+        throw translationError;
+    }
+
+    const animeId = translation.anime_id;
+
+    // Шаг 2: Найти основную информацию об аниме по его главному ID
     const { data: animeData, error: animeError } = await supabase
       .from("animes_with_relations")
       .select("*")
-      .eq("shikimori_id", id)
+      .eq("id", animeId)
       .single();
 
     if (animeError) {
       if (animeError.code === 'PGRST116') {
-         return NextResponse.json({ error: "Anime not found" }, { status: 404 });
+         return NextResponse.json({ error: "Anime data not found" }, { status: 404 });
       }
       throw animeError;
     }
 
-    // Шаг 2: Находим все связанные озвучки
+    // Шаг 3: Найти все связанные озвучки по главному ID
     const { data: translationsData, error: translationsError } = await supabase
       .from("translations")
       .select("*")
-      .eq("anime_id", animeData.id)
+      .eq("anime_id", animeId)
       .order("title");
 
     if (translationsError) {
       throw translationsError;
     }
 
-    // Шаг 3: Объединяем все в один ответ
+    // Шаг 4: Объединяем все в один ответ
     const responseData = {
       ...animeData,
       translations: translationsData || [],

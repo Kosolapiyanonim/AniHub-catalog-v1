@@ -16,13 +16,13 @@ interface AnimeCardProps {
 }
 
 export function AnimeCard({ anime }: AnimeCardProps) {
-  // **ИСПРАВЛЕНИЕ:** Проверяем наличие kodik_id.
+  // **ИСПРАВЛЕНИЕ:** Проверяем наличие kodik_id, так как он используется для ссылки.
   if (!anime || !anime.kodik_id) {
     return null;
   }
 
   return (
-    // **ИСПРАВЛЕНИЕ:** Ссылка теперь строится на основе kodik_id.
+    // **ИСПРАВЛЕНИЕ:** Ссылка теперь всегда строится на основе kodik_id.
     <Link href={`/anime/${anime.kodik_id}`} key={anime.id} className="group cursor-pointer block">
       <div className="aspect-[2/3] overflow-hidden rounded-lg bg-slate-800 relative">
         {anime.poster_url ? (

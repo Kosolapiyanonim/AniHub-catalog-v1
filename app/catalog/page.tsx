@@ -70,9 +70,10 @@ export default function CatalogPage() {
     }
   }, []);
 
-  const handleApplyFilters = (newFilters: any) => {
-    const filtersToApply = { ...newFilters, page: 1 };
-    setFilters(filtersToApply);
+  // **ИСПРАВЛЕНИЕ:** Эта функция теперь не принимает аргументов.
+  // Она использует состояние `filters`, которое обновляется через `onFiltersChange`.
+  const handleApplyFilters = () => {
+    const filtersToApply = { ...filters, page: 1 };
     fetchCatalogData(filtersToApply, true);
   };
   
@@ -99,6 +100,9 @@ export default function CatalogPage() {
       <div className="flex flex-col lg:flex-row gap-8">
         <aside className="w-full lg:w-80 lg:sticky top-20 h-full">
             <CatalogFilters 
+                // **ИСПРАВЛЕНИЕ:** Передаем `setFilters` как `onFiltersChange`
+                // Это предполагает, что дочерний компонент будет вызывать эту функцию
+                // со своим полным объектом фильтров при каждом изменении.
                 onFiltersChange={setFilters}
                 onApplyFilters={handleApplyFilters}
                 onResetFilters={handleResetFilters}

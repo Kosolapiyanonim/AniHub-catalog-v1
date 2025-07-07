@@ -1,4 +1,4 @@
-// Создайте файл: /app/api/parse-single-page/route.ts
+// Замените содержимое файла: /app/api/parse-single-page/route.ts
 
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
@@ -44,17 +44,24 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { page } = await request.json();
-    if (!page || typeof page !== 'number') {
-      return NextResponse.json({ error: "Необходимо указать номер страницы (page)" }, { status: 400 });
-    }
-
-    const kodikApiUrl = `https://kodikapi.com/list?token=${KODIK_TOKEN}&types=anime,anime-serial&with_material_data=true&limit=100&page=${page}`;
+    const { nextPageUrl } = await request.json();
     
-    const response = await fetch(kodikApiUrl);
+    // **ИСПРАВЛЕНИЕ:** Вместо page используем nextPageUrl
+    const baseUrl = "https://kodikapi.com/list";
+    const requestUrl = nextPageUrl 
+      ? `https://kodikapi.com${nextPageUrl}` 
+      : `${baseUrl}?token=${KODIK_TOKEN}&types=anime,anime-serial&with_material_data=true&limit=100`;
+
+    const response = await fetch(requestUrl);
     if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Ошибка от API Kodik: ${response.status} - ${errorText}`);
+        // Пытаемся распарсить JSON, если не получается - показываем как текст
+        try {
+            const errorJson = JSON.parse(errorText);
+            throw new Error(`Ошибка от API Kodik: ${response.status} - ${errorJson.error || errorText}`);
+        } catch {
+            throw new Error(`Ошибка от API Kodik: ${response.status} - ${errorText}`);
+        }
     }
 
     const data = await response.json();
@@ -62,9 +69,9 @@ export async function POST(request: Request) {
 
     if (animeList.length === 0) {
       return NextResponse.json({
-        message: `Страница ${page} пуста или это конец.`,
+        message: `Страница пуста или это конец.`,
         processed: 0,
-        hasNextPage: !!data.next_page,
+        nextPageUrl: data.next_page || null,
       });
     }
 
@@ -113,9 +120,10 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      message: `Страница ${page} обработана. Сохранено/обновлено: ${processedCount} из ${animeList.length}.`,
+      message: `Обработано. Сохранено/обновлено: ${processedCount} из ${animeList.length}.`,
       processed: processedCount,
-      hasNextPage: !!data.next_page,
+      // **ИСПРАВЛЕНИЕ:** Возвращаем новую ссылку на следующую страницу
+      nextPageUrl: data.next_page || null,
     });
 
   } catch (err) {

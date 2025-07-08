@@ -4,6 +4,73 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import type { KodikAnimeData } from "@/lib/types";
 
+// НАЧАЛО КОДА ДЛЯ КОПИРОВАНИЯ
+
+async function processRelations(
+    supabaseClient: any,
+    items: { name: string }[],
+    tableName: string,
+    relationTableName: string,
+    animeId: number,
+    idFieldName: string
+) {
+    if (!items || items.length === 0) return;
+
+    const { data: existingItems } = await supabaseClient
+        .from(tableName)
+        .upsert(items, { onConflict: 'name' })
+        .select('id, name');
+
+    if (!existingItems) return;
+
+    const itemMap = new Map(existingItems.map(item => [item.name, item.id]));
+
+    const relationsToUpsert = items
+        .map(item => {
+            const itemId = itemMap.get(item.name);
+            if (!itemId) return null;
+            return {
+                anime_id: animeId,
+                [idFieldName]: itemId,
+            };
+        })
+        .filter(Boolean);
+
+    if (relationsToUpsert.length > 0) {
+        await supabaseClient
+            .from(relationTableName)
+            .upsert(relationsToUpsert);
+    }
+}
+
+async function processAllRelations(
+    supabaseClient: any,
+    relationsToProcess: {
+        shikimori_id: string;
+        genres?: string[];
+        studios?: string[];
+        countries?: string[];
+    }[],
+    animeIdMap: Map<string, number>
+) {
+    for (const relationData of relationsToProcess) {
+        const animeId = animeIdMap.get(relationData.shikimori_id);
+        if (!animeId) continue;
+
+        if (relationData.genres) {
+            await processRelations(supabaseClient, relationData.genres.map(name => ({ name })), 'genres', 'anime_genres', animeId, 'genre_id');
+        }
+        if (relationData.studios) {
+            await processRelations(supabaseClient, relationData.studios.map(name => ({ name })), 'studios', 'anime_studios', animeId, 'studio_id');
+        }
+        if (relationData.countries) {
+            await processRelations(supabaseClient, relationData.countries.map(name => ({ name })), 'countries', 'anime_countries', animeId, 'country_id');
+        }
+    }
+}
+
+// КОНЕЦ КОДА ДЛЯ КОПИРОВАНИЯ
+
 // ... (функция processAllRelations остается той же)
 
 // Новая функция для обработки тегов

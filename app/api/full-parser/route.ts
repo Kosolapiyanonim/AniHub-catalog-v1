@@ -34,7 +34,7 @@ export async function POST() {
   try {
     log("🚀 Запуск ПОЛНОЙ синхронизации базы данных...");
     const KODIK_TOKEN = process.env.KODIK_API_TOKEN;
-    if (!KODIK_TOKEN) throw new Error("KODIK_API_TOKEN не настроен");
+    if (!KODIK_TOKEN) throw new Error("KODIK_API_TOKEN ��е настроен");
 
     let currentPageUrl: string | null = "https://kodikapi.com/list";
     let pagesParsed = 0;

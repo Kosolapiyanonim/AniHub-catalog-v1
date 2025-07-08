@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { AnimeCard } from '@/components/anime-card';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { Button } from '@/components/ui/button';
-import { CatalogFilters, FiltersState } from '@/components/catalog-filters'; // Импортируем компонент и его тип состояния
+import { CatalogFilters, FiltersState } from '@/components/catalog-filters'; // Импортируем компонент и его тип сос��ояния
 
 // --- Типы и константы ---
 interface Anime {

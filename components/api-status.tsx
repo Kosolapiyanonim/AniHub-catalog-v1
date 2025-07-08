@@ -1,61 +1,133 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { CheckCircle, XCircle, Clock, Database, Wifi } from "lucide-react"
 
-interface StatusType {
-  parser: "online" | "offline" | null
-  catalog: "online" | "offline" | null
-  database: "online" | "offline" | null
+/**
+ * Возможные состояния одного сервиса.
+ */
+type StatusValue = "loading" | "online" | "offline"
+
+interface ApiStatusState {
+  parser: StatusValue
+  catalog: StatusValue
+  database: StatusValue
 }
 
-const ApiStatus = () => {
-  const [status, setStatus] = useState<StatusType>({
-    parser: null,
-    catalog: null,
-    database: null,
+/**
+ * Компонент, показывающий состояние основных сервисов сайта.
+ *
+ * Экспортируется и именованно (`ApiStatus`), и по умолчанию, чтобы
+ * любой вариант импорта работал:
+ *
+ *   import { ApiStatus } from "@/components/api-status"
+ *   import ApiStatus from "@/components/api-status"
+ */
+export function ApiStatus() {
+  const [status, setStatus] = useState<ApiStatusState>({
+    parser: "loading",
+    catalog: "loading",
+    database: "loading",
   })
+  const [lastChecked, setLastChecked] = useState<string | null>(null)
 
-  const checkApiStatus = async () => {
+  /** Запрашиваем статусы всех сервисов параллельно */
+  async function checkApiStatus() {
     try {
-      // Проверка парсера
-      const parserResponse = await fetch("/api/parser")
+      const [parserRes, catalogRes, dbRes] = await Promise.allSettled([
+        fetch("/api/parser"),
+        fetch("/api/catalog?limit=1"),
+        fetch("/api/anime/database"),
+      ])
 
-      // Проверка каталога
-      const catalogResponse = await fetch("/api/catalog")
+      const isOk = (r: PromiseSettledResult<Response>) => r.status === "fulfilled" && r.value.ok
 
-      // Проверка базы данных
-      const databaseResponse = await fetch("/api/anime/database")
-
-      // Обновление состояния
       setStatus({
-        parser: parserResponse.ok ? "online" : "offline",
-        catalog: catalogResponse.ok ? "online" : "offline",
-        database: databaseResponse.ok ? "online" : "offline",
+        parser: isOk(parserRes) ? "online" : "offline",
+        catalog: isOk(catalogRes) ? "online" : "offline",
+        database: isOk(dbRes) ? "online" : "offline",
       })
-    } catch (error) {
-      console.error("Error checking API status:", error)
-      setStatus({
-        parser: "offline",
-        catalog: "offline",
-        database: "offline",
-      })
+    } catch (err) {
+      console.error("API status check error:", err)
+      setStatus({ parser: "offline", catalog: "offline", database: "offline" })
+    } finally {
+      setLastChecked(new Date().toLocaleTimeString())
     }
   }
 
+  /** Первый запрос и интервал раз в 30 секунд */
   useEffect(() => {
     checkApiStatus()
-    const intervalId = setInterval(checkApiStatus, 30000) // Обновление каждые 30 секунд
-
-    return () => clearInterval(intervalId) // Очистка интервала при размонтировании компонента
+    const id = setInterval(checkApiStatus, 30_000)
+    return () => clearInterval(id)
   }, [])
 
+  /* Вспомогательные элементы UI */
+  const icon = (s: StatusValue) =>
+    s === "loading" ? (
+      <Clock className="w-4 h-4 text-yellow-500 animate-spin" />
+    ) : s === "online" ? (
+      <CheckCircle className="w-4 h-4 text-green-500" />
+    ) : (
+      <XCircle className="w-4 h-4 text-red-500" />
+    )
+
+  const badge = (s: StatusValue) =>
+    s === "loading" ? (
+      <Badge variant="secondary">Проверка…</Badge>
+    ) : s === "online" ? (
+      <Badge className="bg-green-600">Работает</Badge>
+    ) : (
+      <Badge variant="destructive">Ошибка</Badge>
+    )
+
   return (
-    <div>
-      <p>Parser API: {status.parser ? status.parser : "checking..."}</p>
-      <p>Catalog API: {status.catalog ? status.catalog : "checking..."}</p>
-      <p>Database: {status.database ? status.database : "checking..."}</p>
-    </div>
+    <Card className="w-full max-w-md">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Wifi className="w-5 h-5" />
+          <h3 className="font-semibold">Статус системы</h3>
+        </div>
+
+        <div className="space-y-3">
+          {/* Парсер */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {icon(status.parser)}
+              <span className="text-sm">API&nbsp;Парсера</span>
+            </div>
+            {badge(status.parser)}
+          </div>
+
+          {/* Каталог */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {icon(status.catalog)}
+              <span className="text-sm">API&nbsp;Каталога</span>
+            </div>
+            {badge(status.catalog)}
+          </div>
+
+          {/* База данных */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {icon(status.database)}
+              <Database className="w-4 h-4" />
+              <span className="text-sm">База&nbsp;данных</span>
+            </div>
+            {badge(status.database)}
+          </div>
+        </div>
+
+        {lastChecked && (
+          <div className="mt-4 pt-3 border-t text-xs text-muted-foreground">Последняя проверка: {lastChecked}</div>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 
-export { ApiStatus }
+/* Экспорт по умолчанию — на случай `import ApiStatus from ...` */
+export default ApiStatus

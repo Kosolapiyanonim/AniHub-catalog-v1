@@ -18,19 +18,7 @@ export async function GET(request: Request) {
       count,
     } = await supabase
       .from("animes")
-      .select(
-        `
-        *,
-        anime_relations!inner(
-          relation_id,
-          relation_type,
-          genres:relation_id(name),
-          studios:relation_id(name),
-          countries:relation_id(name)
-        )
-      `,
-        { count: "exact" },
-      )
+      .select("*", { count: "exact" })
       .order(sort, { ascending: order === "asc" })
       .range(offset, offset + limit - 1)
 
@@ -43,47 +31,31 @@ export async function GET(request: Request) {
 
     // Группируем жанры, студии и страны для каждого аниме
     const processedAnimes =
-      animes?.map((anime) => {
-        const genres: string[] = []
-        const studios: string[] = []
-        const countries: string[] = []
-
-        anime.anime_relations?.forEach((relation: any) => {
-          if (relation.relation_type === "genre" && relation.genres?.name) {
-            genres.push(relation.genres.name)
-          } else if (relation.relation_type === "studio" && relation.studios?.name) {
-            studios.push(relation.studios.name)
-          } else if (relation.relation_type === "country" && relation.countries?.name) {
-            countries.push(relation.countries.name)
-          }
-        })
-
-        return {
-          id: anime.kodik_id, // Используем kodik_id для совместимости с существующим API
-          title: anime.title,
-          title_orig: anime.title_orig,
-          year: anime.year,
-          poster_url: anime.poster_url,
-          description: anime.description,
-          rating: anime.shikimori_rating || anime.kinopoisk_rating || 0,
-          shikimori_votes: anime.shikimori_votes || 0,
-          genres,
-          studios,
-          countries,
-          episodes_total: anime.episodes_count,
-          status: anime.status,
-          translations: [
-            {
-              id: anime.kodik_id,
-              title: "Основная озвучка",
-              type: "voice",
-              quality: "HD",
-              link: anime.player_link,
-            },
-          ],
-          screenshots: anime.screenshots?.screenshots || [],
-        }
-      }) || []
+      animes?.map((anime) => ({
+        id: anime.kodik_id,
+        title: anime.title,
+        title_orig: anime.title_orig,
+        year: anime.year,
+        poster_url: anime.poster_url,
+        description: anime.description,
+        rating: anime.shikimori_rating || anime.kinopoisk_rating || 0,
+        shikimori_votes: anime.shikimori_votes || 0,
+        genres: [], // ← временно пусто
+        studios: [], // ← временно пусто
+        countries: [], // ← временно пусто
+        episodes_total: anime.episodes_count,
+        status: anime.status,
+        translations: [
+          {
+            id: anime.kodik_id,
+            title: "Основная озвучка",
+            type: "voice",
+            quality: "HD",
+            link: anime.player_link,
+          },
+        ],
+        screenshots: anime.screenshots?.screenshots || [],
+      })) || []
 
     return NextResponse.json({
       results: processedAnimes,

@@ -25,39 +25,31 @@ interface CatalogFiltersProps {
   onReset: () => void
 }
 
-const ANIME_TYPES = [
+const SORT_OPTIONS = [
+  { value: "shikimori_rating", label: "По рейтингу" },
+  { value: "year", label: "По году" },
+  { value: "title", label: "По названию" },
+]
+
+const TYPE_OPTIONS = [
   { value: "tv", label: "TV Сериал" },
   { value: "movie", label: "Фильм" },
   { value: "ova", label: "OVA" },
   { value: "ona", label: "ONA" },
   { value: "special", label: "Спешл" },
-  { value: "music", label: "Клип" },
-]
-
-const SORT_OPTIONS = [
-  { value: "shikimori_rating", label: "По рейтингу" },
-  { value: "year", label: "По году" },
-  { value: "title", label: "По названию" },
-  { value: "created_at", label: "По дате добавления" },
 ]
 
 export function CatalogFilters({ filters, onFiltersChange, onApply, onReset }: CatalogFiltersProps) {
   const set = <K extends keyof FiltersState>(key: K, value: FiltersState[K]) =>
     onFiltersChange((prev) => ({ ...prev, [key]: value }))
 
-  const handleTypeChange = (typeValue: string, checked: boolean) => {
-    if (checked) {
-      set("type", [...filters.type, typeValue])
-    } else {
-      set(
-        "type",
-        filters.type.filter((t) => t !== typeValue),
-      )
-    }
+  const handleTypeChange = (type: string, checked: boolean) => {
+    const newTypes = checked ? [...filters.type, type] : filters.type.filter((t) => t !== type)
+    set("type", newTypes)
   }
 
   return (
-    <aside className="bg-slate-900 p-6 rounded-lg border border-slate-800">
+    <aside className="bg-slate-900/50 backdrop-blur-sm rounded-lg p-6 border border-slate-800">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-white">Фильтры</h2>
         <Button variant="ghost" size="sm" onClick={onReset} className="text-slate-400 hover:text-white">
@@ -67,21 +59,19 @@ export function CatalogFilters({ filters, onFiltersChange, onApply, onReset }: C
       </div>
 
       <div className="space-y-6">
-        {/* Поиск */}
         <div className="space-y-2">
           <Label htmlFor="search" className="text-white">
             Поиск
           </Label>
           <Input
             id="search"
-            placeholder="Название аниме…"
+            placeholder="Название аниме..."
             value={filters.title}
             onChange={(e) => set("title", e.target.value)}
             className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
           />
         </div>
 
-        {/* Сортировка */}
         <div className="space-y-2">
           <Label className="text-white">Сортировка</Label>
           <Select value={filters.sort} onValueChange={(value) => set("sort", value)}>
@@ -98,18 +88,28 @@ export function CatalogFilters({ filters, onFiltersChange, onApply, onReset }: C
           </Select>
         </div>
 
-        {/* Год */}
-        <div className="space-y-2">
-          <Label className="text-white">Год выпуска</Label>
-          <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="yearFrom" className="text-white">
+              Год от
+            </Label>
             <Input
-              placeholder="От"
+              id="yearFrom"
+              type="number"
+              placeholder="2000"
               value={filters.yearFrom}
               onChange={(e) => set("yearFrom", e.target.value)}
               className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="yearTo" className="text-white">
+              Год до
+            </Label>
             <Input
-              placeholder="До"
+              id="yearTo"
+              type="number"
+              placeholder="2024"
               value={filters.yearTo}
               onChange={(e) => set("yearTo", e.target.value)}
               className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
@@ -117,30 +117,29 @@ export function CatalogFilters({ filters, onFiltersChange, onApply, onReset }: C
           </div>
         </div>
 
-        {/* Тип */}
         <div className="space-y-2">
           <Label className="text-white">Тип</Label>
           <div className="space-y-2">
-            {ANIME_TYPES.map((type) => (
-              <div key={type.value} className="flex items-center space-x-2">
+            {TYPE_OPTIONS.map((option) => (
+              <div key={option.value} className="flex items-center space-x-2">
                 <Checkbox
-                  id={type.value}
-                  checked={filters.type.includes(type.value)}
-                  onCheckedChange={(checked) => handleTypeChange(type.value, checked as boolean)}
+                  id={option.value}
+                  checked={filters.type.includes(option.value)}
+                  onCheckedChange={(checked) => handleTypeChange(option.value, checked as boolean)}
                   className="border-slate-600 data-[state=checked]:bg-purple-600"
                 />
-                <Label htmlFor={type.value} className="text-sm text-slate-300 cursor-pointer">
-                  {type.label}
+                <Label htmlFor={option.value} className="text-sm text-slate-300 cursor-pointer">
+                  {option.label}
                 </Label>
               </div>
             ))}
           </div>
         </div>
-      </div>
 
-      <Button className="mt-6 w-full bg-purple-600 hover:bg-purple-700" onClick={onApply}>
-        Применить
-      </Button>
+        <Button className="w-full bg-purple-600 hover:bg-purple-700" onClick={onApply}>
+          Применить
+        </Button>
+      </div>
     </aside>
   )
 }

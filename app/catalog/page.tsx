@@ -61,6 +61,7 @@ function CatalogView() {
       const response = await fetch(`/api/catalog?${params.toString()}`)
       if (!response.ok) throw new Error("Ошибка сети")
       const data = await response.json()
+
       setAnimes((prev) => (isNewSearch ? data.results : [...prev, ...data.results]))
       setHasMore(data.hasMore)
       if (isNewSearch) setTotal(data.total || 0)
@@ -72,34 +73,30 @@ function CatalogView() {
     }
   }, [])
 
-  // Начальная загрузка
+  // Эффект для начальной загрузки
   useEffect(() => {
-    const newFilters = {
+    const initialFilters = {
       ...INITIAL_FILTERS,
       page: 1,
       limit: 24,
       title: titleFromUrl,
     }
-    setFilters(newFilters)
-    fetchCatalogData(newFilters, true)
+    setFilters(initialFilters)
+    fetchCatalogData(initialFilters, true)
   }, [])
 
-  // Обновление при изменении URL
+  // Эффект для обновления при изменении URL
   useEffect(() => {
-    if (titleFromUrl !== filters.title) {
-      const newFilters = {
-        ...INITIAL_FILTERS,
-        page: 1,
-        limit: 24,
-        title: titleFromUrl,
-      }
+    if (filters.title !== titleFromUrl) {
+      const newFilters = { ...filters, title: titleFromUrl, page: 1 }
       setFilters(newFilters)
       fetchCatalogData(newFilters, true)
     }
-  }, [titleFromUrl, filters.title, fetchCatalogData])
+  }, [titleFromUrl, filters, fetchCatalogData])
 
   const handleApplyFilters = () => {
     const newFilters = { ...filters, page: 1 }
+    setFilters(newFilters)
     fetchCatalogData(newFilters, true)
   }
 
@@ -135,7 +132,7 @@ function CatalogView() {
               variant="ghost"
               size="sm"
               onClick={() => router.back()}
-              className="text-white hover:text-purple-400 hover:bg-slate-800"
+              className="text-white hover:text-purple-400"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Назад
@@ -151,8 +148,8 @@ function CatalogView() {
           ) : (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {animes.map((anime) => (
-                  <AnimeCard key={`${anime.shikimori_id}-${anime.id}`} anime={anime} />
+                {animes.map((anime, index) => (
+                  <AnimeCard key={`${anime.shikimori_id}-${anime.id}`} anime={anime} priority={index < 8} />
                 ))}
               </div>
               {hasMore && (

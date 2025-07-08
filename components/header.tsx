@@ -88,7 +88,6 @@ export function Header() {
             </Link>
           </nav>
 
-          {/* Поиск */}
           <div ref={searchRef} className="hidden md:block relative">
             <form onSubmit={handleSearchSubmit} className="flex items-center">
               <div className="relative w-64">
@@ -128,8 +127,8 @@ export function Header() {
                               width={24}
                               height={36}
                               className="w-full h-full object-cover rounded-sm"
-                              loading="lazy"
                               quality={60}
+                              loading="lazy"
                             />
                           </div>
                           <div className="flex-1 min-w-0">
@@ -152,7 +151,6 @@ export function Header() {
           </Button>
         </div>
 
-        {/* Мобильное меню */}
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-slate-800">
             <nav className="flex flex-col space-y-4">
@@ -162,15 +160,17 @@ export function Header() {
               <Link href="/catalog" className="text-gray-300 hover:text-white transition-colors">
                 Каталог
               </Link>
-              <form onSubmit={handleSearchSubmit} className="mt-4">
-                <Input
-                  type="text"
-                  placeholder="Поиск аниме..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
-                />
-              </form>
+              <div className="pt-2">
+                <form onSubmit={handleSearchSubmit}>
+                  <Input
+                    type="text"
+                    placeholder="Поиск аниме..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
+                  />
+                </form>
+              </div>
             </nav>
           </div>
         )}

@@ -8,7 +8,11 @@ import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Analytics } from "@vercel/analytics/react"
 import { Suspense } from "react"
 
-const inter = Inter({ subsets: ["latin", "cyrillic"] })
+const inter = Inter({
+  subsets: ["latin", "cyrillic"],
+  display: "swap",
+  preload: true,
+})
 
 export const metadata: Metadata = {
   title: "AniHub - Смотреть аниме онлайн",
@@ -28,6 +32,17 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <head>
+        {/* Critical CSS inlined */}
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+            body { margin: 0; background: #0f172a; color: white; }
+            .min-h-screen { min-height: 100vh; }
+            .bg-slate-950 { background-color: #020617; }
+          `,
+          }}
+        />
+
         {/* Google tag (gtag.js) */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-3DCGBWLNEZ"></script>
         <script

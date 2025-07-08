@@ -10,21 +10,20 @@ interface AnimeCardProps {
     title: string
     poster_url?: string | null
     year?: number | null
-    type?: string | null
   }
+  priority?: boolean
 }
 
-// Оптимизированный blur placeholder
 const blurDataURL =
-  "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
+  "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R+Rq19TcMVLVuP9vqf2j9NvqLjUdRtYbC1luJ7iGGCJAWd3YKqgepJwBWjggg+lEcwAqzqvqAEbkHqKAv/Z"
 
-export function AnimeCard({ anime }: AnimeCardProps) {
+export function AnimeCard({ anime, priority = false }: AnimeCardProps) {
   if (!anime || !anime.shikimori_id) {
     return null
   }
 
   return (
-    <Link href={`/anime/${anime.shikimori_id}`} key={anime.id} className="group cursor-pointer block">
+    <Link href={`/anime/${anime.shikimori_id}`} className="group cursor-pointer block">
       <div className="aspect-[2/3] overflow-hidden rounded-lg bg-slate-800 relative">
         {anime.poster_url ? (
           <Image
@@ -33,8 +32,9 @@ export function AnimeCard({ anime }: AnimeCardProps) {
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
             className="object-cover transition-transform duration-300 group-hover:scale-105"
-            loading="lazy"
             quality={75}
+            loading={priority ? "eager" : "lazy"}
+            priority={priority}
             placeholder="blur"
             blurDataURL={blurDataURL}
           />

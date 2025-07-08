@@ -4,50 +4,48 @@
 
 @layer base {
   :root {
-    /* Светлая тема */
-    --background: 248 250 252; /* #F8FAFC */
-    --foreground: 15 23 42; /* #0F172A */
-    --card: 255 255 255; /* #FFFFFF */
-    --card-foreground: 15 23 42; /* #0F172A */
-    --popover: 255 255 255; /* #FFFFFF */
-    --popover-foreground: 15 23 42; /* #0F172A */
-    --primary: 79 70 229; /* #4F46E5 */
-    --primary-foreground: 255 255 255; /* #FFFFFF */
-    --secondary: 226 232 240; /* #E2E8F0 */
-    --secondary-foreground: 15 23 42; /* #0F172A */
-    --muted: 226 232 240; /* #E2E8F0 */
-    --muted-foreground: 100 116 139; /* #64748B */
-    --accent: 226 232 240; /* #E2E8F0 */
-    --accent-foreground: 15 23 42; /* #0F172A */
-    --destructive: 239 68 68; /* #EF4444 */
-    --destructive-foreground: 255 255 255; /* #FFFFFF */
-    --border: 226 232 240; /* #E2E8F0 */
-    --input: 226 232 240; /* #E2E8F0 */
-    --ring: 79 70 229; /* #4F46E5 */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
   }
 
   .dark {
-    /* Тёмная тема */
-    --background: 15 23 42; /* #0F172A */
-    --foreground: 241 245 249; /* #F1F5F9 */
-    --card: 30 41 59; /* #1E293B */
-    --card-foreground: 241 245 249; /* #F1F5F9 */
-    --popover: 30 41 59; /* #1E293B */
-    --popover-foreground: 241 245 249; /* #F1F5F9 */
-    --primary: 99 102 241; /* #6366F1 */
-    --primary-foreground: 255 255 255; /* #FFFFFF */
-    --secondary: 51 65 85; /* #334155 */
-    --secondary-foreground: 241 245 249; /* #F1F5F9 */
-    --muted: 51 65 85; /* #334155 */
-    --muted-foreground: 148 163 184; /* #94A3B8 */
-    --accent: 51 65 85; /* #334155 */
-    --accent-foreground: 241 245 249; /* #F1F5F9 */
-    --destructive: 220 38 38; /* #DC2626 */
-    --destructive-foreground: 255 255 255; /* #FFFFFF */
-    --border: 51 65 85; /* #334155 */
-    --input: 51 65 85; /* #334155 */
-    --ring: 129 140 248; /* #818CF8 */
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 94.1%;
   }
 }
 
@@ -56,7 +54,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground transition-colors duration-300;
+    @apply bg-background text-foreground;
   }
 }
 
@@ -81,44 +79,4 @@
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
   }
-}
-
-/* Плавные переходы для всех интерактивных элементов */
-button,
-a,
-input,
-select,
-textarea {
-  @apply transition-colors duration-200;
-}
-
-/* Улучшенные стили для карточек */
-.anime-card {
-  @apply bg-card border border-border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-200;
-}
-
-.anime-card:hover {
-  @apply scale-[1.02] shadow-lg;
-}
-
-/* Стили для фильтров */
-.filter-panel {
-  @apply bg-card border-l border-border;
-}
-
-/* Кастомные скроллбары для тёмной темы */
-.dark ::-webkit-scrollbar {
-  width: 8px;
-}
-
-.dark ::-webkit-scrollbar-track {
-  @apply bg-slate-800;
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  @apply bg-slate-600 rounded-full;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  @apply bg-slate-500;
 }

@@ -58,4 +58,4 @@ const ApiStatus = () => {
   )
 }
 
-export default ApiStatus
+export { ApiStatus }

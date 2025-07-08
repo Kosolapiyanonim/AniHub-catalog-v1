@@ -5,8 +5,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { AnimeCard } from '@/components/anime-card';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { Button } from '@/components/ui/button';
-import { CatalogFilters, FiltersState } from '@/components/catalog-filters';
-import { useSearchParams } from 'next/navigation'; // Импортируем хук
+// Убедитесь, что вы используете ваш новый компонент catalog-filters
+import { CatalogFilters, type FiltersState } from '@/components/catalog-filters'; 
+import { useSearchParams } from 'next/navigation';
 
 // --- Типы и константы ---
 interface Anime {
@@ -17,22 +18,16 @@ interface Anime {
   year?: number;
 }
 
-const INITIAL_FILTERS: FiltersState & { page: number, limit: number } = {
+// ИЗМЕНЕНИЕ: Константа теперь соответствует новому, упрощенному интерфейсу FiltersState
+const INITIAL_FILTERS: FiltersState = {
   page: 1,
-  limit: 24, // ИЗМЕНЕНИЕ: Лимит по умолчанию теперь 24
+  limit: 24,
   sort: 'shikimori_rating',
-  order: 'desc',
-  title: '', // Добавляем поле для поиска
-  genres: [],
-  tags: [],
-  studios: [],
+  title: '',
   yearFrom: '',
   yearTo: '',
   episodesFrom: '',
   episodesTo: '',
-  ratingFrom: '',
-  ratingTo: '',
-  status: 'all',
   type: [],
 };
 
@@ -44,25 +39,26 @@ export default function CatalogPage() {
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [total, setTotal] = useState(0);
-  const searchParams = useSearchParams(); // Получаем параметры из URL
+  const searchParams = useSearchParams();
 
   // Инициализируем фильтры, учитывая параметры из URL
-  const [filters, setFilters] = useState(() => {
+  const [filters, setFilters] = useState<FiltersState>(() => {
     const initialTitle = searchParams.get('title') || '';
     return { ...INITIAL_FILTERS, title: initialTitle };
   });
 
-  const fetchCatalogData = useCallback(async (currentFilters: typeof filters, isNewFilter = false) => {
+  const fetchCatalogData = useCallback(async (currentFilters: FiltersState, isNewFilter = false) => {
     if (isNewFilter) { setLoading(true); setAnimes([]); } 
     else { setLoadingMore(true); }
     setError(null);
 
     const params = new URLSearchParams();
     
+    // Динамически добавляем все фильтры в параметры запроса
     Object.entries(currentFilters).forEach(([key, value]) => {
       if (Array.isArray(value) && value.length > 0) {
         params.append(key, value.join(','));
-      } else if (typeof value === 'string' && value && value !== 'all' && value !== '') {
+      } else if (typeof value === 'string' && value) {
         params.append(key, value);
       } else if (typeof value === 'number') {
         params.append(key, value.toString());
@@ -85,10 +81,12 @@ export default function CatalogPage() {
   }, []);
 
   const handleApplyFilters = () => {
+    // При применении фильтров всегда сбрасываем на первую страницу
     const filtersToApply = { ...filters, page: 1 };
     fetchCatalogData(filtersToApply, true);
   };
   
+  // ИЗМЕНЕНИЕ: Функция сброса теперь использует новую константу
   const handleResetFilters = () => {
       setFilters(INITIAL_FILTERS);
       fetchCatalogData(INITIAL_FILTERS, true);
@@ -97,26 +95,27 @@ export default function CatalogPage() {
   const loadMore = () => {
     if (!loadingMore && hasMore) {
       const newPage = filters.page + 1;
-      const newFilters = { ...filters, page: newPage };
-      setFilters(newFilters);
-      fetchCatalogData(newFilters, false);
+      // Обновляем состояние страницы перед запросом
+      setFilters(prev => ({ ...prev, page: newPage }));
+      fetchCatalogData({ ...filters, page: newPage }, false);
     }
   };
 
-  // Первоначальная загрузка данных
+  // Первоначальная загрузка данных при монтировании и при изменении параметров URL
   useEffect(() => {
     fetchCatalogData(filters, true);
-  }, []); // Запускаем только один раз с фильтрами из URL
+  }, []); // Запускаем только один раз при первой загрузке
 
   return (
     <div className="container mx-auto px-4 pt-20">
       <div className="flex flex-col lg:flex-row gap-8">
         <aside className="w-full lg:w-80 lg:sticky top-20 h-full">
-            <CatalogFilters 
+            {/* ИЗМЕНЕНИЕ: Пропсы onApply и onReset соответствуют новому компоненту */}
+          <CatalogFilters 
                 filters={filters}
                 onFiltersChange={setFilters}
-                onApplyFilters={handleApplyFilters}
-                onResetFilters={handleResetFilters}
+                onApply={handleApplyFilters}
+                onReset={handleResetFilters}
             />
         </aside>
 
@@ -136,7 +135,7 @@ export default function CatalogPage() {
             <>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 gap-4">
                 {animes.map((anime) => (
-                  <AnimeCard key={`${anime.id}-${anime.shikimori_id}`} anime={anime} />
+                  <AnimeCard key={`${anime.shikimori_id}-${anime.id}`} anime={anime} />
                 ))}
               </div>
               {hasMore && (
@@ -153,5 +152,3 @@ export default function CatalogPage() {
     </div>
   );
 }
-```tsx
-```tsx

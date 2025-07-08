@@ -122,7 +122,7 @@ export function ApiStatus() {
         </div>
 
         {lastChecked && (
-          <div className="mt-4 pt-3 border-t text-xs text-muted-foreground">Последняя проверка: {lastChecked}</div>
+          <div className="mt-4 pt-3 border-t text-xs text-muted-foreground">��оследняя проверка: {lastChecked}</div>
         )}
       </CardContent>
     </Card>

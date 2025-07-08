@@ -1,9 +1,7 @@
-// /app/catalog/page.tsx
 "use client"
 
 import { useState, useEffect, useCallback, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
-import { isEqual } from "lodash-es" // lightweight deep-equal (DCE will tree-shake)
 import { AnimeCard } from "@/components/anime-card"
 import { LoadingSpinner } from "@/components/loading-spinner"
 import { Button } from "@/components/ui/button"
@@ -32,12 +30,13 @@ function CatalogView() {
   const [total, setTotal] = useState(0)
 
   const searchParams = useSearchParams()
+  const titleFromUrl = searchParams.get("title") || ""
 
   const [filters, setFilters] = useState<FiltersState>({
     ...INITIAL_FILTERS,
     page: 1,
     limit: 24,
-    title: searchParams.get("title") || "",
+    title: "",
   })
 
   const fetchCatalogData = useCallback(async (currentFilters: FiltersState, isNewSearch: boolean) => {
@@ -70,25 +69,31 @@ function CatalogView() {
     }
   }, [])
 
-  // --- Sync filters with ?title=… in the URL (runs only when the value really changes)
+  // Начальная загрузка
   useEffect(() => {
-    const urlTitle = searchParams.get("title") || ""
-    if (urlTitle === filters.title) return // nothing new – skip
-
-    const newFilters: FiltersState = {
+    const initialFilters = {
       ...INITIAL_FILTERS,
       page: 1,
       limit: 24,
-      title: urlTitle,
+      title: titleFromUrl,
     }
+    setFilters(initialFilters)
+    fetchCatalogData(initialFilters, true)
+  }, []) // Только при монтировании
 
-    // avoid unnecessary state churn
-    if (!isEqual(newFilters, filters)) {
+  // Обновление при изменении URL
+  useEffect(() => {
+    if (filters.title !== titleFromUrl) {
+      const newFilters = {
+        ...INITIAL_FILTERS,
+        page: 1,
+        limit: 24,
+        title: titleFromUrl,
+      }
       setFilters(newFilters)
       fetchCatalogData(newFilters, true)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams.get("title")])
+  }, [titleFromUrl, filters.title, fetchCatalogData])
 
   const handleApplyFilters = () => {
     const newFilters = { ...filters, page: 1 }
@@ -153,7 +158,6 @@ function CatalogView() {
   )
 }
 
-// Обертка с Suspense для корректной работы useSearchParams
 export default function CatalogPageWrapper() {
   return (
     <Suspense fallback={<div>Загрузка...</div>}>

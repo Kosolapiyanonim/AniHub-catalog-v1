@@ -4,17 +4,20 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ApiStatus } from "@/components/api-status"
 import { Header } from "@/components/header"
+import { SpeedInsights } from "@vercel/speed-insights/next"
+import { Analytics } from "@vercel/analytics/react"
+import { Suspense } from "react"
 
 const inter = Inter({ subsets: ["latin", "cyrillic"] })
 
 export const metadata: Metadata = {
-  title: "AnimeSite - Смотреть аниме онлайн",
+  title: "AniHub - Смотреть аниме онлайн",
   description: "Лучшая коллекция аниме в высоком качестве. Смотрите любимые аниме бесплатно.",
   keywords: "аниме, смотреть онлайн, бесплатно, HD качество",
   verification: {
     google: "XkUCPjQmoapTDDjIMH0zRCUkEE_Cr2bgltjo-ZlnDDs",
   },
-    generator: 'v0.dev'
+  generator: "v0.dev",
 }
 
 export default function RootLayout({
@@ -25,11 +28,17 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <body className={inter.className}>
-        <Header />
-        {children}
-        <ApiStatus />
-      {/* v0 – built-with badge */}
-  <div dangerouslySetInnerHTML={{ __html: `<div id="v0-built-with-button-a956b96c-742a-4553-b661-76b33978cea4" style="
+        <Suspense fallback={<div>Loading...</div>}>
+          <Header />
+          {children}
+          <ApiStatus />
+        </Suspense>
+        <SpeedInsights />
+        <Analytics />
+        {/* v0 – built-with badge */}
+        <div
+          dangerouslySetInnerHTML={{
+            __html: `<div id="v0-built-with-button-a956b96c-742a-4553-b661-76b33978cea4" style="
 border: 1px solid hsl(0deg 0% 100% / 12%);
 position: fixed;
 bottom: 24px;
@@ -93,7 +102,7 @@ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   "
   aria-label="Close"
 >
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M18 6L6 18M6 6l12 12"/>
   </svg>
 </button>
@@ -110,8 +119,10 @@ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 ">
   v0
 </span>
-</div>` }} />
-</body>
+</div>`,
+          }}
+        />
+      </body>
     </html>
   )
 }

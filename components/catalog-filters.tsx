@@ -1,4 +1,3 @@
-// /components/catalog-filters.tsx
 "use client"
 
 import type { Dispatch, SetStateAction } from "react"
@@ -7,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { X, Search } from "lucide-react"
+import { X } from "lucide-react"
 
 export interface FiltersState {
   title: string
@@ -26,106 +25,119 @@ interface CatalogFiltersProps {
   onReset: () => void
 }
 
-const SORT_OPTIONS = {
-  shikimori_rating: "По рейтингу",
-  shikimori_votes: "По популярности",
-  year: "По году",
-}
+const ANIME_TYPES = [
+  { value: "tv", label: "TV Сериал" },
+  { value: "movie", label: "Фильм" },
+  { value: "ova", label: "OVA" },
+  { value: "ona", label: "ONA" },
+  { value: "special", label: "Спешл" },
+  { value: "music", label: "Клип" },
+]
 
-const TYPE_OPTIONS = [
-  { id: "tv", label: "TV Сериал" },
-  { id: "movie", label: "Фильм" },
-  { id: "ova", label: "OVA" },
-  { id: "ona", label: "ONA" },
-  { id: "special", label: "Спешл" },
-  { id: "music", label: "Клип" },
+const SORT_OPTIONS = [
+  { value: "shikimori_rating", label: "По рейтингу" },
+  { value: "year", label: "По году" },
+  { value: "title", label: "По названию" },
+  { value: "created_at", label: "По дате добавления" },
 ]
 
 export function CatalogFilters({ filters, onFiltersChange, onApply, onReset }: CatalogFiltersProps) {
   const set = <K extends keyof FiltersState>(key: K, value: FiltersState[K]) =>
     onFiltersChange((prev) => ({ ...prev, [key]: value }))
 
-  const toggleType = (typeId: string) => {
-    const newTypes = filters.type.includes(typeId)
-      ? filters.type.filter((t) => t !== typeId)
-      : [...filters.type, typeId]
+  const toggleType = (typeValue: string) => {
+    const newTypes = filters.type.includes(typeValue)
+      ? filters.type.filter((t) => t !== typeValue)
+      : [...filters.type, typeValue]
     set("type", newTypes)
   }
 
   return (
-    <aside className="w-full lg:w-80 bg-card border-l border-border p-4 space-y-4 h-full flex-shrink-0">
+    <aside className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-lg p-6 space-y-6">
+      {/* Заголовок и сброс */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Фильтры</h2>
-        <Button variant="ghost" size="sm" onClick={onReset}>
+        <h2 className="text-lg font-semibold text-white">Фильтры</h2>
+        <Button variant="ghost" size="sm" onClick={onReset} className="text-slate-400 hover:text-white">
           <X className="mr-1 h-4 w-4" />
           Сбросить
         </Button>
       </div>
 
-      {/* --- НОВЫЙ БЛОК ПОИСКА --- */}
-      <div className="space-y-1">
-        <Label htmlFor="search">Поиск</Label>
-        <div className="relative">
-          <Input
-            id="search"
-            placeholder="Название аниме…"
-            value={filters.title}
-            onChange={(e) => set("title", e.target.value)}
-            className="pr-10"
-          />
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        </div>
-      </div>
-
-      {/* Год релиза */}
-      <div className="space-y-1">
-        <Label>Год релиза</Label>
-        <div className="flex gap-2">
-          <Input placeholder="От" value={filters.yearFrom} onChange={(e) => set("yearFrom", e.target.value)} />
-          <span className="self-center text-muted-foreground">—</span>
-          <Input placeholder="До" value={filters.yearTo} onChange={(e) => set("yearTo", e.target.value)} />
-        </div>
-      </div>
-
-      {/* Тип аниме */}
-      <div className="space-y-1">
-        <Label>Тип</Label>
-        {TYPE_OPTIONS.map((type) => (
-          <div key={type.id} className="flex items-center gap-2">
-            <Checkbox
-              id={`type-${type.id}`}
-              checked={filters.type.includes(type.id)}
-              onCheckedChange={() => toggleType(type.id)}
-            />
-            <Label htmlFor={`type-${type.id}`} className="font-normal">
-              {type.label}
-            </Label>
-          </div>
-        ))}
+      {/* Поиск */}
+      <div className="space-y-2">
+        <Label htmlFor="search" className="text-sm font-medium text-slate-300">
+          Поиск
+        </Label>
+        <Input
+          id="search"
+          placeholder="Название аниме..."
+          value={filters.title}
+          onChange={(e) => set("title", e.target.value)}
+          className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
+        />
       </div>
 
       {/* Сортировка */}
-      <div className="space-y-1">
-        <Label>Сортировка</Label>
-        <Select value={filters.sort} onValueChange={(v) => set("sort", v)}>
-          <SelectTrigger>
+      <div className="space-y-2">
+        <Label className="text-sm font-medium text-slate-300">Сортировка</Label>
+        <Select value={filters.sort} onValueChange={(value) => set("sort", value)}>
+          <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
-            {Object.entries(SORT_OPTIONS).map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
+          <SelectContent className="bg-slate-800 border-slate-700">
+            {SORT_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value} className="text-white hover:bg-slate-700">
+                {option.label}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      <Button className="w-full mt-6" onClick={onApply}>
+      {/* Год */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium text-slate-300">Год выпуска</Label>
+        <div className="grid grid-cols-2 gap-2">
+          <Input
+            placeholder="От"
+            type="number"
+            value={filters.yearFrom}
+            onChange={(e) => set("yearFrom", e.target.value)}
+            className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
+          />
+          <Input
+            placeholder="До"
+            type="number"
+            value={filters.yearTo}
+            onChange={(e) => set("yearTo", e.target.value)}
+            className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
+          />
+        </div>
+      </div>
+
+      {/* Тип */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium text-slate-300">Тип</Label>
+        <div className="space-y-2">
+          {ANIME_TYPES.map((type) => (
+            <div key={type.value} className="flex items-center space-x-2">
+              <Checkbox
+                id={type.value}
+                checked={filters.type.includes(type.value)}
+                onCheckedChange={() => toggleType(type.value)}
+                className="border-slate-600 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
+              />
+              <Label htmlFor={type.value} className="text-sm text-slate-300 cursor-pointer">
+                {type.label}
+              </Label>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <Button className="w-full bg-purple-600 hover:bg-purple-700" onClick={onApply}>
         Применить
       </Button>
     </aside>
   )
 }
-
-export default CatalogFilters

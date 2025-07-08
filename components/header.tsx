@@ -1,15 +1,14 @@
-// /components/header.tsx
 "use client"
 
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, Menu, X, Loader2 } from "lucide-react"
 import { useDebounce } from "@/hooks/use-debounce"
-import Image from "next/image"
 
 interface AnimeSearchResult {
   id: number
@@ -42,7 +41,6 @@ export function Header() {
           setIsDropdownOpen(true)
         } catch (error) {
           console.error("Search error:", error)
-          setSearchResults([])
         } finally {
           setIsSearching(false)
         }
@@ -78,7 +76,7 @@ export function Header() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="text-2xl font-bold text-white hover:text-blue-400 transition-colors">
-            AnimeStream
+            AniHub
           </Link>
 
           <nav className="hidden md:flex items-center space-x-8">
@@ -88,12 +86,9 @@ export function Header() {
             <Link href="/catalog" className="text-gray-300 hover:text-white transition-colors">
               Каталог
             </Link>
-            <Link href="/popular" className="text-gray-300 hover:text-white transition-colors">
-              Популярное
-            </Link>
           </nav>
 
-          {/* --- НОВЫЙ БЛОК ПОИСКА --- */}
+          {/* Блок поиска */}
           <div ref={searchRef} className="hidden md:block relative">
             <form onSubmit={handleSearchSubmit} className="flex items-center">
               <div className="relative w-64">
@@ -127,7 +122,7 @@ export function Header() {
                           onClick={() => setIsDropdownOpen(false)}
                         >
                           <Image
-                            src={anime.poster_url || "/placeholder.svg"}
+                            src={anime.poster_url || "/placeholder.png"}
                             alt={anime.title}
                             width={40}
                             height={60}
@@ -147,7 +142,6 @@ export function Header() {
               </div>
             )}
           </div>
-          {/* --- КОНЕЦ НОВОГО БЛОКА ПОИСКА --- */}
 
           <Button variant="ghost" size="sm" className="md:hidden text-white" onClick={() => setIsMenuOpen(!isMenuOpen)}>
             {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -158,40 +152,23 @@ export function Header() {
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-slate-800">
             <nav className="flex flex-col space-y-4">
-              <Link
-                href="/"
-                className="text-gray-300 hover:text-white transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
+              <Link href="/" className="text-gray-300 hover:text-white transition-colors">
                 Главная
               </Link>
-              <Link
-                href="/catalog"
-                className="text-gray-300 hover:text-white transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
+              <Link href="/catalog" className="text-gray-300 hover:text-white transition-colors">
                 Каталог
               </Link>
-              <Link
-                href="/popular"
-                className="text-gray-300 hover:text-white transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Популярное
-              </Link>
-
-              <form onSubmit={handleSearchSubmit} className="flex items-center space-x-2 pt-4">
-                <Input
-                  type="text"
-                  placeholder="Поиск аниме..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1"
-                />
-                <Button type="submit" size="sm">
-                  <Search className="w-4 h-4" />
-                </Button>
-              </form>
+              <div className="pt-2">
+                <form onSubmit={handleSearchSubmit}>
+                  <Input
+                    type="text"
+                    placeholder="Поиск аниме..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full"
+                  />
+                </form>
+              </div>
             </nav>
           </div>
         )}

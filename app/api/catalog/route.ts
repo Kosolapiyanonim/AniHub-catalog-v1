@@ -1,4 +1,3 @@
-// /app/api/catalog/route.ts
 import { NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
 
@@ -6,24 +5,21 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
 
-    // --- Параметры пагинации и сортировки ---
+    // Параметры пагинации и сортировки
     const page = Number.parseInt(searchParams.get("page") ?? "1")
-    const limit = Number.parseInt(searchParams.get("limit") ?? "24") // Лимит по умолчанию 24
+    const limit = Number.parseInt(searchParams.get("limit") ?? "24")
     const offset = (page - 1) * limit
     const sort = searchParams.get("sort") ?? "shikimori_rating"
     const order = (searchParams.get("order") ?? "desc") === "asc"
 
-    // --- Параметры фильтров ---
+    // Параметры фильтров
     const title = searchParams.get("title") ?? ""
     const type = searchParams.get("type")?.split(",").filter(Boolean)
-    const yearFrom = searchParams.get("yearFrom")
-    const yearTo = searchParams.get("yearTo")
+    const yearFrom = searchParams.get("year_from")
+    const yearTo = searchParams.get("year_to")
 
-    // --- Формируем запрос к Supabase ---
-    let query = supabase.from("animes").select(
-      `id, shikimori_id, title, poster_url, year, type`, // ГЛАВНОЕ ИЗМЕНЕНИЕ: выбираем только нужные поля
-      { count: "exact" },
-    )
+    // Формируем запрос к Supabase - выбираем только нужные поля
+    let query = supabase.from("animes").select(`id, shikimori_id, title, poster_url, year, type`, { count: "exact" })
 
     if (title) {
       query = query.or(`title.ilike.%${title}%,title_orig.ilike.%${title}%`)

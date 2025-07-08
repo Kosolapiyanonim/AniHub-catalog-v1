@@ -1,4 +1,3 @@
-// /components/anime-card.tsx
 "use client"
 
 import Link from "next/link"
@@ -29,7 +28,6 @@ export function AnimeCard({ anime }: AnimeCardProps) {
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className="object-cover transition-transform duration-300 group-hover:scale-105"
-            // ГЛАВНОЕ ИЗМЕНЕНИЕ: Атрибут unoptimized удален!
           />
         ) : (
           <div className="flex items-center justify-center h-full text-slate-500 text-center text-xs p-2">

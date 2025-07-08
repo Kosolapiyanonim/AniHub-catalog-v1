@@ -14,7 +14,6 @@ interface Anime {
   title: string
   poster_url?: string
   year?: number
-  type?: string
 }
 
 const INITIAL_FILTERS: Omit<FiltersState, "page" | "limit" | "title"> = {
@@ -39,7 +38,7 @@ function CatalogView() {
     ...INITIAL_FILTERS,
     page: 1,
     limit: 24,
-    title: "",
+    title: titleFromUrl,
   })
 
   const fetchCatalogData = useCallback(async (currentFilters: FiltersState, isNewSearch: boolean) => {
@@ -61,7 +60,6 @@ function CatalogView() {
       const response = await fetch(`/api/catalog?${params.toString()}`)
       if (!response.ok) throw new Error("Ошибка сети")
       const data = await response.json()
-
       setAnimes((prev) => (isNewSearch ? data.results : [...prev, ...data.results]))
       setHasMore(data.hasMore)
       if (isNewSearch) setTotal(data.total || 0)
@@ -75,28 +73,18 @@ function CatalogView() {
 
   // Эффект для начальной загрузки
   useEffect(() => {
-    const initialFilters = {
+    const newFilters = {
       ...INITIAL_FILTERS,
       page: 1,
       limit: 24,
       title: titleFromUrl,
     }
-    setFilters(initialFilters)
-    fetchCatalogData(initialFilters, true)
-  }, [])
-
-  // Эффект для обновления при изменении URL
-  useEffect(() => {
-    if (filters.title !== titleFromUrl) {
-      const newFilters = { ...filters, title: titleFromUrl, page: 1 }
-      setFilters(newFilters)
-      fetchCatalogData(newFilters, true)
-    }
-  }, [titleFromUrl, filters, fetchCatalogData])
+    setFilters(newFilters)
+    fetchCatalogData(newFilters, true)
+  }, [titleFromUrl, fetchCatalogData])
 
   const handleApplyFilters = () => {
     const newFilters = { ...filters, page: 1 }
-    setFilters(newFilters)
     fetchCatalogData(newFilters, true)
   }
 
@@ -127,18 +115,20 @@ function CatalogView() {
         </aside>
 
         <main className="flex-1">
-          <div className="flex items-center gap-4 mb-6">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.back()}
-              className="text-white hover:text-purple-400"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Назад
-            </Button>
-            <h1 className="text-2xl font-bold text-white">Каталог</h1>
-            {!loading && <span className="text-slate-400 text-sm">Найдено: {total}</span>}
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.back()}
+                className="text-gray-300 hover:text-white"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Назад
+              </Button>
+              <h1 className="text-2xl font-bold">Каталог</h1>
+            </div>
+            {!loading && <span className="text-muted-foreground text-sm">Найдено: {total}</span>}
           </div>
 
           {loading && animes.length === 0 ? (
@@ -147,14 +137,14 @@ function CatalogView() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
                 {animes.map((anime, index) => (
                   <AnimeCard key={`${anime.shikimori_id}-${anime.id}`} anime={anime} priority={index < 8} />
                 ))}
               </div>
               {hasMore && (
                 <div className="text-center mt-8">
-                  <Button onClick={loadMore} disabled={loadingMore} className="bg-purple-600 hover:bg-purple-700">
+                  <Button onClick={loadMore} disabled={loadingMore}>
                     {loadingMore ? <LoadingSpinner /> : "Загрузить еще"}
                   </Button>
                 </div>
@@ -169,13 +159,7 @@ function CatalogView() {
 
 export default function CatalogPageWrapper() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex justify-center items-center h-96">
-          <LoadingSpinner size="lg" />
-        </div>
-      }
-    >
+    <Suspense fallback={<div>Загрузка...</div>}>
       <CatalogView />
     </Suspense>
   )

@@ -14,16 +14,16 @@ interface AnimeCardProps {
   priority?: boolean
 }
 
-const blurDataURL =
-  "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R+Rq19TcMVLVuP9vqf2j9NvqLjUdRtYbC1luJ7iGGCJAWd3YKqgepJwBWjggg+lEcwAqzqvqAEbkHqKAv/Z"
-
 export function AnimeCard({ anime, priority = false }: AnimeCardProps) {
   if (!anime || !anime.shikimori_id) {
     return null
   }
 
+  const blurDataURL =
+    "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
+
   return (
-    <Link href={`/anime/${anime.shikimori_id}`} className="group cursor-pointer block">
+    <Link href={`/anime/${anime.shikimori_id}`} key={anime.id} className="group cursor-pointer block">
       <div className="aspect-[2/3] overflow-hidden rounded-lg bg-slate-800 relative">
         {anime.poster_url ? (
           <Image
@@ -44,12 +44,10 @@ export function AnimeCard({ anime, priority = false }: AnimeCardProps) {
           </div>
         )}
       </div>
-      <div className="mt-2 min-h-[2.5rem]">
-        <h3 className="text-sm font-medium text-white line-clamp-2 leading-tight group-hover:text-purple-400">
-          {anime.title}
-        </h3>
-        {anime.year && <p className="text-xs text-slate-400 mt-1">{anime.year}</p>}
-      </div>
+      <h3 className="mt-2 text-sm font-medium text-white line-clamp-2 leading-tight min-h-[2.5rem] group-hover:text-purple-400">
+        {anime.title}
+      </h3>
+      {anime.year && <p className="text-xs text-slate-400">{anime.year}</p>}
     </Link>
   )
 }

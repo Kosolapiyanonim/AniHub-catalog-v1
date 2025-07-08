@@ -1,69 +1,79 @@
 // /app/api/anime/[id]/route.ts
+import { NextResponse } from "next/server"
+import { supabase } from "@/lib/supabase"
 
-import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
-
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, { params }: { params: { id: string } }) {
   try {
-    const { id } = params;
+    const { id } = params
 
-    // Проверяем, что ID является корректным числовым значением
-    if (!id || !/^\d+$/.test(id)) {
-      return NextResponse.json({ error: "Invalid anime ID format" }, { status: 400 });
+    // 1️⃣ Validate ID
+    if (!/^\d+$/.test(id)) {
+      return NextResponse.json({ error: "Invalid anime ID format" }, { status: 400 })
     }
 
-    console.log(`🎬 Fetching all data for shikimori_id: ${id}`);
+    // 2️⃣ Fetch main anime row
+    const { data: anime, error: animeError } = await supabase.from("animes").select("*").eq("shikimori_id", id).single()
 
-    // ====================================================================
-    // ОПТИМИЗИРОВАННЫЙ ЗАПРОС
-    // Мы делаем один запрос, который получает всю необходимую информацию:
-    // 1. Все поля из таблицы `animes` (*).
-    // 2. Все связанные записи из таблицы `translations` (*).
-    // 3. Имена связанных жанров, студий и стран через промежуточные таблицы.
-    // ====================================================================
-    const { data, error } = await supabase
-      .from("animes")
-      .select(`
-        *, 
-        translations(*),
-        genres:anime_genres(genres(name)),
-        studios:anime_studios(studios(name)),
-        countries:anime_countries(countries(name))
-      `)
-      .eq("shikimori_id", id)
-      .single(); // .single() для получения одного объекта, а не массива
-
-    // Обработка ошибок от Supabase
-    if (error) {
-      // Если аниме не найдено, Supabase вернет ошибку с кодом PGRST116
-      if (error.code === 'PGRST116') {
-        console.warn(`🕵️ Anime with shikimori_id ${id} not found.`);
-        return NextResponse.json({ error: "Anime not found" }, { status: 404 });
+    if (animeError) {
+      if (animeError.code === "PGRST116") {
+        return NextResponse.json({ error: "Anime not found" }, { status: 404 })
       }
-      // Для всех других ошибок, выбрасываем их для дальнейшей обработки
-      throw error;
+      throw animeError
     }
 
-    // ====================================================================
-    // ПРЕОБРАЗОВАНИЕ ДАННЫХ
-    // Supabase возвращает связанные данные в виде вложенных объектов.
-    // Мы преобразуем их в простые массивы строк для удобства на фронтенде.
-    // Например, из [{ genres: { name: 'Экшен' } }] делаем ['Экшен'].
-    // ====================================================================
+    // 3️⃣ Fetch pivot-table rows (no FK joins)
+    const [
+      { data: genreLinks, error: genreLinksErr },
+      { data: studioLinks, error: studioLinksErr },
+      { data: countryLinks, error: countryLinksErr },
+      { data: translations, error: transErr },
+    ] = await Promise.all([
+      supabase.from("anime_genres").select("genre_id").eq("anime_id", anime.id),
+      supabase.from("anime_studios").select("studio_id").eq("anime_id", anime.id),
+      supabase.from("anime_countries").select("country_id").eq("anime_id", anime.id),
+      supabase.from("translations").select("*").eq("anime_id", anime.id),
+    ])
+
+    if (genreLinksErr || studioLinksErr || countryLinksErr || transErr)
+      throw genreLinksErr || studioLinksErr || countryLinksErr || transErr
+
+    // Extract ids
+    const genreIds = genreLinks?.map((g) => g.genre_id) ?? []
+    const studioIds = studioLinks?.map((s) => s.studio_id) ?? []
+    const countryIds = countryLinks?.map((c) => c.country_id) ?? []
+
+    // 4️⃣ Fetch related entities in parallel
+    const [
+      { data: genres, error: genresErr },
+      { data: studios, error: studiosErr },
+      { data: countries, error: countriesErr },
+    ] = await Promise.all([
+      genreIds.length
+        ? supabase.from("genres").select("name").in("id", genreIds)
+        : Promise.resolve({ data: [], error: null }),
+      studioIds.length
+        ? supabase.from("studios").select("name").in("id", studioIds)
+        : Promise.resolve({ data: [], error: null }),
+      countryIds.length
+        ? supabase.from("countries").select("name").in("id", countryIds)
+        : Promise.resolve({ data: [], error: null }),
+    ])
+
+    if (genresErr || studiosErr || countriesErr) throw genresErr || studiosErr || countriesErr
+
+    // 5️⃣ Compose response
     const responseData = {
-      ...data,
-      genres: data.genres.map((g: any) => g.genres.name).filter(Boolean),
-      studios: data.studios.map((s: any) => s.studios.name).filter(Boolean),
-      countries: data.countries.map((c: any) => c.countries.name).filter(Boolean),
-      // Убеждаемся, что translations всегда является массивом
-      translations: data.translations || [],
-    };
+      ...anime,
+      translations: translations ?? [],
+      genres: genres?.map((g) => g.name) ?? [],
+      studios: studios?.map((s) => s.name) ?? [],
+      countries: countries?.map((c) => c.name) ?? [],
+    }
 
-    return NextResponse.json(responseData);
-
+    return NextResponse.json(responseData)
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("❌ Error in /api/anime/[id]:", message);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error("❌ Error in /api/anime/[id]:", err)
+    const message = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ error: "Internal server error", details: message }, { status: 500 })
   }
 }

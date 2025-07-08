@@ -73,14 +73,16 @@ function CatalogView() {
 
   // Эффект для начальной загрузки
   useEffect(() => {
-    const newFilters = {
-      ...INITIAL_FILTERS,
-      page: 1,
-      limit: 24,
-      title: titleFromUrl,
+    fetchCatalogData(filters, true)
+  }, [])
+
+  // Эффект для обновления при изменении URL
+  useEffect(() => {
+    if (titleFromUrl !== filters.title) {
+      const newFilters = { ...filters, title: titleFromUrl, page: 1 }
+      setFilters(newFilters)
+      fetchCatalogData(newFilters, true)
     }
-    setFilters(newFilters)
-    fetchCatalogData(newFilters, true)
   }, [titleFromUrl, fetchCatalogData])
 
   const handleApplyFilters = () => {
@@ -115,7 +117,7 @@ function CatalogView() {
         </aside>
 
         <main className="flex-1">
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
@@ -137,7 +139,7 @@ function CatalogView() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
                 {animes.map((anime, index) => (
                   <AnimeCard key={`${anime.shikimori_id}-${anime.id}`} anime={anime} priority={index < 8} />
                 ))}

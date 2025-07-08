@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     const yearFrom = searchParams.get("year_from")
     const yearTo = searchParams.get("year_to")
 
-    // Формируем запрос к Supabase - только нужные поля для оптимизации
+    // Формируем запрос к Supabase - выбираем только нужные поля
     let query = supabase.from("animes").select(`id, shikimori_id, title, poster_url, year, type`, { count: "exact" })
 
     if (title) {

@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
+import { isEqual } from "lodash-es" // lightweight deep-equal (DCE will tree-shake)
 import { AnimeCard } from "@/components/anime-card"
 import { LoadingSpinner } from "@/components/loading-spinner"
 import { Button } from "@/components/ui/button"
@@ -69,17 +70,25 @@ function CatalogView() {
     }
   }, [])
 
-  // Эффект для запуска нового поиска при изменении URL (например, из шапки)
+  // --- Sync filters with ?title=… in the URL (runs only when the value really changes)
   useEffect(() => {
-    const newFilters = {
+    const urlTitle = searchParams.get("title") || ""
+    if (urlTitle === filters.title) return // nothing new – skip
+
+    const newFilters: FiltersState = {
       ...INITIAL_FILTERS,
       page: 1,
       limit: 24,
-      title: searchParams.get("title") || "",
+      title: urlTitle,
     }
-    setFilters(newFilters)
-    fetchCatalogData(newFilters, true)
-  }, [searchParams, fetchCatalogData])
+
+    // avoid unnecessary state churn
+    if (!isEqual(newFilters, filters)) {
+      setFilters(newFilters)
+      fetchCatalogData(newFilters, true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams.get("title")])
 
   const handleApplyFilters = () => {
     const newFilters = { ...filters, page: 1 }

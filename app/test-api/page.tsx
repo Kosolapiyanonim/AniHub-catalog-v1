@@ -10,6 +10,7 @@ export default function TestApiPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [testType, setTestType] = useState<string>("")
+  const [result, setResult] = useState<string>("–")
 
   async function runTest(testName: string, url: string) {
     setLoading(true)
@@ -40,6 +41,16 @@ export default function TestApiPage() {
       setError(message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const pingApi = async () => {
+    try {
+      const res = await fetch("/api/test")
+      const json = await res.json()
+      setResult(JSON.stringify(json, null, 2))
+    } catch (e) {
+      setResult(String(e))
     }
   }
 
@@ -99,6 +110,8 @@ export default function TestApiPage() {
             <div className="text-sm opacity-70">Get anime info</div>
           </div>
         </Button>
+
+        <Button onClick={pingApi}>Выполнить запрос</Button>
       </div>
 
       {/* Loading state */}
@@ -215,6 +228,9 @@ export default function TestApiPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Ping API Result */}
+      <pre className="bg-muted p-4 rounded text-sm overflow-x-auto">{result}</pre>
     </main>
   )
 }

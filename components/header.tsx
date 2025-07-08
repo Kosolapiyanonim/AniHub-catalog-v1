@@ -3,8 +3,8 @@
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, Menu, X, Loader2 } from "lucide-react"
@@ -88,7 +88,6 @@ export function Header() {
             </Link>
           </nav>
 
-          {/* Блок поиска */}
           <div ref={searchRef} className="hidden md:block relative">
             <form onSubmit={handleSearchSubmit} className="flex items-center">
               <div className="relative w-64">
@@ -148,27 +147,35 @@ export function Header() {
           </Button>
         </div>
 
-        {/* Мобильное меню */}
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-slate-800">
             <nav className="flex flex-col space-y-4">
-              <Link href="/" className="text-gray-300 hover:text-white transition-colors">
+              <Link
+                href="/"
+                className="text-gray-300 hover:text-white transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
                 Главная
               </Link>
-              <Link href="/catalog" className="text-gray-300 hover:text-white transition-colors">
+              <Link
+                href="/catalog"
+                className="text-gray-300 hover:text-white transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
                 Каталог
               </Link>
-              <div className="pt-2">
-                <form onSubmit={handleSearchSubmit}>
-                  <Input
-                    type="text"
-                    placeholder="Поиск аниме..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full"
-                  />
-                </form>
-              </div>
+              <form onSubmit={handleSearchSubmit} className="flex items-center mt-4">
+                <Input
+                  type="text"
+                  placeholder="Поиск аниме..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-1"
+                />
+                <Button type="submit" size="sm" className="ml-2">
+                  <Search className="w-4 h-4" />
+                </Button>
+              </form>
             </nav>
           </div>
         )}

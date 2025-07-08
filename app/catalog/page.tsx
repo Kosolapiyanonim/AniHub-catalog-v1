@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect, useCallback, Suspense } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { AnimeCard } from "@/components/anime-card"
 import { LoadingSpinner } from "@/components/loading-spinner"
 import { Button } from "@/components/ui/button"
 import { CatalogFilters, type FiltersState } from "@/components/catalog-filters"
+import { ArrowLeft } from "lucide-react"
 
 interface Anime {
   id: number
@@ -30,6 +31,7 @@ function CatalogView() {
   const [total, setTotal] = useState(0)
 
   const searchParams = useSearchParams()
+  const router = useRouter()
   const titleFromUrl = searchParams.get("title") || ""
 
   const [filters, setFilters] = useState<FiltersState>({
@@ -114,6 +116,10 @@ function CatalogView() {
     }
   }
 
+  const handleGoBack = () => {
+    router.back()
+  }
+
   return (
     <div className="container mx-auto px-4 pt-20">
       <div className="flex flex-col lg:flex-row gap-8">
@@ -127,8 +133,19 @@ function CatalogView() {
         </aside>
 
         <main className="flex-1">
-          <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-bold">Каталог</h1>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleGoBack}
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Назад
+              </Button>
+              <h1 className="text-2xl font-bold">Каталог</h1>
+            </div>
             {!loading && <span className="text-muted-foreground text-sm">Найдено: {total}</span>}
           </div>
 

@@ -15,6 +15,7 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "AniHub - Смотреть аниме онлайн",
   description: "Лучший сайт для просмотра аниме онлайн. Большая коллекция аниме с русской озвучкой и субтитрами.",
+  keywords: "аниме, онлайн, смотреть, русская озвучка, субтитры",
     generator: 'v0.dev'
 }
 
@@ -28,7 +29,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <Suspense fallback={<div>Loading...</div>}>
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+            <div className="min-h-screen bg-slate-950 text-white">
               <Header />
               <main>{children}</main>
               <Footer />

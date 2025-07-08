@@ -81,7 +81,7 @@ function CatalogView() {
     }
     setFilters(initialFilters)
     fetchCatalogData(initialFilters, true)
-  }, []) // Только при монтировании
+  }, [])
 
   // Обновление при изменении URL
   useEffect(() => {
@@ -116,10 +116,6 @@ function CatalogView() {
     }
   }
 
-  const handleGoBack = () => {
-    router.back()
-  }
-
   return (
     <div className="container mx-auto px-4 pt-20">
       <div className="flex flex-col lg:flex-row gap-8">
@@ -138,15 +134,15 @@ function CatalogView() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleGoBack}
-                className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+                onClick={() => router.back()}
+                className="text-gray-300 hover:text-white hover:bg-slate-800"
               >
-                <ArrowLeft className="h-4 w-4" />
+                <ArrowLeft className="w-4 h-4 mr-2" />
                 Назад
               </Button>
-              <h1 className="text-2xl font-bold">Каталог</h1>
+              <h1 className="text-2xl font-bold text-white">Каталог</h1>
             </div>
-            {!loading && <span className="text-muted-foreground text-sm">Найдено: {total}</span>}
+            {!loading && <span className="text-slate-400 text-sm">Найдено: {total}</span>}
           </div>
 
           {loading && animes.length === 0 ? (
@@ -155,7 +151,7 @@ function CatalogView() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
                 {animes.map((anime) => (
                   <AnimeCard key={`${anime.shikimori_id}-${anime.id}`} anime={anime} />
                 ))}
@@ -177,7 +173,13 @@ function CatalogView() {
 
 export default function CatalogPageWrapper() {
   return (
-    <Suspense fallback={<div>Загрузка...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex justify-center items-center h-96">
+          <LoadingSpinner size="lg" />
+        </div>
+      }
+    >
       <CatalogView />
     </Suspense>
   )

@@ -35,8 +35,14 @@ export function AnimeCard({ anime }: AnimeCardProps) {
           </div>
         )}
       </div>
-      <h3 className="mt-2 text-sm font-medium text-white truncate group-hover:text-purple-400">{anime.title}</h3>
-      {anime.year && <p className="text-xs text-slate-400">{anime.year}</p>}
+
+      {/* Название в 2 строчки */}
+      <div className="mt-2">
+        <h3 className="text-sm font-medium text-white group-hover:text-purple-400 line-clamp-2 leading-tight min-h-[2.5rem]">
+          {anime.title}
+        </h3>
+        {anime.year && <p className="text-xs text-slate-400 mt-1">{anime.year}</p>}
+      </div>
     </Link>
   )
 }

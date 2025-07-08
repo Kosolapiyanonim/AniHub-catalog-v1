@@ -88,6 +88,7 @@ export function Header() {
             </Link>
           </nav>
 
+          {/* Поиск */}
           <div ref={searchRef} className="hidden md:block relative">
             <form onSubmit={handleSearchSubmit} className="flex items-center">
               <div className="relative w-64">
@@ -97,11 +98,11 @@ export function Header() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => searchQuery.length > 2 && setIsDropdownOpen(true)}
-                  className="pr-10"
+                  className="pr-10 bg-slate-800 border-slate-700 text-white placeholder-slate-400"
                 />
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                   {isSearching ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
                   ) : (
                     <Search className="w-4 h-4 text-gray-400" />
                   )}
@@ -121,13 +122,13 @@ export function Header() {
                           onClick={() => setIsDropdownOpen(false)}
                         >
                           <Image
-                            src={anime.poster_url || "/placeholder.png"}
+                            src={anime.poster_url || "/placeholder.svg"}
                             alt={anime.title}
-                            width={40}
-                            height={60}
-                            className="w-10 h-auto object-cover rounded-sm mr-3"
+                            width={24}
+                            height={36}
+                            className="w-6 h-9 object-cover rounded-sm mr-3 flex-shrink-0"
                           />
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-white truncate">{anime.title}</p>
                             <p className="text-xs text-slate-400">{anime.year}</p>
                           </div>
@@ -147,34 +148,24 @@ export function Header() {
           </Button>
         </div>
 
+        {/* Мобильное меню */}
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-slate-800">
             <nav className="flex flex-col space-y-4">
-              <Link
-                href="/"
-                className="text-gray-300 hover:text-white transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
+              <Link href="/" className="text-gray-300 hover:text-white transition-colors">
                 Главная
               </Link>
-              <Link
-                href="/catalog"
-                className="text-gray-300 hover:text-white transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
+              <Link href="/catalog" className="text-gray-300 hover:text-white transition-colors">
                 Каталог
               </Link>
-              <form onSubmit={handleSearchSubmit} className="flex items-center mt-4">
+              <form onSubmit={handleSearchSubmit} className="mt-4">
                 <Input
                   type="text"
                   placeholder="Поиск аниме..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1"
+                  className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
                 />
-                <Button type="submit" size="sm" className="ml-2">
-                  <Search className="w-4 h-4" />
-                </Button>
               </form>
             </nav>
           </div>

@@ -45,47 +45,46 @@ export function CatalogFilters({ filters, onFiltersChange, onApply, onReset }: C
   const set = <K extends keyof FiltersState>(key: K, value: FiltersState[K]) =>
     onFiltersChange((prev) => ({ ...prev, [key]: value }))
 
-  const handleTypeChange = (type: string, checked: boolean) => {
-    if (checked) {
-      set("type", [...filters.type, type])
-    } else {
-      set(
-        "type",
-        filters.type.filter((t) => t !== type),
-      )
-    }
+  const handleTypeChange = (typeValue: string, checked: boolean) => {
+    const newTypes = checked ? [...filters.type, typeValue] : filters.type.filter((t) => t !== typeValue)
+    set("type", newTypes)
   }
 
   return (
     <aside className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Фильтры</h2>
-        <Button variant="ghost" size="sm" onClick={onReset}>
+        <h2 className="text-lg font-semibold text-white">Фильтры</h2>
+        <Button variant="ghost" size="sm" onClick={onReset} className="text-slate-400 hover:text-white">
           <X className="mr-1 h-4 w-4" />
           Сбросить
         </Button>
       </div>
 
       <div className="space-y-6">
+        {/* Поиск */}
         <div className="space-y-2">
-          <Label htmlFor="search">Поиск</Label>
+          <Label htmlFor="search" className="text-white">
+            Поиск
+          </Label>
           <Input
             id="search"
             placeholder="Название аниме..."
             value={filters.title}
             onChange={(e) => set("title", e.target.value)}
+            className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
           />
         </div>
 
+        {/* Сортировка */}
         <div className="space-y-2">
-          <Label>Сортировка</Label>
+          <Label className="text-white">Сортировка</Label>
           <Select value={filters.sort} onValueChange={(value) => set("sort", value)}>
-            <SelectTrigger>
+            <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-slate-700 border-slate-600">
               {SORT_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
+                <SelectItem key={option.value} value={option.value} className="text-white hover:bg-slate-600">
                   {option.label}
                 </SelectItem>
               ))}
@@ -93,31 +92,28 @@ export function CatalogFilters({ filters, onFiltersChange, onApply, onReset }: C
           </Select>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="yearFrom">Год от</Label>
+        {/* Год */}
+        <div className="space-y-2">
+          <Label className="text-white">Год выпуска</Label>
+          <div className="flex gap-2">
             <Input
-              id="yearFrom"
-              type="number"
-              placeholder="2000"
+              placeholder="От"
               value={filters.yearFrom}
               onChange={(e) => set("yearFrom", e.target.value)}
+              className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="yearTo">Год до</Label>
             <Input
-              id="yearTo"
-              type="number"
-              placeholder="2024"
+              placeholder="До"
               value={filters.yearTo}
               onChange={(e) => set("yearTo", e.target.value)}
+              className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
             />
           </div>
         </div>
 
-        <div className="space-y-3">
-          <Label>Тип</Label>
+        {/* Тип */}
+        <div className="space-y-2">
+          <Label className="text-white">Тип</Label>
           <div className="space-y-2">
             {ANIME_TYPES.map((type) => (
               <div key={type.value} className="flex items-center space-x-2">
@@ -125,8 +121,9 @@ export function CatalogFilters({ filters, onFiltersChange, onApply, onReset }: C
                   id={type.value}
                   checked={filters.type.includes(type.value)}
                   onCheckedChange={(checked) => handleTypeChange(type.value, checked as boolean)}
+                  className="border-slate-600 data-[state=checked]:bg-blue-600"
                 />
-                <Label htmlFor={type.value} className="text-sm font-normal">
+                <Label htmlFor={type.value} className="text-sm text-slate-300">
                   {type.label}
                 </Label>
               </div>
@@ -134,7 +131,7 @@ export function CatalogFilters({ filters, onFiltersChange, onApply, onReset }: C
           </div>
         </div>
 
-        <Button className="w-full" onClick={onApply}>
+        <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={onApply}>
           Применить
         </Button>
       </div>

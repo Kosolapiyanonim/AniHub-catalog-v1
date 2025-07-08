@@ -1,157 +1,76 @@
-// Замените содержимое файла: /app/api/parse-latest/route.ts
+// /app/api/parse-latest/route.ts
 
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import type { KodikAnimeData } from "@/lib/types";
+import { transformToAnimeRecord, processAllRelationsForAnime } from "@/lib/parser-utils";
 
-// ... (вспомогательная функция processAllRelations остается без изменений)
-async function processAllRelations(supabaseClient: any, relationsToProcess: any[], animeIdMap: Map<string, number>) {
-    const allGenres = new Set<string>();
-    const allStudios = new Set<string>();
-    const allCountries = new Set<string>();
-
-    relationsToProcess.forEach(rel => {
-        rel.genres?.forEach((g: string) => allGenres.add(g));
-        rel.studios?.forEach((s: string) => allStudios.add(s));
-        rel.countries?.forEach((c: string) => allCountries.add(c));
-    });
-
-    const { data: genresData } = await supabaseClient.from('genres').upsert(Array.from(allGenres).map(name => ({ name })), { onConflict: 'name' }).select();
-    const { data: studiosData } = await supabaseClient.from('studios').upsert(Array.from(allStudios).map(name => ({ name })), { onConflict: 'name' }).select();
-    const { data: countriesData } = await supabaseClient.from('countries').upsert(Array.from(allCountries).map(name => ({ name })), { onConflict: 'name' }).select();
-
-    const genreMap = new Map(genresData?.map(g => [g.name, g.id]));
-    const studioMap = new Map(studiosData?.map(s => [s.name, s.id]));
-    const countryMap = new Map(countriesData?.map(c => [c.name, c.id]));
-    
-    const relationsToUpsert: any[] = [];
-    relationsToProcess.forEach(rel => {
-        const animeId = animeIdMap.get(rel.shikimori_id);
-        if (!animeId) return;
-
-        rel.genres?.forEach((name: string) => relationsToUpsert.push({ anime_id: animeId, relation_id: genreMap.get(name), relation_type: 'genre' }));
-        rel.studios?.forEach((name: string) => relationsToUpsert.push({ anime_id: animeId, relation_id: studioMap.get(name), relation_type: 'studio' }));
-        rel.countries?.forEach((name: string) => relationsToUpsert.push({ anime_id: animeId, relation_id: countryMap.get(name), relation_type: 'country' }));
-    });
-
-    if (relationsToUpsert.length > 0) {
-        await supabaseClient.from('anime_relations').upsert(relationsToUpsert.filter(r => r.relation_id), { onConflict: 'anime_id,relation_id,relation_type' });
-    }
-}
-
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-  const KODIK_TOKEN = process.env.KODIK_API_TOKEN;
-  if (!KODIK_TOKEN) {
-    return NextResponse.json({ error: "KODIK_API_TOKEN не настроен" }, { status: 500 });
-  }
-
-  try {
-    const targetUrl = new URL("/list", "https://kodikapi.com");
-    targetUrl.searchParams.set("token", KODIK_TOKEN);
-    targetUrl.searchParams.set("types", "anime,anime-serial");
-    targetUrl.searchParams.set("with_material_data", "true");
-    targetUrl.searchParams.set("limit", "100");
-    targetUrl.searchParams.set("sort", "updated_at");
-    targetUrl.searchParams.set("order", "desc");
-    
-    const response = await fetch(targetUrl);
-    if (!response.ok) throw new Error(`Ошибка от API Kodik: ${response.status}`);
-    
-    const data = await response.json();
-    const animeList: KodikAnimeData[] = data.results || [];
-
-    if (animeList.length === 0) {
-      return NextResponse.json({ message: `Новых обновлений не найдено.`, processed: 0 });
+    const KODIK_TOKEN = process.env.KODIK_API_TOKEN;
+    if (!KODIK_TOKEN) {
+        return NextResponse.json({ error: "KODIK_API_TOKEN не настроен" }, { status: 500 });
     }
 
-    const uniqueAnimeMap = new Map<string, KodikAnimeData>();
-    for (const anime of animeList) {
-        if (anime.shikimori_id && !uniqueAnimeMap.has(anime.shikimori_id)) {
-            uniqueAnimeMap.set(anime.shikimori_id, anime);
+    try {
+        const targetUrl = new URL("/list", "https://kodikapi.com");
+        targetUrl.searchParams.set("token", KODIK_TOKEN);
+        targetUrl.searchParams.set("types", "anime,anime-serial");
+        targetUrl.searchParams.set("with_material_data", "true");
+        targetUrl.searchParams.set("limit", "100");
+        targetUrl.searchParams.set("sort", "updated_at");
+        targetUrl.searchParams.set("order", "desc");
+        
+        const response = await fetch(targetUrl);
+        if (!response.ok) throw new Error(`Ошибка от API Kodik: ${response.status}`);
+        
+        const data = await response.json();
+        const animeList: KodikAnimeData[] = data.results || [];
+
+        if (animeList.length === 0) {
+            return NextResponse.json({ message: `Новых обновлений не найдено.`, processed: 0 });
         }
-    }
-    const uniqueAnimeList = Array.from(uniqueAnimeMap.values());
 
-    if (uniqueAnimeList.length === 0) {
-      return NextResponse.json({ message: `На странице не найдено записей с shikimori_id.`, processed: 0 });
-    }
-    
-    const animeRecordsToUpsert = uniqueAnimeList.map(anime => {
-        const material = anime.material_data || {};
-        return {
-            shikimori_id: anime.shikimori_id,
-            kinopoisk_id: anime.kinopoisk_id,
-            title: material.anime_title || anime.title,
-            title_orig: anime.title_orig,
-            year: anime.year,
-            poster_url: material.anime_poster_url || material.poster_url,
-            description: material.anime_description || material.description,
-            type: anime.type,
-            status: material.anime_status,
-            episodes_count: anime.episodes_count || material.episodes_total,
-            rating_mpaa: material.rating_mpaa,
-            kinopoisk_rating: material.kinopoisk_rating,
-            imdb_rating: material.imdb_rating,
-            shikimori_rating: material.shikimori_rating,
-            kinopoisk_votes: material.kinopoisk_votes,
-            shikimori_votes: material.shikimori_votes,
-            screenshots: { screenshots: anime.screenshots || [] },
-            updated_at_kodik: anime.updated_at,
-        };
-    });
+        const uniqueAnimeMap = new Map<string, KodikAnimeData>();
+        animeList.forEach(anime => {
+            if (anime.shikimori_id && !uniqueAnimeMap.has(anime.shikimori_id)) {
+                uniqueAnimeMap.set(anime.shikimori_id, anime);
+            }
+        });
+        const uniqueAnimeList = Array.from(uniqueAnimeMap.values());
 
-    const { data: upsertedAnimes, error: animeError } = await supabase
-      .from('animes')
-      .upsert(animeRecordsToUpsert, { onConflict: 'shikimori_id' })
-      .select('id, shikimori_id');
-
-    if (animeError) throw animeError;
-
-    const animeIdMap = new Map(upsertedAnimes!.map(a => [a.shikimori_id, a.id]));
-
-    const translationRecordsToUpsert = animeList.map(anime => {
-        const anime_id = animeIdMap.get(anime.shikimori_id!);
-        if (!anime_id) return null;
-        return {
-            anime_id: anime_id,
-            kodik_id: anime.id,
-            title: anime.translation.title,
-            type: anime.translation.type,
-            quality: anime.quality,
-            player_link: anime.link,
-        };
-    }).filter(Boolean);
-
-    if (translationRecordsToUpsert.length > 0) {
-        await supabase.from('translations').upsert(translationRecordsToUpsert, { onConflict: 'kodik_id' });
-    }
-    
-    const relationsToProcess = uniqueAnimeList.map(anime => {
-        const material = anime.material_data || {};
-        // **ИСПРАВЛЕНИЕ:** Собираем жанры из всех доступных источников
-        const allGenres = new Set<string>();
-        material.genres?.forEach(g => allGenres.add(g));
-        material.anime_genres?.forEach(g => allGenres.add(g));
-        material.drama_genres?.forEach(g => allGenres.add(g));
-
-        return {
-            shikimori_id: anime.shikimori_id,
-            genres: Array.from(allGenres),
-            studios: material.anime_studios,
-            countries: material.countries,
+        if (uniqueAnimeList.length === 0) {
+            return NextResponse.json({ message: `На странице не найдено записей с shikimori_id.`, processed: 0 });
         }
-    });
-    await processAllRelations(supabase, relationsToProcess, animeIdMap);
+        
+        const animeRecordsToUpsert = uniqueAnimeList.map(transformToAnimeRecord);
 
-    return NextResponse.json({
-      message: `Последние обновления обработаны. Найдено и сохранено: ${upsertedAnimes!.length} записей.`,
-      processed: upsertedAnimes!.length,
-    });
+        const { data: upsertedAnimes, error: animeError } = await supabase
+            .from('animes')
+            .upsert(animeRecordsToUpsert, { onConflict: 'shikimori_id' })
+            .select('id, shikimori_id');
 
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Неизвестная ошибка";
-    console.error("Latest Parser Error:", err);
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
+        if (animeError) throw animeError;
+        if (!upsertedAnimes) return NextResponse.json({ message: "Нет данных для обновления", processed: 0 });
+
+        const animeIdMap = new Map(upsertedAnimes.map(a => [a.shikimori_id, a.id]));
+
+        for (const anime of uniqueAnimeList) {
+            const animeId = animeIdMap.get(anime.shikimori_id!);
+            if (animeId) {
+                await processAllRelationsForAnime(supabase, anime, animeId);
+            }
+        }
+
+        return NextResponse.json({
+            message: `Последние обновления обработаны. Найдено и сохранено: ${upsertedAnimes.length} записей.`,
+            processed: upsertedAnimes.length,
+        });
+
+    } catch (err) {
+        const message = err instanceof Error ? err.message : "Неизвестная ошибка";
+        console.error("Latest Parser Error:", err);
+        return NextResponse.json({ error: message }, { status: 500 });
+    }
 }

@@ -21,7 +21,7 @@ export function ApiStatus() {
   }, [])
 
   async function checkApiStatus() {
-    // Проверяем API каталога
+    // Проверяем API каталога - делаем запрос к /api/catalog с лимитом 1 записи
     try {
       const catalogResponse = await fetch("/api/catalog?limit=1")
       setStatus((prev) => ({
@@ -32,7 +32,7 @@ export function ApiStatus() {
       setStatus((prev) => ({ ...prev, catalog: "error" }))
     }
 
-    // Проверяем подключение к базе данных
+    // Проверяем подключение к базе данных - делаем запрос к /api/test
     try {
       const dbResponse = await fetch("/api/test")
       setStatus((prev) => ({

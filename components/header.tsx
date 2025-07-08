@@ -75,7 +75,7 @@ export function Header() {
     <header className="bg-slate-900/95 backdrop-blur-sm border-b border-slate-800 sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          <Link href="/" className="text-2xl font-bold text-white hover:text-blue-400 transition-colors">
+          <Link href="/" className="text-2xl font-bold text-white hover:text-purple-400 transition-colors">
             AniHub
           </Link>
 
@@ -88,7 +88,6 @@ export function Header() {
             </Link>
           </nav>
 
-          {/* Поиск */}
           <div ref={searchRef} className="hidden md:block relative">
             <form onSubmit={handleSearchSubmit} className="flex items-center">
               <div className="relative w-64">
@@ -104,7 +103,7 @@ export function Header() {
                   {isSearching ? (
                     <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
                   ) : (
-                    <Search className="w-4 h-4 text-gray-400" />
+                    <Search className="w-4 h-4 text-slate-400" />
                   )}
                 </div>
               </div>
@@ -118,16 +117,18 @@ export function Header() {
                       <li key={anime.shikimori_id}>
                         <Link
                           href={`/anime/${anime.shikimori_id}`}
-                          className="flex items-center p-2 rounded-md hover:bg-slate-700"
+                          className="flex items-center p-2 rounded-md hover:bg-slate-700 transition-colors"
                           onClick={() => setIsDropdownOpen(false)}
                         >
-                          <Image
-                            src={anime.poster_url || "/placeholder.svg"}
-                            alt={anime.title}
-                            width={24}
-                            height={36}
-                            className="w-6 h-9 object-cover rounded-sm mr-3 flex-shrink-0"
-                          />
+                          <div className="w-6 h-9 flex-shrink-0 mr-3">
+                            <Image
+                              src={anime.poster_url || "/placeholder.svg?height=36&width=24"}
+                              alt={anime.title}
+                              width={24}
+                              height={36}
+                              className="w-full h-full object-cover rounded-sm"
+                            />
+                          </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-white truncate">{anime.title}</p>
                             <p className="text-xs text-slate-400">{anime.year}</p>
@@ -137,7 +138,7 @@ export function Header() {
                     ))}
                   </ul>
                 ) : (
-                  !isSearching && <p className="p-4 text-sm text-center text-gray-400">Ничего не найдено</p>
+                  !isSearching && <p className="p-4 text-sm text-center text-slate-400">Ничего не найдено</p>
                 )}
               </div>
             )}
@@ -148,7 +149,6 @@ export function Header() {
           </Button>
         </div>
 
-        {/* Мобильное меню */}
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-slate-800">
             <nav className="flex flex-col space-y-4">
@@ -158,15 +158,17 @@ export function Header() {
               <Link href="/catalog" className="text-gray-300 hover:text-white transition-colors">
                 Каталог
               </Link>
-              <form onSubmit={handleSearchSubmit} className="mt-4">
-                <Input
-                  type="text"
-                  placeholder="Поиск аниме..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
-                />
-              </form>
+              <div className="pt-2">
+                <form onSubmit={handleSearchSubmit}>
+                  <Input
+                    type="text"
+                    placeholder="Поиск аниме..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
+                  />
+                </form>
+              </div>
             </nav>
           </div>
         )}

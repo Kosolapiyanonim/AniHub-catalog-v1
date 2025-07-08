@@ -32,13 +32,14 @@ function CatalogView() {
 
   const searchParams = useSearchParams()
   const router = useRouter()
+
   const titleFromUrl = searchParams.get("title") || ""
 
   const [filters, setFilters] = useState<FiltersState>({
     ...INITIAL_FILTERS,
     page: 1,
     limit: 24,
-    title: "",
+    title: titleFromUrl,
   })
 
   const fetchCatalogData = useCallback(async (currentFilters: FiltersState, isNewSearch: boolean) => {
@@ -71,7 +72,7 @@ function CatalogView() {
     }
   }, [])
 
-  // Начальная загрузка
+  // Эффект для начальной загрузки
   useEffect(() => {
     const initialFilters = {
       ...INITIAL_FILTERS,
@@ -83,7 +84,7 @@ function CatalogView() {
     fetchCatalogData(initialFilters, true)
   }, [])
 
-  // Обновление при изменении URL
+  // Эффект для обновления при изменении URL
   useEffect(() => {
     if (filters.title !== titleFromUrl) {
       const newFilters = {
@@ -135,7 +136,7 @@ function CatalogView() {
                 variant="ghost"
                 size="sm"
                 onClick={() => router.back()}
-                className="text-gray-300 hover:text-white hover:bg-slate-800"
+                className="text-white hover:text-purple-400"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Назад
@@ -173,13 +174,7 @@ function CatalogView() {
 
 export default function CatalogPageWrapper() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex justify-center items-center h-96">
-          <LoadingSpinner size="lg" />
-        </div>
-      }
-    >
+    <Suspense fallback={<div>Загрузка...</div>}>
       <CatalogView />
     </Suspense>
   )

@@ -14,18 +14,22 @@ interface AnimeData {
   id: number
   shikimori_id: string
   title: string
+  title_english?: string
+  title_japanese?: string
   description?: string
   poster_url?: string
   year?: number
   rating?: number
   status?: string
   episodes_count?: number
+  duration?: number
   genres: Array<{ name: string }>
   studios: Array<{ name: string }>
   translations: Array<{
     id: number
     title: string
     type: string
+    quality: string
     episodes_count: number
   }>
 }
@@ -37,14 +41,19 @@ export default function AnimePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const animeId = params.id as string
+
   useEffect(() => {
     const fetchAnime = async () => {
       try {
         setLoading(true)
-        const response = await fetch(`/api/anime/${params.id}`)
+        setError(null)
+
+        const response = await fetch(`/api/anime/${animeId}`)
 
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`)
+          const errorData = await response.json()
+          throw new Error(errorData.error || "Ошибка загрузки аниме")
         }
 
         const data = await response.json()
@@ -52,16 +61,16 @@ export default function AnimePage() {
         setAnime(data)
       } catch (error) {
         console.error("Error fetching anime:", error)
-        setError("Ошибка загрузки данных аниме")
+        setError(error instanceof Error ? error.message : "Неизвестная ошибка")
       } finally {
         setLoading(false)
       }
     }
 
-    if (params.id) {
+    if (animeId) {
       fetchAnime()
     }
-  }, [params.id])
+  }, [animeId])
 
   if (loading) {
     return (
@@ -71,12 +80,26 @@ export default function AnimePage() {
     )
   }
 
-  if (error || !anime) {
+  if (error) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-white mb-4">Ошибка загрузки</h1>
-          <p className="text-gray-400 mb-6">{error || "Аниме не найдено"}</p>
+          <p className="text-gray-400 mb-6">{error}</p>
+          <Button onClick={() => router.back()} variant="outline">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Назад
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!anime) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-white mb-4">Аниме не найдено</h1>
           <Button onClick={() => router.back()} variant="outline">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Назад
@@ -111,146 +134,162 @@ export default function AnimePage() {
                     priority
                   />
                 </div>
+
+                {/* Кнопка смотреть */}
+                <div className="p-4">
+                  {hasTranslations ? (
+                    <Link href={`/anime/${animeId}/watch`}>
+                      <Button className="w-full bg-red-600 hover:bg-red-700 text-white">
+                        <Play className="w-4 h-4 mr-2" />
+                        Смотреть сейчас
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Button disabled className="w-full">
+                      <Clock className="w-4 h-4 mr-2" />
+                      Скоро будет доступно
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
-            {/* Информация под постером */}
+            {/* Информация */}
             <Card className="bg-slate-800 border-slate-700 mt-4">
-              <CardContent className="p-4 space-y-3">
-                {anime.rating && (
-                  <div className="flex items-center gap-2">
-                    <Star className="w-4 h-4 text-yellow-500" />
-                    <span className="text-white font-medium">{anime.rating}</span>
-                    <span className="text-gray-400">/ 10</span>
-                  </div>
-                )}
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  {anime.rating && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400">Рейтинг:</span>
+                      <div className="flex items-center">
+                        <Star className="w-4 h-4 text-yellow-500 mr-1" />
+                        <span className="text-white">{anime.rating}</span>
+                      </div>
+                    </div>
+                  )}
 
-                {anime.year && (
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-300">{anime.year} г.</span>
-                  </div>
-                )}
+                  {anime.year && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400">Год:</span>
+                      <div className="flex items-center">
+                        <Calendar className="w-4 h-4 text-gray-400 mr-1" />
+                        <span className="text-white">{anime.year}</span>
+                      </div>
+                    </div>
+                  )}
 
-                {anime.episodes_count && (
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-300">{anime.episodes_count} эп.</span>
-                  </div>
-                )}
+                  {anime.episodes_count && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400">Эпизоды:</span>
+                      <span className="text-white">{anime.episodes_count}</span>
+                    </div>
+                  )}
 
-                {anime.status && (
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-gray-300">{anime.status}</span>
-                  </div>
-                )}
+                  {anime.status && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400">Статус:</span>
+                      <Badge variant="secondary">{anime.status}</Badge>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>
 
           {/* Основная информация */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* Заголовок и кнопка просмотра */}
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="lg:col-span-3">
+            <div className="space-y-6">
+              {/* Заголовок */}
               <div>
                 <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{anime.title}</h1>
+                {anime.title_english && anime.title_english !== anime.title && (
+                  <p className="text-xl text-gray-300 mb-2">{anime.title_english}</p>
+                )}
+                {anime.title_japanese && <p className="text-lg text-gray-400">{anime.title_japanese}</p>}
+              </div>
 
-                {/* Жанры */}
-                {anime.genres && anime.genres.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-4">
+              {/* Жанры */}
+              {anime.genres && anime.genres.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Жанры</h3>
+                  <div className="flex flex-wrap gap-2">
                     {anime.genres.map((genre, index) => (
-                      <Badge key={index} variant="secondary" className="bg-slate-700 text-gray-300">
+                      <Badge key={index} variant="outline" className="border-purple-500 text-purple-300">
                         {genre.name}
                       </Badge>
                     ))}
                   </div>
-                )}
-              </div>
-
-              {/* Кнопка смотреть */}
-              {hasTranslations ? (
-                <Link href={`/anime/${params.id}/watch`}>
-                  <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white">
-                    <Play className="w-5 h-5 mr-2" />
-                    Смотреть сейчас
-                  </Button>
-                </Link>
-              ) : (
-                <Button size="lg" disabled className="bg-gray-600 text-gray-400 cursor-not-allowed">
-                  <Clock className="w-5 h-5 mr-2" />
-                  Скоро будет доступно
-                </Button>
+                </div>
               )}
-            </div>
 
-            {/* Описание */}
-            {anime.description && (
-              <Card className="bg-slate-800 border-slate-700">
-                <CardContent className="p-6">
-                  <h2 className="text-xl font-semibold text-white mb-4">Описание</h2>
-                  <p className="text-gray-300 leading-relaxed">{anime.description}</p>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Студии */}
-            {anime.studios && anime.studios.length > 0 && (
-              <Card className="bg-slate-800 border-slate-700">
-                <CardContent className="p-6">
-                  <h2 className="text-xl font-semibold text-white mb-4">Студия</h2>
+              {/* Студии */}
+              {anime.studios && anime.studios.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Студии</h3>
                   <div className="flex flex-wrap gap-2">
                     {anime.studios.map((studio, index) => (
-                      <Badge key={index} variant="outline" className="border-slate-600 text-gray-300">
+                      <Badge key={index} variant="outline" className="border-blue-500 text-blue-300">
                         {studio.name}
                       </Badge>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                </div>
+              )}
 
-            {/* Информация об озвучках */}
-            <Card className="bg-slate-800 border-slate-700">
-              <CardContent className="p-6">
-                <h2 className="text-xl font-semibold text-white mb-4">Озвучки</h2>
+              {/* Описание */}
+              {anime.description && (
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Описание</h3>
+                  <Card className="bg-slate-800 border-slate-700">
+                    <CardContent className="p-4">
+                      <p className="text-gray-300 leading-relaxed">{anime.description}</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
 
-                {hasTranslations ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-green-400">
-                      <Users className="w-4 h-4" />
-                      <span>Всего доступно: {anime.translations.length} озвучек</span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                      {anime.translations.slice(0, 6).map((translation) => (
-                        <div key={translation.id} className="bg-slate-700 rounded-lg p-3">
-                          <p className="text-white font-medium text-sm">{translation.title}</p>
-                          <p className="text-gray-400 text-xs">
-                            {translation.episodes_count} эп. • {translation.type}
-                          </p>
+              {/* Озвучки */}
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-2">Доступные озвучки</h3>
+                <Card className="bg-slate-800 border-slate-700">
+                  <CardContent className="p-4">
+                    {hasTranslations ? (
+                      <div className="space-y-2">
+                        <p className="text-gray-300 mb-3">
+                          Всего доступно: <span className="text-white font-semibold">{anime.translations.length}</span>{" "}
+                          озвучек
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          {anime.translations.slice(0, 6).map((translation) => (
+                            <div
+                              key={translation.id}
+                              className="flex items-center justify-between p-2 bg-slate-700 rounded"
+                            >
+                              <span className="text-sm text-gray-300">{translation.title}</span>
+                              <Badge variant="secondary" className="text-xs">
+                                {translation.quality}
+                              </Badge>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-
-                    {anime.translations.length > 6 && (
-                      <p className="text-gray-400 text-sm">И еще {anime.translations.length - 6} озвучек...</p>
+                        {anime.translations.length > 6 && (
+                          <p className="text-sm text-gray-400 mt-2">И еще {anime.translations.length - 6} озвучек...</p>
+                        )}
+                        <p className="text-sm text-gray-400 mt-3">
+                          💡 Выбор озвучки и серий доступен на странице просмотра
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Users className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+                        <p className="text-gray-400 mb-2">Озвучки пока недоступны</p>
+                        <p className="text-sm text-gray-500">Мы работаем над добавлением озвучек для этого аниме</p>
+                      </div>
                     )}
-
-                    <div className="bg-slate-700 rounded-lg p-4 mt-4">
-                      <p className="text-gray-300 text-sm">💡 Выбор озвучки и серий доступен на странице просмотра</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-slate-700 rounded-lg p-4">
-                    <p className="text-gray-300 text-sm mb-2">⏳ Озвучки для этого аниме пока не добавлены</p>
-                    <p className="text-gray-400 text-xs">
-                      Мы работаем над добавлением озвучек. Следите за обновлениями!
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </div>
         </div>
       </div>

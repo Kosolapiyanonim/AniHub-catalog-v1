@@ -5,10 +5,8 @@ import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,8 +14,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Search, Menu, X, Loader2, Bell, UserIcon, LogOut, Settings } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Search, Menu, X, Loader2, Bell, LogOut, Settings, Heart, User } from "lucide-react"
 import { useDebounce } from "@/hooks/use-debounce"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import type { User as SupabaseUser } from "@supabase/auth-helpers-nextjs"
 
 interface AnimeSearchResult {
   id: number
@@ -27,22 +28,13 @@ interface AnimeSearchResult {
   year?: number
 }
 
-interface UserProfile {
-  id: string
-  email?: string
-  user_metadata?: {
-    full_name?: string
-    avatar_url?: string
-  }
-}
-
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<AnimeSearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const [user, setUser] = useState<UserProfile | null>(null)
+  const [user, setUser] = useState<SupabaseUser | null>(null)
   const [loading, setLoading] = useState(true)
 
   const router = useRouter()
@@ -50,7 +42,7 @@ export function Header() {
   const searchRef = useRef<HTMLDivElement>(null)
   const supabase = createClientComponentClient()
 
-  // Проверка аутентификации
+  // Получение пользователя
   useEffect(() => {
     const getUser = async () => {
       const {
@@ -62,6 +54,7 @@ export function Header() {
 
     getUser()
 
+    // Подписка на изменения аутентификации
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
@@ -129,23 +122,19 @@ export function Header() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    router.push("/")
     router.refresh()
   }
 
-  const getUserDisplayName = () => {
-    if (user?.user_metadata?.full_name) {
+  const getUserInitials = (user: SupabaseUser) => {
+    if (user.user_metadata?.full_name) {
       return user.user_metadata.full_name
+        .split(" ")
+        .map((name: string) => name[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
     }
-    if (user?.email) {
-      return user.email.split("@")[0]
-    }
-    return "Пользователь"
-  }
-
-  const getUserInitials = () => {
-    const name = getUserDisplayName()
-    return name.slice(0, 2).toUpperCase()
+    return user.email?.charAt(0).toUpperCase() || "U"
   }
 
   return (
@@ -262,67 +251,81 @@ export function Header() {
 
           {/* Правая часть с профилем, уведомлениями и меню */}
           <div className="flex items-center space-x-3 flex-shrink-0 ml-12">
-            {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-            ) : user ? (
+            {!loading && (
               <>
-                {/* Уведомления - только на десктопе */}
-                <Button variant="ghost" size="sm" className="hidden lg:flex text-gray-300 hover:text-white relative">
-                  <Bell className="w-5 h-5" />
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                </Button>
-
-                {/* Профиль пользователя */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage
-                          src={user.user_metadata?.avatar_url || "/placeholder.svg"}
-                          alt={getUserDisplayName()}
-                        />
-                        <AvatarFallback className="bg-purple-600 text-white text-xs">
-                          {getUserInitials()}
-                        </AvatarFallback>
-                      </Avatar>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56 bg-slate-800 border-slate-700" align="end" forceMount>
-                    <div className="flex items-center justify-start gap-2 p-2">
-                      <div className="flex flex-col space-y-1 leading-none">
-                        <p className="font-medium text-white">{getUserDisplayName()}</p>
-                        {user.email && <p className="w-[200px] truncate text-sm text-gray-400">{user.email}</p>}
-                      </div>
-                    </div>
-                    <DropdownMenuSeparator className="bg-slate-700" />
-                    <DropdownMenuItem className="text-gray-300 hover:bg-slate-700 hover:text-white cursor-pointer">
-                      <UserIcon className="mr-2 h-4 w-4" />
-                      <span>Профиль</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-gray-300 hover:bg-slate-700 hover:text-white cursor-pointer">
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Настройки</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator className="bg-slate-700" />
-                    <DropdownMenuItem
-                      className="text-gray-300 hover:bg-slate-700 hover:text-white cursor-pointer"
-                      onClick={handleSignOut}
+                {user ? (
+                  // Авторизованный пользователь
+                  <>
+                    {/* Уведомления - только на десктопе */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="hidden lg:flex text-gray-300 hover:text-white relative"
                     >
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>Выйти</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                      <Bell className="w-5 h-5" />
+                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                    </Button>
+
+                    {/* Профиль пользователя */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage
+                              src={user.user_metadata?.avatar_url || "/placeholder.svg"}
+                              alt={user.user_metadata?.full_name || user.email}
+                            />
+                            <AvatarFallback className="bg-slate-700 text-white">{getUserInitials(user)}</AvatarFallback>
+                          </Avatar>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-56 bg-slate-800 border-slate-700" align="end" forceMount>
+                        <div className="flex items-center justify-start gap-2 p-2">
+                          <div className="flex flex-col space-y-1 leading-none">
+                            {user.user_metadata?.full_name && (
+                              <p className="font-medium text-white">{user.user_metadata.full_name}</p>
+                            )}
+                            <p className="w-[200px] truncate text-sm text-gray-400">{user.email}</p>
+                          </div>
+                        </div>
+                        <DropdownMenuSeparator className="bg-slate-700" />
+                        <DropdownMenuItem className="text-gray-300 hover:bg-slate-700 hover:text-white">
+                          <User className="mr-2 h-4 w-4" />
+                          <span>Профиль</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-gray-300 hover:bg-slate-700 hover:text-white">
+                          <Heart className="mr-2 h-4 w-4" />
+                          <span>Избранное</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-gray-300 hover:bg-slate-700 hover:text-white">
+                          <Settings className="mr-2 h-4 w-4" />
+                          <span>Настройки</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator className="bg-slate-700" />
+                        <DropdownMenuItem
+                          className="text-gray-300 hover:bg-slate-700 hover:text-white"
+                          onClick={handleSignOut}
+                        >
+                          <LogOut className="mr-2 h-4 w-4" />
+                          <span>Выйти</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </>
+                ) : (
+                  // Неавторизованный пользователь
+                  <div className="hidden lg:flex items-center space-x-2">
+                    <Link href="/login">
+                      <Button variant="ghost" className="text-gray-300 hover:text-white">
+                        Войти
+                      </Button>
+                    </Link>
+                    <Link href="/register">
+                      <Button className="bg-purple-600 hover:bg-purple-700 text-white">Регистрация</Button>
+                    </Link>
+                  </div>
+                )}
               </>
-            ) : (
-              <div className="hidden lg:flex items-center space-x-2">
-                <Button variant="ghost" size="sm" className="text-gray-300 hover:text-white" asChild>
-                  <Link href="/login">Войти</Link>
-                </Button>
-                <Button size="sm" className="bg-purple-600 hover:bg-purple-700" asChild>
-                  <Link href="/register">Регистрация</Link>
-                </Button>
-              </div>
             )}
 
             {/* Бургер меню */}
@@ -358,27 +361,38 @@ export function Header() {
               </div>
 
               {/* Мобильные ссылки */}
-              <div className="lg:hidden pt-2 border-t border-slate-700">
+              <div className="pt-2 border-t border-slate-700">
                 {user ? (
+                  // Авторизованный пользователь
                   <>
-                    <div className="flex items-center space-x-2 py-2">
-                      <Avatar className="h-6 w-6">
+                    <div className="flex items-center space-x-3 mb-4">
+                      <Avatar className="h-8 w-8">
                         <AvatarImage
                           src={user.user_metadata?.avatar_url || "/placeholder.svg"}
-                          alt={getUserDisplayName()}
+                          alt={user.user_metadata?.full_name || user.email}
                         />
-                        <AvatarFallback className="bg-purple-600 text-white text-xs">
-                          {getUserInitials()}
-                        </AvatarFallback>
+                        <AvatarFallback className="bg-slate-700 text-white">{getUserInitials(user)}</AvatarFallback>
                       </Avatar>
-                      <span className="text-white">{getUserDisplayName()}</span>
+                      <div>
+                        {user.user_metadata?.full_name && (
+                          <p className="font-medium text-white">{user.user_metadata.full_name}</p>
+                        )}
+                        <p className="text-sm text-gray-400">{user.email}</p>
+                      </div>
                     </div>
                     <Link
                       href="/profile"
                       className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors py-2"
                     >
-                      <UserIcon className="w-4 h-4" />
+                      <User className="w-4 h-4" />
                       <span>Профиль</span>
+                    </Link>
+                    <Link
+                      href="/favorites"
+                      className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors py-2"
+                    >
+                      <Heart className="w-4 h-4" />
+                      <span>Избранное</span>
                     </Link>
                     <Link
                       href="/notifications"
@@ -396,19 +410,20 @@ export function Header() {
                     </button>
                   </>
                 ) : (
+                  // Неавторизованный пользователь
                   <>
                     <Link
                       href="/login"
                       className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors py-2"
                     >
-                      <UserIcon className="w-4 h-4" />
+                      <User className="w-4 h-4" />
                       <span>Войти</span>
                     </Link>
                     <Link
                       href="/register"
                       className="flex items-center space-x-2 text-purple-400 hover:text-purple-300 transition-colors py-2"
                     >
-                      <UserIcon className="w-4 h-4" />
+                      <User className="w-4 h-4" />
                       <span>Регистрация</span>
                     </Link>
                   </>

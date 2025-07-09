@@ -5,9 +5,18 @@ import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Menu, X, Loader2, Bell, User } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Search, Menu, X, Loader2, Bell, UserIcon, LogOut, Settings } from "lucide-react"
 import { useDebounce } from "@/hooks/use-debounce"
 
 interface AnimeSearchResult {
@@ -18,16 +27,50 @@ interface AnimeSearchResult {
   year?: number
 }
 
+interface UserProfile {
+  id: string
+  email?: string
+  user_metadata?: {
+    full_name?: string
+    avatar_url?: string
+  }
+}
+
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<AnimeSearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [user, setUser] = useState<UserProfile | null>(null)
+  const [loading, setLoading] = useState(true)
 
   const router = useRouter()
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
   const searchRef = useRef<HTMLDivElement>(null)
+  const supabase = createClientComponentClient()
+
+  // Проверка аутентификации
+  useEffect(() => {
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      setUser(user)
+      setLoading(false)
+    }
+
+    getUser()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [supabase.auth])
 
   useEffect(() => {
     const performSearch = async () => {
@@ -82,6 +125,27 @@ export function Header() {
     if (searchQuery.length > 2 && searchResults.length > 0) {
       setIsDropdownOpen(true)
     }
+  }
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    router.push("/")
+    router.refresh()
+  }
+
+  const getUserDisplayName = () => {
+    if (user?.user_metadata?.full_name) {
+      return user.user_metadata.full_name
+    }
+    if (user?.email) {
+      return user.email.split("@")[0]
+    }
+    return "Пользователь"
+  }
+
+  const getUserInitials = () => {
+    const name = getUserDisplayName()
+    return name.slice(0, 2).toUpperCase()
   }
 
   return (
@@ -196,20 +260,70 @@ export function Header() {
             </div>
           </div>
 
-          {/* Правая часть с профилем, уведомлениями и меню с увеличенным отступом */}
+          {/* Правая часть с профилем, уведомлениями и меню */}
           <div className="flex items-center space-x-3 flex-shrink-0 ml-12">
-            {/* Уведомления - только на десктопе */}
-            <Button variant="ghost" size="sm" className="hidden lg:flex text-gray-300 hover:text-white relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </Button>
+            {loading ? (
+              <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+            ) : user ? (
+              <>
+                {/* Уведомления - только на десктопе */}
+                <Button variant="ghost" size="sm" className="hidden lg:flex text-gray-300 hover:text-white relative">
+                  <Bell className="w-5 h-5" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                </Button>
 
-            {/* Аватарка профиля - только на десктопе */}
-            <Button variant="ghost" size="sm" className="hidden lg:flex text-gray-300 hover:text-white">
-              <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center">
-                <User className="w-4 h-4" />
+                {/* Профиль пользователя */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage
+                          src={user.user_metadata?.avatar_url || "/placeholder.svg"}
+                          alt={getUserDisplayName()}
+                        />
+                        <AvatarFallback className="bg-purple-600 text-white text-xs">
+                          {getUserInitials()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56 bg-slate-800 border-slate-700" align="end" forceMount>
+                    <div className="flex items-center justify-start gap-2 p-2">
+                      <div className="flex flex-col space-y-1 leading-none">
+                        <p className="font-medium text-white">{getUserDisplayName()}</p>
+                        {user.email && <p className="w-[200px] truncate text-sm text-gray-400">{user.email}</p>}
+                      </div>
+                    </div>
+                    <DropdownMenuSeparator className="bg-slate-700" />
+                    <DropdownMenuItem className="text-gray-300 hover:bg-slate-700 hover:text-white cursor-pointer">
+                      <UserIcon className="mr-2 h-4 w-4" />
+                      <span>Профиль</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-gray-300 hover:bg-slate-700 hover:text-white cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Настройки</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-slate-700" />
+                    <DropdownMenuItem
+                      className="text-gray-300 hover:bg-slate-700 hover:text-white cursor-pointer"
+                      onClick={handleSignOut}
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Выйти</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : (
+              <div className="hidden lg:flex items-center space-x-2">
+                <Button variant="ghost" size="sm" className="text-gray-300 hover:text-white" asChild>
+                  <Link href="/login">Войти</Link>
+                </Button>
+                <Button size="sm" className="bg-purple-600 hover:bg-purple-700" asChild>
+                  <Link href="/register">Регистрация</Link>
+                </Button>
               </div>
-            </Button>
+            )}
 
             {/* Бургер меню */}
             <Button variant="ghost" size="sm" className="text-white" onClick={() => setIsMenuOpen(!isMenuOpen)}>
@@ -243,22 +357,62 @@ export function Header() {
                 </form>
               </div>
 
-              {/* Мобильные ссылки профиля */}
+              {/* Мобильные ссылки */}
               <div className="lg:hidden pt-2 border-t border-slate-700">
-                <Link
-                  href="/profile"
-                  className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors py-2"
-                >
-                  <User className="w-4 h-4" />
-                  <span>Профиль</span>
-                </Link>
-                <Link
-                  href="/notifications"
-                  className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors py-2"
-                >
-                  <Bell className="w-4 h-4" />
-                  <span>Уведомления</span>
-                </Link>
+                {user ? (
+                  <>
+                    <div className="flex items-center space-x-2 py-2">
+                      <Avatar className="h-6 w-6">
+                        <AvatarImage
+                          src={user.user_metadata?.avatar_url || "/placeholder.svg"}
+                          alt={getUserDisplayName()}
+                        />
+                        <AvatarFallback className="bg-purple-600 text-white text-xs">
+                          {getUserInitials()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-white">{getUserDisplayName()}</span>
+                    </div>
+                    <Link
+                      href="/profile"
+                      className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors py-2"
+                    >
+                      <UserIcon className="w-4 h-4" />
+                      <span>Профиль</span>
+                    </Link>
+                    <Link
+                      href="/notifications"
+                      className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors py-2"
+                    >
+                      <Bell className="w-4 h-4" />
+                      <span>Уведомления</span>
+                    </Link>
+                    <button
+                      onClick={handleSignOut}
+                      className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors py-2 w-full text-left"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Выйти</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/login"
+                      className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors py-2"
+                    >
+                      <UserIcon className="w-4 h-4" />
+                      <span>Войти</span>
+                    </Link>
+                    <Link
+                      href="/register"
+                      className="flex items-center space-x-2 text-purple-400 hover:text-purple-300 transition-colors py-2"
+                    >
+                      <UserIcon className="w-4 h-4" />
+                      <span>Регистрация</span>
+                    </Link>
+                  </>
+                )}
               </div>
             </nav>
           </div>

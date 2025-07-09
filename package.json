@@ -38,6 +38,7 @@
     "@radix-ui/react-toggle-group": "latest",
     "@radix-ui/react-tooltip": "latest",
     "@remix-run/react": "latest",
+    "@supabase/auth-helpers-nextjs": "latest",
     "@supabase/supabase-js": "latest",
     "@sveltejs/kit": "latest",
     "@vercel/analytics": "latest",

@@ -58,10 +58,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         <style
           dangerouslySetInnerHTML={{
             __html: `
-            body { 
-              background-color: #0f172a; 
-              color: white; 
-              font-family: ${inter.style.fontFamily}; 
+            body {
+              background-image: url('/anime-background.jpg');
+              background-size: cover;
+              background-position: center;
+              background-attachment: fixed;
+              background-color: #0f172a;
+              color: white;
+              font-family: ${inter.style.fontFamily};
             }
             .container { max-width: 1200px; margin: 0 auto; }
             .aspect-\\[2\\/3\\] { aspect-ratio: 2/3; }

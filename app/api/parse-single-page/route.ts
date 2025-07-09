@@ -3,7 +3,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import type { KodikAnimeData } from "@/lib/types";
-import { transformToAnimeRecord, processAllRelationsForAnime } from "@/lib/parser-utils";
+import { transformToAnimeRecord, processAllRelationsForAnime } from "@/lib/parser-utils"; 
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +37,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: `Страница пуста.`, processed: 0, nextPageUrl: data.next_page || null });
         }
 
+        // 1. Отбираем уникальные аниме для основной таблицы
         const uniqueAnimeMap = new Map<string, KodikAnimeData>();
         animeList.forEach(anime => {
             if (anime.shikimori_id && !uniqueAnimeMap.has(anime.shikimori_id)) {
@@ -49,8 +50,8 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: `На странице не найдено записей с shikimori_id.`, processed: 0, nextPageUrl: data.next_page || null });
         }
         
+        // 2. Сохраняем/обновляем основную информацию об аниме
         const animeRecordsToUpsert = uniqueAnimeList.map(transformToAnimeRecord);
-
         const { data: upsertedAnimes, error: animeError } = await supabase
             .from('animes')
             .upsert(animeRecordsToUpsert, { onConflict: 'shikimori_id' })
@@ -59,8 +60,31 @@ export async function POST(request: Request) {
         if (animeError) throw animeError;
         if (!upsertedAnimes) return NextResponse.json({ message: "Нет данных для обновления", processed: 0, nextPageUrl: data.next_page || null });
 
+        // 3. Создаем карту "shikimori_id -> внутренний id" для быстрой связи
         const animeIdMap = new Map(upsertedAnimes.map(a => [a.shikimori_id, a.id]));
 
+        // 4. === ГЛАВНОЕ ИЗМЕНЕНИЕ: Сохраняем все озвучки ===
+        // Мы используем исходный animeList, так как там есть все варианты озвучек
+        const allTranslationsToUpsert = animeList.map(anime => {
+            const anime_id = animeIdMap.get(anime.shikimori_id!);
+            if (!anime_id) return null; // Если для аниме нет ID, пропускаем
+            return {
+                anime_id: anime_id,
+                kodik_id: anime.id, // Уникальный ID озвучки от Kodik
+                title: anime.translation.title,
+                type: anime.translation.type,
+                quality: anime.quality,
+                player_link: anime.link,
+            };
+        }).filter(Boolean); // Убираем все null значения
+
+        if (allTranslationsToUpsert.length > 0) {
+            // Используем onConflict: 'kodik_id', так как ID озвучки от Kodik уникален
+            await supabase.from('translations').upsert(allTranslationsToUpsert, { onConflict: 'kodik_id' });
+        }
+        // ===============================================
+
+        // 5. Обрабатываем остальные связи (жанры, студии и т.д.)
         for (const anime of uniqueAnimeList) {
             const animeId = animeIdMap.get(anime.shikimori_id!);
             if (animeId) {

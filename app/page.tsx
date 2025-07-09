@@ -1,67 +1,101 @@
-import { HeroSection } from "@/components/hero-section"
-import { AnimeGrid } from "@/components/anime-grid"
-import { Footer } from "@/components/footer"
-import { Button } from "@/components/ui/button"
+// /app/page.tsx
+import { HeroSlider } from "@/components/HeroSlider";
+import { AnimeCarousel } from "@/components/AnimeCarousel";
+import { LoadingSpinner } from "@/components/loading-spinner";
+import { TrendingUp, Star, Zap, CheckCircle } from "lucide-react";
+import { Suspense } from "react";
 
-const TelegramIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
-  </svg>
-)
+// Определяем типы данных, которые мы ожидаем от API
+interface Anime {
+  id: number;
+  shikimori_id: string;
+  title: string;
+  poster_url?: string | null;
+  year?: number | null;
+}
 
-export default function HomePage() {
+interface HomePageData {
+  hero?: Anime[] | null;
+  trending?: Anime[] | null;
+  popular?: Anime[] | null;
+  recentlyCompleted?: Anime[] | null;
+  latestUpdates?: Anime[] | null;
+  continueWatching?: (Anime & { progress: number })[] | null;
+  myUpdates?: Anime[] | null;
+}
+
+// Асинхронная функция для загрузки данных
+async function getHomePageData(): Promise<HomePageData> {
+  try {
+    // Делаем запрос к нашему API. 'force-dynamic' гарантирует, что данные будут свежими.
+    const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/homepage-sections`, {
+      cache: 'no-store', 
+    });
+    
+    if (!response.ok) {
+      // В случае ошибки возвращаем пустые данные
+      console.error("Failed to fetch homepage data:", response.statusText);
+      return {};
+    }
+    
+    return response.json();
+  } catch (error) {
+    console.error("Error in getHomePageData:", error);
+    return {};
+  }
+}
+
+// Основной компонент главной страницы
+export default async function HomePage() {
+  const data = await getHomePageData();
+
   return (
-    <div
-      className="min-h-screen relative"
-      style={{
-        backgroundImage: "url(/anime-background.jpg)",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        backgroundAttachment: "fixed",
-      }}
-    >
-      {/* Темный оверлей для лучшей читаемости */}
-      <div className="absolute inset-0 bg-black/30 z-0" />
+    <div className="min-h-screen bg-slate-900">
+      <HeroSlider items={data.hero} />
 
-      {/* Контент поверх фона */}
-      <div className="relative z-10">
-        <HeroSection />
+      <main className="container mx-auto px-4 py-12 space-y-12">
+        {/* Оборачиваем каждую секцию в Suspense для лучшего UX */}
+        <Suspense fallback={<LoadingSpinner />}>
+          <AnimeCarousel 
+            title="Тренды сезона" 
+            items={data.trending} 
+            viewAllLink="/catalog?sort=trending"
+            icon={<TrendingUp />}
+          />
+        </Suspense>
+        
+        <Suspense fallback={<LoadingSpinner />}>
+          <AnimeCarousel 
+            title="Самое популярное" 
+            items={data.popular} 
+            viewAllLink="/catalog?sort=popular"
+            icon={<Star />}
+          />
+        </Suspense>
+        
+        <Suspense fallback={<LoadingSpinner />}>
+          <AnimeCarousel 
+            title="Последние обновления" 
+            items={data.latestUpdates} 
+            viewAllLink="/catalog?sort=updated_at"
+            icon={<Zap />}
+          />
+        </Suspense>
 
-        {/* Telegram канал секция */}
-        <section className="container mx-auto px-4 py-8">
-          <div className="flex justify-center">
-            <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-xl p-6 max-w-md w-full text-center">
-              <div className="mb-4">
-                <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-600 rounded-full mb-3">
-                  <TelegramIcon />
-                </div>
-                <h3 className="text-xl font-semibold text-white mb-2">Следите за обновлениями</h3>
-              </div>
-              <Button
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
-                asChild
-              >
-                <a
-                  href="https://t.me/+kXXC-nLjauxiZWJi"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center space-x-2"
-                >
-                  <TelegramIcon />
-                  <span>Подписаться на канал</span>
-                </a>
-              </Button>
-            </div>
-          </div>
-        </section>
+        <Suspense fallback={<LoadingSpinner />}>
+          <AnimeCarousel 
+            title="Недавно завершенные" 
+            items={data.recentlyCompleted} 
+            viewAllLink="/catalog?status=released"
+            icon={<CheckCircle />}
+          />
+        </Suspense>
 
-        <main className="container mx-auto px-4 py-16">
-          <AnimeGrid />
-        </main>
-
-        <Footer />
-      </div>
+        {/* Персональные блоки (Мои обновления, Продолжить просмотр) 
+          будут добавлены здесь на следующем этапе, когда мы будем делать страницу профиля.
+          Сейчас API уже отдает для них данные, если пользователь авторизован.
+        */}
+      </main>
     </div>
-  )
+  );
 }

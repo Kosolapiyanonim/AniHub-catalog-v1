@@ -1,236 +1,273 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { notFound } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Play, Loader2 } from "lucide-react"
-import { LoadingSpinner } from "@/components/loading-spinner"
+import { ArrowLeft, Play, SkipBack, SkipForward, Settings, Maximize, Volume2 } from "lucide-react"
 
-interface Translation {
-  id: number
-  title: string
-  type: string
-  quality: string
-  episodes_count: number
-  link: string
+interface WatchPageProps {
+  params: {
+    id: string
+  }
 }
 
 interface AnimeData {
   id: number
   shikimori_id: string
   title: string
-  translations: Translation[]
+  poster_url?: string
+  episodes_count?: number
 }
 
-export default function WatchPage() {
-  const params = useParams()
-  const router = useRouter()
-  const [anime, setAnime] = useState<AnimeData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [activeTranslation, setActiveTranslation] = useState<Translation | null>(null)
-  const [currentEpisode, setCurrentEpisode] = useState(1)
+interface Translation {
+  id: number
+  anime_id: number
+  translation_id: string
+  title: string
+  type: string
+  episodes_count: number
+}
 
-  const animeId = params.id as string
+async function getAnimeData(id: string): Promise<AnimeData | null> {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_VERCEL_URL || "http://localhost:3000"}/api/anime/${id}`, {
+      cache: "no-store",
+    })
 
-  useEffect(() => {
-    const fetchAnime = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-
-        const response = await fetch(`/api/anime/${animeId}`)
-
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.error || "Ошибка загрузки аниме")
-        }
-
-        const data = await response.json()
-        setAnime(data)
-
-        // Устанавливаем первую доступную озвучку
-        if (data.translations && data.translations.length > 0) {
-          setActiveTranslation(data.translations[0])
-        }
-      } catch (error) {
-        console.error("Error fetching anime:", error)
-        setError(error instanceof Error ? error.message : "Неизвестная ошибка")
-      } finally {
-        setLoading(false)
-      }
+    if (!response.ok) {
+      return null
     }
 
-    if (animeId) {
-      fetchAnime()
+    const data = await response.json()
+    return data.anime
+  } catch (error) {
+    console.error("Error fetching anime:", error)
+    return null
+  }
+}
+
+async function getTranslations(id: string): Promise<Translation[]> {
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_VERCEL_URL || "http://localhost:3000"}/api/anime/translation/${id}`,
+      {
+        cache: "no-store",
+      },
+    )
+
+    if (!response.ok) {
+      return []
     }
-  }, [animeId])
 
-  if (loading) {
+    const data = await response.json()
+    return data.translations || []
+  } catch (error) {
+    console.error("Error fetching translations:", error)
+    return []
+  }
+}
+
+export default async function WatchPage({ params }: WatchPageProps) {
+  const anime = await getAnimeData(params.id)
+  const translations = await getTranslations(params.id)
+
+  if (!anime) {
+    notFound()
+  }
+
+  const hasTranslations = translations.length > 0
+
+  if (!hasTranslations) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <LoadingSpinner />
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-slate-800 border-slate-700">
+          <CardHeader className="text-center">
+            <CardTitle className="text-white">Озвучки недоступны</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <p className="text-gray-400">К сожалению, для этого аниме пока нет доступных переводов.</p>
+            <Link href={`/anime/${params.id}`}>
+              <Button className="bg-purple-600 hover:bg-purple-700">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Вернуться к аниме
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
-  if (error || !anime) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Ошибка загрузки</h1>
-          <p className="text-gray-400 mb-6">{error || "Аниме не найдено"}</p>
-          <Button onClick={() => router.back()} variant="outline">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Назад
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
-  if (!activeTranslation) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Нет доступных озвучек</h1>
-          <p className="text-gray-400 mb-6">Озвучки для этого аниме пока недоступны</p>
-          <Button onClick={() => router.push(`/anime/${animeId}`)} variant="outline">
-            <ArrowLeft className="w-4 h-4 mr-2" />К описанию
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
-  const episodes = Array.from({ length: activeTranslation.episodes_count }, (_, i) => i + 1)
+  // Генерируем список эпизодов для первой озвучки
+  const firstTranslation = translations[0]
+  const episodes = Array.from({ length: firstTranslation.episodes_count }, (_, i) => i + 1)
 
   return (
     <div className="min-h-screen bg-slate-900">
-      <div className="container mx-auto px-4 py-4">
-        {/* Навигация */}
-        <div className="flex items-center justify-between mb-4">
-          <Button
-            onClick={() => router.push(`/anime/${animeId}`)}
-            variant="ghost"
-            className="text-gray-300 hover:text-white"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />К описанию
-          </Button>
-          <h1 className="text-xl font-bold text-white truncate ml-4">{anime.title}</h1>
-        </div>
+      {/* Навигация */}
+      <div className="bg-slate-800 border-b border-slate-700 p-4">
+        <div className="container mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href={`/anime/${params.id}`}>
+              <Button variant="ghost" size="sm" className="text-gray-300 hover:text-white">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Назад
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-white font-semibold">{anime.title}</h1>
+              <p className="text-gray-400 text-sm">Эпизод 1</p>
+            </div>
+          </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Плеер */}
-          <div className="lg:col-span-3">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="border-slate-600 text-gray-300">
+              {firstTranslation.title}
+            </Badge>
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto p-4">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+          {/* Видеоплеер */}
+          <div className="xl:col-span-3">
             <Card className="bg-slate-800 border-slate-700">
               <CardContent className="p-0">
-                <div className="aspect-video relative bg-black rounded-lg overflow-hidden">
-                  {activeTranslation ? (
-                    <iframe
-                      key={`${activeTranslation.id}-${currentEpisode}`}
-                      src={`${activeTranslation.link}?episode=${currentEpisode}`}
-                      title={`${anime.title} - Эпизод ${currentEpisode}`}
-                      className="w-full h-full"
-                      allowFullScreen
-                      allow="autoplay; fullscreen; picture-in-picture"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                {/* Плеер */}
+                <div className="relative aspect-video bg-black rounded-t-lg overflow-hidden">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="w-20 h-20 bg-slate-700 rounded-full flex items-center justify-center mb-4 mx-auto">
+                        <Play className="w-8 h-8 text-white ml-1" />
+                      </div>
+                      <p className="text-white text-lg mb-2">Видеоплеер</p>
+                      <p className="text-gray-400 text-sm">Здесь будет интегрирован плеер Kodik</p>
                     </div>
-                  )}
+                  </div>
+
+                  {/* Контролы плеера */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Button size="sm" variant="ghost" className="text-white hover:bg-white/20">
+                          <SkipBack className="w-4 h-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="text-white hover:bg-white/20">
+                          <Play className="w-4 h-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="text-white hover:bg-white/20">
+                          <SkipForward className="w-4 h-4" />
+                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Volume2 className="w-4 h-4 text-white" />
+                          <div className="w-20 h-1 bg-white/30 rounded-full">
+                            <div className="w-3/4 h-full bg-white rounded-full"></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-white text-sm">00:00 / 24:00</span>
+                        <Button size="sm" variant="ghost" className="text-white hover:bg-white/20">
+                          <Settings className="w-4 h-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="text-white hover:bg-white/20">
+                          <Maximize className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Прогресс бар */}
+                    <div className="w-full h-1 bg-white/30 rounded-full mt-3">
+                      <div className="w-1/4 h-full bg-purple-500 rounded-full"></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Настройки под плеером */}
+                <div className="p-4 border-t border-slate-700">
+                  <div className="flex flex-wrap gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-400 text-sm">Озвучка:</span>
+                      <Select defaultValue={firstTranslation.id.toString()}>
+                        <SelectTrigger className="w-48 bg-slate-700 border-slate-600">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-700 border-slate-600">
+                          {translations.map((translation) => (
+                            <SelectItem key={translation.id} value={translation.id.toString()}>
+                              {translation.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-400 text-sm">Качество:</span>
+                      <Select defaultValue="720p">
+                        <SelectTrigger className="w-24 bg-slate-700 border-slate-600">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-700 border-slate-600">
+                          <SelectItem value="480p">480p</SelectItem>
+                          <SelectItem value="720p">720p</SelectItem>
+                          <SelectItem value="1080p">1080p</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
-
-            {/* Выбор эпизодов */}
-            {episodes.length > 1 && (
-              <Card className="bg-slate-800 border-slate-700 mt-4">
-                <CardContent className="p-4">
-                  <h3 className="text-lg font-semibold text-white mb-3">Эпизоды ({episodes.length})</h3>
-                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                    {episodes.map((episode) => (
-                      <Button
-                        key={episode}
-                        variant={currentEpisode === episode ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setCurrentEpisode(episode)}
-                        className={
-                          currentEpisode === episode
-                            ? "bg-purple-600 hover:bg-purple-700"
-                            : "border-slate-600 text-gray-300 hover:bg-slate-700"
-                        }
-                      >
-                        {episode}
-                      </Button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
 
-          {/* Боковая панель с озвучками */}
-          <div className="lg:col-span-1">
+          {/* Список эпизодов */}
+          <div className="xl:col-span-1">
             <Card className="bg-slate-800 border-slate-700">
-              <CardContent className="p-4">
-                <h3 className="text-lg font-semibold text-white mb-3">Озвучки ({anime.translations.length})</h3>
-                <div className="space-y-2">
-                  {anime.translations.map((translation) => (
+              <CardHeader>
+                <CardTitle className="text-white text-lg">Эпизоды ({firstTranslation.episodes_count})</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="max-h-96 overflow-y-auto">
+                  {episodes.map((episode) => (
                     <button
-                      key={translation.id}
-                      onClick={() => {
-                        setActiveTranslation(translation)
-                        setCurrentEpisode(1) // Сбрасываем на первый эпизод при смене озвучки
-                      }}
-                      className={`w-full p-3 rounded-lg text-left transition-colors ${
-                        activeTranslation?.id === translation.id
-                          ? "bg-purple-600 text-white"
-                          : "bg-slate-700 text-gray-300 hover:bg-slate-600"
+                      key={episode}
+                      className={`w-full text-left p-3 hover:bg-slate-700 transition-colors border-b border-slate-700 last:border-b-0 ${
+                        episode === 1 ? "bg-slate-700" : ""
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium text-sm">{translation.title}</span>
-                        <Badge
-                          variant="secondary"
-                          className={
-                            activeTranslation?.id === translation.id
-                              ? "bg-purple-700 text-white"
-                              : "bg-slate-600 text-gray-300"
-                          }
-                        >
-                          {translation.quality}
-                        </Badge>
+                      <div className="flex items-center justify-between">
+                        <span className="text-white font-medium">Эпизод {episode}</span>
+                        {episode === 1 && <div className="w-2 h-2 bg-purple-500 rounded-full"></div>}
                       </div>
-                      <div className="flex items-center text-xs opacity-75">
-                        <Play className="w-3 h-3 mr-1" />
-                        <span>{translation.episodes_count} эп.</span>
-                      </div>
+                      <p className="text-gray-400 text-sm mt-1">24 мин</p>
                     </button>
                   ))}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Информация о текущем эпизоде */}
+            {/* Информация об аниме */}
             <Card className="bg-slate-800 border-slate-700 mt-4">
-              <CardContent className="p-4">
-                <h3 className="text-lg font-semibold text-white mb-2">Сейчас смотрите</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Эпизод:</span>
-                    <span className="text-white">{currentEpisode}</span>
+              <CardHeader>
+                <CardTitle className="text-white text-lg">О сериале</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div>
+                    <span className="text-gray-400 text-sm">Эпизодов:</span>
+                    <span className="text-white ml-2">{anime.episodes_count || "N/A"}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Озвучка:</span>
-                    <span className="text-white">{activeTranslation.title}</span>
+                  <div>
+                    <span className="text-gray-400 text-sm">Озвучек:</span>
+                    <span className="text-white ml-2">{translations.length}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Качество:</span>
-                    <span className="text-white">{activeTranslation.quality}</span>
+                  <div>
+                    <span className="text-gray-400 text-sm">Статус:</span>
+                    <span className="text-white ml-2">Онгоинг</span>
                   </div>
                 </div>
               </CardContent>

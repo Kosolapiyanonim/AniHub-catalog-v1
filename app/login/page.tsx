@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -23,7 +22,7 @@ export default function LoginPage() {
   const router = useRouter()
   const supabase = createClientComponentClient()
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
@@ -97,7 +96,9 @@ export default function LoginPage() {
         <Card className="bg-slate-800 border-slate-700">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold text-white">Вход в AniHub</CardTitle>
-            <CardDescription className="text-gray-400">Войдите в свой аккаунт, чтобы продолжить</CardDescription>
+            <CardDescription className="text-gray-400">
+              Войдите в свой аккаунт, чтобы продолжить просмотр
+            </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-4">
@@ -107,7 +108,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            <form onSubmit={handleEmailLogin} className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-gray-300">
                   Email
@@ -148,6 +149,14 @@ export default function LoginPage() {
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="text-sm">
+                  <Link href="/forgot-password" className="text-purple-400 hover:text-purple-300">
+                    Забыли пароль?
+                  </Link>
                 </div>
               </div>
 

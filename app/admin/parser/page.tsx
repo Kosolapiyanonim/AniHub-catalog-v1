@@ -27,7 +27,7 @@ export default function ParserControlPage() {
   const nextPageUrlRef = useRef<string | null>(null);
   const isParsingRef = useRef(false);
 
-  // Функция для добавления записей в лог
+  // Функция дл�� добавления записей в лог
   const addLog = useCallback((message: string, type: LogEntry['type'] = "info") => {
     setLogs(prev => [...prev, { type, message: `[${new Date().toLocaleTimeString()}] ${message}` }]);
   }, []);

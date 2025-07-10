@@ -65,7 +65,8 @@ export function HeroSlider({ items }: HeroSliderProps) {
                 alt={`${anime.title} background`}
                 fill
                 className="object-cover object-center md:object-right" // Фокус на правой части изображения
-                priority={index === 0}
+                priority={index === 0} // <-- ВАЖНО ДЛЯ LCP
+                sizes="100vw" // <-- ВАЖНО ДЛЯ ОПТИМИЗАЦИИ
               />
               {/* Градиентный оверлей */}
               <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-transparent" />

@@ -7,10 +7,6 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    // РАЗРЕШАЕМ ОПТИМИЗАЦИЮ
-    unoptimized: false,
-    
-    // Указываем, с каких доменов можно загружать и оптимизировать картинки
     remotePatterns: [
       {
         protocol: 'https',
@@ -22,18 +18,6 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'shikimori.one',
-      },
-       {
-        protocol: 'https',
-        hostname: 'dere.shikimori.one',
-      },
-      {
-        protocol: 'https',
-        hostname: 'nyaa.shikimori.one',
-      },
-      {
-        protocol: 'https',
         hostname: 'avatars.mds.yandex.net',
       },
       {
@@ -41,9 +25,7 @@ const nextConfig = {
         hostname: 'kinopoiskapiunofficial.tech',
       }
     ],
-    // Настройки для генерации разных размеров изображений
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    unoptimized: true,
   },
   async headers() {
     return [

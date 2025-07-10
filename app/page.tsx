@@ -1,18 +1,6 @@
 // /app/page.tsx
-import dynamic from 'next/dynamic'
-import { LoadingSpinner } from '@/components/loading-spinner';
-
-// HeroSlider загружаем как обычно, так как он виден сразу
 import { HeroSlider } from "@/components/HeroSlider";
-
-// А вот карусели, которые находятся ниже, загружаем динамически
-const AnimeCarousel = dynamic(
-  () => import('@/components/AnimeCarousel').then(mod => mod.AnimeCarousel),
-  { 
-    loading: () => <div className="h-64 flex items-center justify-center"><LoadingSpinner /></div>,
-    ssr: false // Не рендерить на сервере, так как это интерактивный компонент
-  }
-)
+import { AnimeCarousel } from "@/components/AnimeCarousel";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { TrendingUp, Star, Zap, CheckCircle } from "lucide-react";
 import { Suspense } from "react";

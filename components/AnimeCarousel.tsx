@@ -1,34 +1,38 @@
 // /components/AnimeCarousel.tsx
-"use client"
+"use client";
 
-import type React from "react"
-
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
-import { AnimeCard } from "./anime-card"
-import Link from "next/link"
-import { Button } from "./ui/button"
-import { ArrowRight } from "lucide-react"
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import { AnimeCard } from "./anime-card";
+import Link from "next/link";
+import { Button } from "./ui/button";
+import { ArrowRight } from "lucide-react";
 
 // Определяем тип для аниме, который будет использоваться в этом компоненте
 interface Anime {
-  id: number
-  shikimori_id: string
-  title: string
-  poster_url?: string | null
-  year?: number | null
+  id: number;
+  shikimori_id: string;
+  title: string;
+  poster_url?: string | null;
+  year?: number | null;
 }
 
 interface AnimeCarouselProps {
-  title: string
-  items?: Anime[] | null
-  viewAllLink?: string
-  icon?: React.ReactNode
+  title: string;
+  items?: Anime[] | null;
+  viewAllLink?: string;
+  icon?: React.ReactNode;
 }
 
 export function AnimeCarousel({ title, items, viewAllLink, icon }: AnimeCarouselProps) {
   // Если данных нет, не рендерим компонент
   if (!items || items.length === 0) {
-    return null
+    return null;
   }
 
   return (
@@ -56,7 +60,9 @@ export function AnimeCarousel({ title, items, viewAllLink, icon }: AnimeCarousel
         <CarouselContent>
           {items.map((anime) => (
             <CarouselItem key={anime.id} className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/6">
-              <AnimeCard anime={anime} />
+              <div className="p-1">
+                <AnimeCard anime={anime} />
+              </div>
             </CarouselItem>
           ))}
         </CarouselContent>
@@ -64,5 +70,5 @@ export function AnimeCarousel({ title, items, viewAllLink, icon }: AnimeCarousel
         <CarouselNext className="hidden md:flex" />
       </Carousel>
     </section>
-  )
+  );
 }

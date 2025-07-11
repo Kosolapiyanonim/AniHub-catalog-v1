@@ -14,12 +14,14 @@ export async function GET(request: Request) {
   const cookieStore = cookies();
   const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
 
+  // 1. ПАРАМЕТРЫ ПАГИНАЦИИ И СОРТИРОВКИ
   const page = parseInt(searchParams.get("page") || "1", 10);
   const limit = parseInt(searchParams.get("limit") || "25", 10);
   const offset = (page - 1) * limit;
   const sort = searchParams.get("sort") || "weighted_rating";
   const order = searchParams.get("order") || "desc";
 
+  // 2. СОБИРАЕМ ПАРАМЕТРЫ ФИЛЬТРОВ ДЛЯ НАШЕЙ НОВОЙ ФУНКЦИИ
   const filterParams = {
     p_title: searchParams.get("title") || null,
     p_types: searchParams.get("types")?.split(',') || null,
@@ -38,38 +40,33 @@ export async function GET(request: Request) {
 
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    
-    const { data: filteredIdsData, error: rpcError } = await supabase.rpc('filter_animes', filterParams);
-    if (rpcError) throw rpcError;
 
-    const animeIds = filteredIdsData.map((item: { id: number }) => item.id);
-    const total = animeIds.length;
+    // 3. ВЫЗЫВАЕМ НАШУ ФУНКЦИЮ, КОТОРАЯ ДЕЛАЕТ ВСЮ ГРЯЗНУЮ РАБОТУ
+    // Обратите внимание, что мы делаем два вызова: один для получения общего количества, другой для пагинации
+    const countQuery = supabase.rpc('get_animes_catalog', filterParams, { count: 'exact' });
+    let query = supabase.rpc('get_animes_catalog', filterParams);
 
-    if (total === 0) {
-      return NextResponse.json({ results: [], total: 0, hasMore: false });
-    }
-
-    let query = supabase
-      .from("animes")
-      .select("id, shikimori_id, title, poster_url, year, type, shikimori_rating, episodes_count")
-      .in('id', animeIds);
-
+    // 4. ПРИМЕНЯЕМ СОРТИРОВКУ
     const isAsc = order === 'asc';
     if (sort === 'weighted_rating') {
-      query = query.select(`*, weighted_rating:calculate_weighted_rating(shikimori_rating, shikimori_votes)`)
-                   .order('weighted_rating', { ascending: isAsc });
+      // Для "честного" рейтинга мы сортируем по результату другой нашей функции
+      query = query.order('calculate_weighted_rating(shikimori_rating, shikimori_votes)', { ascending: isAsc });
     } else {
       query = query.order(sort, { ascending: isAsc });
     }
 
+    // 5. ПРИМЕНЯЕМ ПАГИНАЦИЮ
     query = query.range(offset, offset + limit - 1);
 
-    const { data: results, error: queryError } = await query;
+    // Выполняем оба запроса параллельно
+    const [{ data: results, error: queryError }, { count, error: countError }] = await Promise.all([query, countQuery]);
+    
     if (queryError) throw queryError;
+    if (countError) throw countError;
 
-    // ИНТЕГРАЦИЯ СПИСКОВ: Если пользователь авторизован, получаем статусы для загруженных аниме
+    // 6. ИНТЕГРАЦИЯ СПИСКОВ (как и раньше)
     if (session && results && results.length > 0) {
-      const resultIds = results.map(r => r.id);
+      const resultIds = results.map((r: any) => r.id);
       const { data: userLists } = await supabase
         .from('user_lists')
         .select('anime_id, status')
@@ -78,7 +75,6 @@ export async function GET(request: Request) {
 
       const statusMap = new Map(userLists?.map(item => [item.anime_id, item.status]));
       
-      // Добавляем статус к каждому аниме
       results.forEach((anime: any) => {
         anime.user_list_status = statusMap.get(anime.id) || null;
       });
@@ -86,8 +82,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       results: results || [],
-      total,
-      hasMore: total > offset + limit,
+      total: count,
+      hasMore: count ? count > offset + limit : false,
     });
 
   } catch (error) {

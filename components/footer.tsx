@@ -1,8 +1,9 @@
+"use client"
 import Link from "next/link"
 
 export function Footer() {
   return (
-    <footer className="bg-muted/50 border-t">
+    <footer className="w-full border-t border-white/10 bg-black/50 backdrop-blur-md">
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
@@ -89,8 +90,8 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="border-t mt-8 pt-8 text-center text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} AniHub. Все права защищены.</p>
+        <div className="mx-auto max-w-6xl px-4 py-6 text-center text-xs text-muted-foreground">
+          © {new Date().getFullYear()} AniHub. Все права защищены.
         </div>
       </div>
     </footer>

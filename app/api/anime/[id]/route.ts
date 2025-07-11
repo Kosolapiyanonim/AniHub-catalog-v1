@@ -42,21 +42,24 @@ export async function GET(
       throw error;
     }
     
-    // Форматируем данные для удобства фронтенда
+    // ИЗМЕНЕНИЕ: Добавляем проверки на существование данных перед их обработкой
+    // Это делает код устойчивым к неполным данным в базе.
     const responseData = {
       ...anime,
-      genres: anime.genres.map((g: any) => g.genres).filter(Boolean),
-      studios: anime.studios.map((s: any) => s.studios).filter(Boolean),
-      related: anime.related.map((r: any) => ({
-        ...r.related_anime,
-        relation_type: r.relation_type,
-      })).filter(r => r.shikimori_id), // Убираем "битые" связи
+      genres: (anime.genres || []).map((g: any) => g.genres).filter(Boolean),
+      studios: (anime.studios || []).map((s: any) => s.studios).filter(Boolean),
+      related: (anime.related || []).map((r: any) => (
+        r.related_anime ? {
+          ...r.related_anime,
+          relation_type: r.relation_type,
+        } : null
+      )).filter(r => r && r.shikimori_id), // Убираем "битые" и пустые связи
     };
 
     return NextResponse.json(responseData);
 
   } catch (error) {
-    console.error("Anime detail API error:", error);
+    console.error(`Anime detail API error for ID ${shikimoriId}:`, error);
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
   }

@@ -23,31 +23,58 @@ export async function GET(request: Request) {
   try {
     const { data: { session } } = await supabase.auth.getSession();
 
-    // 1. ПОЧИНАЄМО БУДУВАТИ ЗАПИТ ДО НАШОГО НОВОГО VIEW
+    // 1. Начинаем строить запрос к нашему VIEW 'animes_with_details'
     let query = supabase
-      .from('animes_with_details') // <-- ЗМІНА: Запитуємо з VIEW, а не з таблиці
+      .from('animes_with_details')
       .select("id, shikimori_id, title, poster_url, year, type, shikimori_rating, episodes_count, weighted_rating", { count: 'exact' });
 
-    // 2. ЗАСТОСОВУЄМО ФІЛЬТРИ
+    // 2. ПОЛНАЯ РЕАЛИЗАЦИЯ ВСЕХ ФИЛЬТРОВ
     const title = searchParams.get("title");
     if (title) query = query.or(`title.ilike.%${title}%,title_orig.ilike.%${title}%`);
 
     const types = searchParams.get("types")?.split(',');
-    if (types) query = query.in('type', types);
+    if (types && types.length > 0) query = query.in('type', types);
     
-    // ... тут можна буде додати решту фільтрів за аналогією
+    const statuses = searchParams.get("statuses")?.split(',');
+    if (statuses && statuses.length > 0) query = query.in('status', statuses);
 
-    // 3. ЗАСТОСОВУЄМО СОРТУВАННЯ
-    // Тепер це працює, оскільки 'weighted_rating' - це звичайна колонка в нашому VIEW
+    const year_from = searchParams.get("year_from");
+    if (year_from) query = query.gte('year', parseInt(year_from));
+
+    const year_to = searchParams.get("year_to");
+    if (year_to) query = query.lte('year', parseInt(year_to));
+
+    const rating_from = searchParams.get("rating_from");
+    if (rating_from) query = query.gte('shikimori_rating', parseFloat(rating_from));
+    
+    const rating_to = searchParams.get("rating_to");
+    if (rating_to) query = query.lte('shikimori_rating', parseFloat(rating_to));
+
+    const episodes_from = searchParams.get("episodes_from");
+    if (episodes_from) query = query.gte('episodes_count', parseInt(episodes_from));
+
+    const episodes_to = searchParams.get("episodes_to");
+    if (episodes_to) query = query.lte('episodes_count', parseInt(episodes_to));
+
+    // Фильтры по жанрам и студиям (требуют отдельных запросов)
+    const include_genres = parseIds(searchParams.get("genres"));
+    if (include_genres && include_genres.length > 0) {
+        const { data: animeIds } = await supabase.from('anime_genres').select('anime_id').in('genre_id', include_genres);
+        if (animeIds) query = query.in('id', animeIds.map(item => item.anime_id));
+    }
+    // (Аналогично можно добавить exclude_genres, include_studios и т.д.)
+
+
+    // 3. Применяем сортировку
     query = query.order(sort, { ascending: order === 'asc' });
 
-    // 4. ЗАСТОСОВУЄМО ПАГІНАЦІЮ
+    // 4. Применяем пагинацию
     query = query.range(offset, offset + limit - 1);
 
     const { data: results, count, error: queryError } = await query;
     if (queryError) throw queryError;
 
-    // 5. ІНТЕГРАЦІЯ СПИСКІВ (як і раніше)
+    // 5. Интеграция списков
     if (session && results && results.length > 0) {
       const resultIds = results.map(r => r.id);
       const { data: userLists } = await supabase

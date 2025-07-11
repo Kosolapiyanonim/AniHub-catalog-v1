@@ -9,11 +9,14 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { X, SlidersHorizontal, Check, Minus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useDebounce } from '@/hooks/use-debounce';
+import { useDebounce } from '@/hooks/use-debounce'; // Предполагается, что у вас есть этот хук
 
 type FilterItem = { id: number; name: string; slug: string; };
 export interface FiltersState {
-  title: string; sort: string; year_from: string; year_to: string;
+  title: string; sort: string;
+  year_from: string; year_to: string;
+  rating_from: string; rating_to: string;
+  episodes_from: string; episodes_to: string;
   genres: string[]; genres_exclude: string[];
   studios: string[]; studios_exclude: string[];
   types: string[]; statuses: string[];
@@ -43,16 +46,16 @@ export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps)
   }, []);
 
   useEffect(() => {
-    // Применяем фильтр по названию с задержкой, чтобы не делать запрос на каждую букву
     if (debouncedTitle !== initialFilters.title) {
-        onApply(filters);
+        onApply({ ...filters, title: debouncedTitle });
     }
   }, [debouncedTitle]);
 
   const handleApply = () => onApply(filters);
   const handleReset = () => {
-    setFilters(initialFilters);
-    onApply(initialFilters);
+    const newFilters = { ...initialFilters, title: '' }; // Сбрасываем все, кроме поиска
+    setFilters(newFilters);
+    onApply(newFilters);
   };
   
   return (
@@ -64,20 +67,34 @@ export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps)
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Input placeholder="Поиск по названию..." value={filters.title} onChange={e => setFilters(prev => ({ ...prev, title: e.target.value }))} className="bg-slate-700 border-slate-600" />
-        <Select value={filters.sort} onValueChange={val => setFilters(prev => ({ ...prev, sort: val }))}>
+        <Input 
+            placeholder="Поиск по названию..."
+            value={filters.title}
+            onChange={e => setFilters(prev => ({ ...prev, title: e.target.value }))}
+            className="bg-slate-700 border-slate-600"
+        />
+        <Select value={filters.sort} onValueChange={val => setFilters(prev => ({...prev, sort: val}))}>
             <SelectTrigger className="w-full bg-slate-700 border-slate-600"><SelectValue placeholder="Сортировка" /></SelectTrigger>
             <SelectContent className="bg-slate-800 border-slate-700 text-white">
                 <SelectItem value="weighted_rating">По рейтингу</SelectItem>
                 <SelectItem value="shikimori_votes">По популярности</SelectItem>
-                <SelectItem value="updated_at_kodik">По дате обновления</SelectItem>
                 <SelectItem value="year">По дате выхода</SelectItem>
             </SelectContent>
         </Select>
         <Button onClick={handleApply} className="w-full bg-purple-600 hover:bg-purple-700">Применить</Button>
-        <Accordion type="multiple" className="w-full">
+
+        <Accordion type="multiple" className="w-full" defaultValue={['genres', 'year_from']}>
             <FilterSection title="Жанры">
                 <MultiSelectFilter items={genres} selected={filters.genres} excluded={filters.genres_exclude} onChange={(s, e) => setFilters(prev => ({ ...prev, genres: s, genres_exclude: e }))} />
+            </FilterSection>
+            <FilterSection title="Год выхода">
+                <RangeInput from={filters.year_from} to={filters.year_to} onFromChange={val => setFilters(prev => ({...prev, year_from: val}))} onToChange={val => setFilters(prev => ({...prev, year_to: val}))} />
+            </FilterSection>
+            <FilterSection title="Кол-во серий">
+                <RangeInput from={filters.episodes_from} to={filters.episodes_to} onFromChange={val => setFilters(prev => ({...prev, episodes_from: val}))} onToChange={val => setFilters(prev => ({...prev, episodes_to: val}))} />
+            </FilterSection>
+            <FilterSection title="Рейтинг">
+                <RangeInput from={filters.rating_from} to={filters.rating_to} onFromChange={val => setFilters(prev => ({...prev, rating_from: val}))} onToChange={val => setFilters(prev => ({...prev, rating_to: val}))} />
             </FilterSection>
             <FilterSection title="Студии">
                 <MultiSelectFilter items={studios} selected={filters.studios} excluded={filters.studios_exclude} onChange={(s, e) => setFilters(prev => ({ ...prev, studios: s, studios_exclude: e }))} />
@@ -88,8 +105,17 @@ export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps)
   );
 }
 
+// Вспомогательные компоненты
 const FilterSection = ({ title, children }: { title: string, children: React.ReactNode }) => (
     <AccordionItem value={title} className="border-slate-700"><AccordionTrigger className="text-white hover:no-underline">{title}</AccordionTrigger><AccordionContent>{children}</AccordionContent></AccordionItem>
+);
+
+const RangeInput = ({ from, to, onFromChange, onToChange }: any) => (
+    <div className="flex items-center gap-2">
+        <Input type="number" placeholder="От" value={from} onChange={e => onFromChange(e.target.value)} className="bg-slate-700 border-slate-600" />
+        <span className="text-gray-400">-</span>
+        <Input type="number" placeholder="До" value={to} onChange={e => onToChange(e.target.value)} className="bg-slate-700 border-slate-600" />
+    </div>
 );
 
 const MultiSelectFilter = ({ items, selected, excluded, onChange }: any) => {

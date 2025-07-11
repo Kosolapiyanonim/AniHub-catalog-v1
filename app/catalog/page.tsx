@@ -17,17 +17,19 @@ interface Anime {
   user_list_status?: string | null;
 }
 
-// Функция для парсинга URL и получения начальных фильтров
 const parseUrlToFilters = (params: URLSearchParams): FiltersState => ({
-    ...DEFAULT_FILTERS, // Начинаем с дефолтных
+    ...DEFAULT_FILTERS,
     title: params.get('title') || '', 
-    sort: params.get('sort') || 'shikimori_votes', // Дефолтная сортировка - по популярности
+    sort: params.get('sort') || 'shikimori_votes',
     year_from: params.get('year_from') || '',
     year_to: params.get('year_to') || '',
     genres: params.get('genres')?.split(',') || [], 
     genres_exclude: params.get('genres_exclude')?.split(',') || [],
     studios: params.get('studios')?.split(',') || [], 
     studios_exclude: params.get('studios_exclude')?.split(',') || [],
+    types: params.get('types')?.split(',') || [], 
+    statuses: params.get('statuses')?.split(',') || [],
+    user_list_status: params.get('user_list_status') || '',
 });
 
 function CatalogView() {
@@ -42,7 +44,6 @@ function CatalogView() {
   const [page, setPage] = useState(1);
   const [currentFilters, setCurrentFilters] = useState<FiltersState>(() => parseUrlToFilters(searchParams));
 
-  // Функция для загрузки данных
   const fetchData = useCallback(async (filters: FiltersState, pageNum: number) => {
     const isNewSearch = pageNum === 1;
     if (isNewSearch) setLoading(true); else setLoadingMore(true);
@@ -67,23 +68,21 @@ function CatalogView() {
     finally { setLoading(false); setLoadingMore(false); }
   }, []);
 
-  // Функция для применения фильтров и обновления URL
   const handleApplyFilters = useCallback((newFilters: FiltersState) => {
     setPage(1);
     setCurrentFilters(newFilters);
     fetchData(newFilters, 1);
 
     const params = new URLSearchParams();
-    // Добавляем в URL только те параметры, которые отличаются от дефолтных
     Object.entries(newFilters).forEach(([key, value]) => {
-      const filterKey = key as keyof FiltersState;
-      if (JSON.stringify(value) !== JSON.stringify(DEFAULT_FILTERS[filterKey])) {
-        if (Array.isArray(value) && value.length > 0) {
-          params.set(key, value.join(','));
-        } else if (typeof value === 'string' && value) {
-          params.set(key, value);
+        const filterKey = key as keyof FiltersState;
+        if (JSON.stringify(value) !== JSON.stringify(DEFAULT_FILTERS[filterKey])) {
+            if (Array.isArray(value) && value.length > 0) {
+                params.set(key, value.join(','));
+            } else if (typeof value === 'string' && value) {
+                params.set(key, value);
+            }
         }
-      }
     });
     const newUrl = params.toString() ? `/catalog?${params.toString()}` : '/catalog';
     router.push(newUrl, { scroll: false });
@@ -97,11 +96,10 @@ function CatalogView() {
     }
   };
 
-  // Начальная загрузка при изменении URL
   useEffect(() => {
     const initialFilters = parseUrlToFilters(searchParams);
     setCurrentFilters(initialFilters);
-    setPage(1); // Всегда сбрасываем на первую страницу при смене фильтров
+    setPage(1);
     fetchData(initialFilters, 1);
   }, [searchParams, fetchData]);
 
@@ -124,7 +122,7 @@ function CatalogView() {
                 <div key={i} className="aspect-[2/3] bg-slate-800 rounded-lg animate-pulse" />
               ))}
             </div>
-          ) : (
+          ) : animes.length > 0 ? (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {animes.map((anime, index) => (
@@ -139,6 +137,11 @@ function CatalogView() {
                 </div>
               )}
             </>
+          ) : (
+            <div className="text-center py-16">
+                <p className="text-lg text-gray-400">По вашим фильтрам ничего не найдено</p>
+                <p className="text-sm text-gray-500 mt-2">Попробуйте изменить или сбросить фильтры</p>
+            </div>
           )}
         </main>
       </div>
@@ -149,7 +152,7 @@ function CatalogView() {
 // Обертка для Suspense
 export default function CatalogPageWrapper() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><LoadingSpinner size="lg" /></div>}>
+    <Suspense>
       <CatalogView />
     </Suspense>
   );

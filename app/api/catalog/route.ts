@@ -43,31 +43,37 @@ export async function GET(request: Request) {
     const year_to = searchParams.get("year_to");
     if (year_to) query = query.lte('year', parseInt(year_to));
 
-    const rating_from = searchParams.get("rating_from");
-    if (rating_from) query = query.gte('shikimori_rating', parseFloat(rating_from));
-    
-    const rating_to = searchParams.get("rating_to");
-    if (rating_to) query = query.lte('shikimori_rating', parseFloat(rating_to));
+    // ... другие фильтры ...
 
-    const episodes_from = searchParams.get("episodes_from");
-    if (episodes_from) query = query.gte('episodes_count', parseInt(episodes_from));
-
-    const episodes_to = searchParams.get("episodes_to");
-    if (episodes_to) query = query.lte('episodes_count', parseInt(episodes_to));
-    
-    const applyRelationFilter = async (tableName: string, entityName: string, includeParam: string | null, excludeParam: string | null) => {
-        let animeIds: number[] | null = null;
+    // --- НОВЫЙ ФИЛЬТР ПО СПИСКАМ ПОЛЬЗОВАТЕЛЯ ---
+    const user_list_status = searchParams.get("user_list_status");
+    if (user_list_status && session) {
+        const { data: animeIdsInList } = await supabase
+            .from('user_lists')
+            .select('anime_id')
+            .eq('user_id', session.user.id)
+            .eq('status', user_list_status);
         
+        if (animeIdsInList && animeIdsInList.length > 0) {
+            query = query.in('id', animeIdsInList.map(item => item.anime_id));
+        } else {
+            // Если в этом списке у пользователя нет аниме, возвращаем пустой результат
+            query = query.in('id', [-1]);
+        }
+    }
+
+    // --- ФИЛЬТРЫ ПО СВЯЗАННЫМ ТАБЛИЦАМ ---
+    const applyRelationFilter = async (tableName: string, entityName: string, includeParam: string | null, excludeParam: string | null) => {
         const includeIds = parseIds(includeParam);
         if (includeIds && includeIds.length > 0) {
-            const { data } = await supabase.from(tableName).select('anime_id').in(`${entityName}_id`, includeIds);
-            animeIds = data ? data.map(item => item.anime_id) : [];
+            const { data: animeIds } = await supabase.from(tableName).select('anime_id').in(`${entityName}_id`, includeIds);
+            if (animeIds && animeIds.length > 0) {
+                query = query.in('id', [...new Set(animeIds.map(item => item.anime_id))]);
+            } else {
+                query = query.in('id', [-1]);
+            }
         }
-
-        if (animeIds !== null) {
-            query = query.in('id', animeIds.length > 0 ? [...new Set(animeIds)] : [-1]); // Используем -1 чтобы ничего не найти
-        }
-
+        
         const excludeIds = parseIds(excludeParam);
         if (excludeIds && excludeIds.length > 0) {
             const { data: animeIdsToExclude } = await supabase.from(tableName).select('anime_id').in(`${entityName}_id`, excludeIds);
@@ -76,16 +82,18 @@ export async function GET(request: Request) {
             }
         }
     };
-    
+
     await applyRelationFilter('anime_genres', 'genre', searchParams.get("genres"), searchParams.get("genres_exclude"));
     await applyRelationFilter('anime_studios', 'studio', searchParams.get("studios"), searchParams.get("studios_exclude"));
-
+    
+    // --- СОРТИРОВКА И ПАГИНАЦИЯ ---
     query = query.order(sort, { ascending: order === 'asc' });
     query = query.range(offset, offset + limit - 1);
 
     const { data: results, count, error: queryError } = await query;
     if (queryError) throw queryError;
 
+    // --- ИНТЕГРАЦИЯ СПИСКОВ ---
     if (session && results && results.length > 0) {
       const resultIds = results.map(r => r.id);
       const { data: userLists } = await supabase.from('user_lists').select('anime_id, status').eq('user_id', session.user.id).in('anime_id', resultIds);

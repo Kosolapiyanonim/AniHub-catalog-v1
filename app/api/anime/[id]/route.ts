@@ -19,41 +19,58 @@ export async function GET(
   const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
 
   try {
-    // Делаем один мощный запрос, чтобы получить все и сразу
-    const { data: anime, error } = await supabase
+    // --- ШАГ 1: Получаем основную информацию об аниме ---
+    const { data: anime, error: animeError } = await supabase
       .from('animes')
-      .select(`
-        *,
-        translations(*),
-        genres:anime_genres(genres(id, name, slug)),
-        studios:anime_studios(studios(id, name, slug)),
-        related:anime_relations!anime_id(
-          relation_type,
-          related_anime:animes!related_id(id, shikimori_id, title, poster_url, year, type)
-        )
-      `)
+      .select('*, genres:anime_genres(genres(id, name, slug)), studios:anime_studios(studios(id, name, slug))')
       .eq('shikimori_id', shikimoriId)
       .single();
 
-    if (error) {
-      if (error.code === 'PGRST116') { // Код ошибки "не найдено"
-        return NextResponse.json({ error: 'Anime not found' }, { status: 404 });
-      }
-      throw error;
+    if (animeError) {
+      if (animeError.code === 'PGRST116') return NextResponse.json({ error: 'Anime not found' }, { status: 404 });
+      throw animeError;
+    }
+
+    // --- ШАГ 2: Получаем озвучки и связанные произведения параллельно ---
+    const [translationsResponse, relatedResponse] = await Promise.all([
+      supabase.from('translations').select('*').eq('anime_id', anime.id),
+      supabase.from('anime_relations').select('relation_type, related_id').eq('anime_id', anime.id)
+    ]);
+
+    // Даже если один из запросов не удался, мы не "роняем" весь API
+    const translations = translationsResponse.data || [];
+    const relations = relatedResponse.data || [];
+
+    // --- ШАГ 3: Получаем информацию о связанных аниме (если они есть) ---
+    let relatedAnimesWithInfo = [];
+    if (relations.length > 0) {
+      const relatedAnimeIds = relations.map(r => r.related_id);
+      
+      const { data: relatedInfo } = await supabase
+        .from('animes')
+        .select('id, shikimori_id, title, poster_url, year, type')
+        .in('id', relatedAnimeIds);
+
+      // Собираем все вместе, отфильтровывая "битые" связи, где relatedInfo не нашлось
+      relatedAnimesWithInfo = relations
+        .map(relation => {
+          const animeInfo = relatedInfo?.find(a => a.id === relation.related_id);
+          if (!animeInfo) return null; // Если связанное аниме не найдено, пропускаем
+          return {
+            ...animeInfo,
+            relation_type: relation.relation_type,
+          };
+        })
+        .filter(Boolean); // Убираем все null из массива
     }
     
-    // ИЗМЕНЕНИЕ: Добавляем проверки на существование данных перед их обработкой
-    // Это делает код устойчивым к неполным данным в базе.
+    // --- ШАГ 4: Собираем финальный ответ ---
     const responseData = {
       ...anime,
       genres: (anime.genres || []).map((g: any) => g.genres).filter(Boolean),
       studios: (anime.studios || []).map((s: any) => s.studios).filter(Boolean),
-      related: (anime.related || []).map((r: any) => (
-        r.related_anime ? {
-          ...r.related_anime,
-          relation_type: r.relation_type,
-        } : null
-      )).filter(r => r && r.shikimori_id), // Убираем "битые" и пустые связи
+      translations: translations,
+      related: relatedAnimesWithInfo,
     };
 
     return NextResponse.json(responseData);

@@ -4,7 +4,6 @@ import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-// Функция для парсинга ID из id-slug формата
 const parseIds = (param: string | null): number[] | null => {
   if (!param) return null;
   return param.split(',').map(item => parseInt(item.split('-')[0], 10)).filter(id => !isNaN(id));
@@ -15,14 +14,12 @@ export async function GET(request: Request) {
   const cookieStore = cookies();
   const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
 
-  // 1. ПАРАМЕТРЫ ПАГИНАЦИИ И СОРТИРОВКИ
   const page = parseInt(searchParams.get("page") || "1", 10);
-  const limit = parseInt(searchParams.get("limit") || "24", 10);
+  const limit = parseInt(searchParams.get("limit") || "25", 10);
   const offset = (page - 1) * limit;
   const sort = searchParams.get("sort") || "weighted_rating";
   const order = searchParams.get("order") || "desc";
 
-  // 2. СОБИРАЕМ ВСЕ ПАРАМЕТРЫ ФИЛЬТРОВ
   const filterParams = {
     p_title: searchParams.get("title") || null,
     p_types: searchParams.get("types")?.split(',') || null,
@@ -37,14 +34,12 @@ export async function GET(request: Request) {
     p_exclude_genres: parseIds(searchParams.get("genres_exclude")),
     p_include_studios: parseIds(searchParams.get("studios")),
     p_exclude_studios: parseIds(searchParams.get("studios_exclude")),
-    p_include_countries: parseIds(searchParams.get("countries")),
-    p_exclude_countries: parseIds(searchParams.get("countries_exclude")),
   };
 
   try {
-    // 3. ВЫЗЫВАЕМ НАШУ ФУНКЦИЮ В БАЗЕ ДАННЫХ, ЧТОБЫ ПОЛУЧИТЬ ID ПОДХОДЯЩИХ АНИМЕ
+    const { data: { session } } = await supabase.auth.getSession();
+    
     const { data: filteredIdsData, error: rpcError } = await supabase.rpc('filter_animes', filterParams);
-
     if (rpcError) throw rpcError;
 
     const animeIds = filteredIdsData.map((item: { id: number }) => item.id);
@@ -54,29 +49,40 @@ export async function GET(request: Request) {
       return NextResponse.json({ results: [], total: 0, hasMore: false });
     }
 
-    // 4. ДЕЛАЕМ ОСНОВНОЙ ЗАПРОС, ВЫБИРАЯ АНИМЕ ПО НАЙДЕННЫМ ID
     let query = supabase
       .from("animes")
       .select("id, shikimori_id, title, poster_url, year, type, shikimori_rating, episodes_count")
       .in('id', animeIds);
 
-    // 5. ПРИМЕНЯЕМ СОРТИРОВКУ
+    const isAsc = order === 'asc';
     if (sort === 'weighted_rating') {
-      // Для "честного" рейтинга мы добавляем вычисляемое поле и сортируем по нему
-      query = query.select(`
-        *,
-        weighted_rating:calculate_weighted_rating(shikimori_rating, shikimori_votes)
-      `).order('weighted_rating', { ascending: order === 'asc' });
+      query = query.select(`*, weighted_rating:calculate_weighted_rating(shikimori_rating, shikimori_votes)`)
+                   .order('weighted_rating', { ascending: isAsc });
     } else {
-      // Для остальных полей сортируем как обычно
-      query = query.order(sort, { ascending: order === 'asc' });
+      query = query.order(sort, { ascending: isAsc });
     }
 
-    // 6. ПРИМЕНЯЕМ ПАГИНАЦИЮ
     query = query.range(offset, offset + limit - 1);
 
     const { data: results, error: queryError } = await query;
     if (queryError) throw queryError;
+
+    // ИНТЕГРАЦИЯ СПИСКОВ: Если пользователь авторизован, получаем статусы для загруженных аниме
+    if (session && results && results.length > 0) {
+      const resultIds = results.map(r => r.id);
+      const { data: userLists } = await supabase
+        .from('user_lists')
+        .select('anime_id, status')
+        .eq('user_id', session.user.id)
+        .in('anime_id', resultIds);
+
+      const statusMap = new Map(userLists?.map(item => [item.anime_id, item.status]));
+      
+      // Добавляем статус к каждому аниме
+      results.forEach((anime: any) => {
+        anime.user_list_status = statusMap.get(anime.id) || null;
+      });
+    }
 
     return NextResponse.json({
       results: results || [],

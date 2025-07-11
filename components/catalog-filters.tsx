@@ -1,140 +1,123 @@
-"use client"
+// /components/catalog-filters.tsx
+"use client";
 
-import type { Dispatch, SetStateAction } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { X } from "lucide-react"
+import React, { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { X, SlidersHorizontal, Check, Minus } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useDebounce } from '@/hooks/use-debounce';
 
+type FilterItem = { id: number; name: string; slug: string; };
 export interface FiltersState {
-  title: string
-  sort: string
-  yearFrom: string
-  yearTo: string
-  type: string[]
-  page: number
-  limit: number
+  title: string; sort: string; year_from: string; year_to: string;
+  genres: string[]; genres_exclude: string[];
+  studios: string[]; studios_exclude: string[];
+  types: string[]; statuses: string[];
 }
 
 interface CatalogFiltersProps {
-  filters: FiltersState | undefined
-  onFiltersChange: Dispatch<SetStateAction<FiltersState>>
-  onApply: () => void
-  onReset: () => void
+  initialFilters: FiltersState;
+  onApply: (filters: FiltersState) => void;
 }
 
-/* ---------- OPTIONS ---------- */
-const SORT_OPTIONS = [
-  { value: "shikimori_rating", label: "По рейтингу" },
-  { value: "year", label: "По году" },
-  { value: "title", label: "По названию" },
-]
+export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps) {
+  const [filters, setFilters] = useState(initialFilters);
+  const [genres, setGenres] = useState<FilterItem[]>([]);
+  const [studios, setStudios] = useState<FilterItem[]>([]);
+  const debouncedTitle = useDebounce(filters.title, 500);
 
-const TYPE_OPTIONS = [
-  { value: "tv", label: "TV-сериал" },
-  { value: "movie", label: "Фильм" },
-  { value: "ova", label: "OVA" },
-  { value: "ona", label: "ONA" },
-  { value: "special", label: "Спешл" },
-]
+  useEffect(() => {
+    // TODO: Заменить на реальные fetch-запросы к /api/genres и /api/studios
+    setGenres([
+        { id: 7, name: 'Детектив', slug: 'mystery' }, { id: 12, name: 'Фэнтези', slug: 'fantasy' },
+        { id: 88, name: 'Ужасы', slug: 'horror' }, { id: 1, name: 'Экшен', slug: 'action' },
+    ]);
+    setStudios([
+        { id: 1, name: 'Bones', slug: 'bones' }, { id: 2, name: 'Madhouse', slug: 'madhouse' },
+        { id: 3, name: 'MAPPA', slug: 'mappa' },
+    ]);
+  }, []);
 
-/* ----------------------------------------------------------------- */
+  useEffect(() => {
+    // Применяем фильтр по названию с задержкой, чтобы не делать запрос на каждую букву
+    if (debouncedTitle !== initialFilters.title) {
+        onApply(filters);
+    }
+  }, [debouncedTitle]);
 
-export function CatalogFilters({ filters, onFiltersChange, onApply, onReset }: CatalogFiltersProps) {
-  /* Если фильтры внезапно undefined — просто не рендерим панель, чтобы избежать ошибок. */
-  if (!filters) return null
-
-  const set = <K extends keyof FiltersState>(key: K, value: FiltersState[K]) =>
-    onFiltersChange((prev) => ({ ...prev, [key]: value }))
-
-  const toggleType = (type: string) => {
-    const list = filters.type ?? [] // гарантируем, что это всегда массив
-    const newTypes = list.includes(type) ? list.filter((t) => t !== type) : [...list, type]
-    set("type", newTypes)
-  }
-
+  const handleApply = () => onApply(filters);
+  const handleReset = () => {
+    setFilters(initialFilters);
+    onApply(initialFilters);
+  };
+  
   return (
-    <aside className="rounded-lg bg-slate-800/60 border border-slate-700 p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Фильтры</h2>
-        <Button variant="ghost" size="sm" onClick={onReset}>
-          <X className="h-4 w-4 mr-1" />
-          Сбросить
-        </Button>
-      </div>
-
-      {/* Поиск */}
-      <div className="space-y-2">
-        <Label htmlFor="search">Поиск</Label>
-        <Input
-          id="search"
-          placeholder="Название аниме…"
-          value={filters.title}
-          onChange={(e) => set("title", e.target.value)}
-        />
-      </div>
-
-      {/* Сортировка */}
-      <div className="space-y-2">
-        <Label>Сортировка</Label>
-        <Select value={filters.sort} onValueChange={(v) => set("sort", v)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Сортировка" />
-          </SelectTrigger>
-          <SelectContent>
-            {SORT_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
+    <Card className="sticky top-20 bg-slate-800 border-slate-700">
+      <CardHeader>
+        <div className="flex justify-between items-center">
+            <CardTitle className="flex items-center gap-2 text-white"><SlidersHorizontal className="w-5 h-5" />Фильтры</CardTitle>
+            <Button onClick={handleReset} variant="ghost" size="sm" className="text-gray-400 hover:text-white">Сбросить</Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Input placeholder="Поиск по названию..." value={filters.title} onChange={e => setFilters(prev => ({ ...prev, title: e.target.value }))} className="bg-slate-700 border-slate-600" />
+        <Select value={filters.sort} onValueChange={val => setFilters(prev => ({ ...prev, sort: val }))}>
+            <SelectTrigger className="w-full bg-slate-700 border-slate-600"><SelectValue placeholder="Сортировка" /></SelectTrigger>
+            <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                <SelectItem value="weighted_rating">По рейтингу</SelectItem>
+                <SelectItem value="shikimori_votes">По популярности</SelectItem>
+                <SelectItem value="updated_at_kodik">По дате обновления</SelectItem>
+                <SelectItem value="year">По дате выхода</SelectItem>
+            </SelectContent>
         </Select>
-      </div>
-
-      {/* Год выпуска */}
-      <div className="space-y-2">
-        <Label>Год выпуска</Label>
-        <div className="grid grid-cols-2 gap-2">
-          <Input
-            type="number"
-            placeholder="От"
-            value={filters.yearFrom}
-            onChange={(e) => set("yearFrom", e.target.value)}
-          />
-          <Input
-            type="number"
-            placeholder="До"
-            value={filters.yearTo}
-            onChange={(e) => set("yearTo", e.target.value)}
-          />
-        </div>
-      </div>
-
-      {/* Тип */}
-      <div className="space-y-2">
-        <Label>Тип</Label>
-        <div className="space-y-2">
-          {TYPE_OPTIONS.map((o) => (
-            <div key={o.value} className="flex items-center space-x-2">
-              <Checkbox
-                id={o.value}
-                checked={(filters.type ?? []).includes(o.value)}
-                onCheckedChange={() => toggleType(o.value)}
-              />
-              <Label htmlFor={o.value} className="cursor-pointer">
-                {o.label}
-              </Label>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <Button className="w-full" onClick={onApply}>
-        Применить фильтры
-      </Button>
-    </aside>
-  )
+        <Button onClick={handleApply} className="w-full bg-purple-600 hover:bg-purple-700">Применить</Button>
+        <Accordion type="multiple" className="w-full">
+            <FilterSection title="Жанры">
+                <MultiSelectFilter items={genres} selected={filters.genres} excluded={filters.genres_exclude} onChange={(s, e) => setFilters(prev => ({ ...prev, genres: s, genres_exclude: e }))} />
+            </FilterSection>
+            <FilterSection title="Студии">
+                <MultiSelectFilter items={studios} selected={filters.studios} excluded={filters.studios_exclude} onChange={(s, e) => setFilters(prev => ({ ...prev, studios: s, studios_exclude: e }))} />
+            </FilterSection>
+        </Accordion>
+      </CardContent>
+    </Card>
+  );
 }
+
+const FilterSection = ({ title, children }: { title: string, children: React.ReactNode }) => (
+    <AccordionItem value={title} className="border-slate-700"><AccordionTrigger className="text-white hover:no-underline">{title}</AccordionTrigger><AccordionContent>{children}</AccordionContent></AccordionItem>
+);
+
+const MultiSelectFilter = ({ items, selected, excluded, onChange }: any) => {
+    const handleStateChange = (slug: string, currentState: 'none' | 'included' | 'excluded') => {
+        const newSelected = new Set(selected);
+        const newExcluded = new Set(excluded);
+        if (currentState === 'none') { newSelected.add(slug); newExcluded.delete(slug); } 
+        else if (currentState === 'included') { newSelected.delete(slug); newExcluded.add(slug); } 
+        else { newExcluded.delete(slug); }
+        onChange(Array.from(newSelected), Array.from(newExcluded));
+    };
+
+    return (
+        <ScrollArea className="h-48"><div className="space-y-1 pr-2">
+            {items.map((item: FilterItem) => {
+                const isIncluded = selected.includes(`${item.id}-${item.slug}`);
+                const isExcluded = excluded.includes(`${item.id}-${item.slug}`);
+                const state = isIncluded ? 'included' : isExcluded ? 'excluded' : 'none';
+                return (
+                    <Button key={item.id} variant="ghost" className="w-full justify-start gap-2" onClick={() => handleStateChange(`${item.id}-${item.slug}`, state)}>
+                        <div className={`w-4 h-4 rounded-sm border border-primary flex items-center justify-center ${isIncluded ? 'bg-primary' : ''} ${isExcluded ? 'bg-destructive' : ''}`}>
+                            {isIncluded && <Check className="w-3 h-3 text-primary-foreground" />}
+                            {isExcluded && <Minus className="w-3 h-3 text-destructive-foreground" />}
+                        </div>
+                        <span className="text-sm font-medium text-gray-300">{item.name}</span>
+                    </Button>
+                );
+            })}
+        </div></ScrollArea>
+    );
+};

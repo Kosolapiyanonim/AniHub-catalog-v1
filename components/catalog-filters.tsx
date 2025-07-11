@@ -10,6 +10,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { X, SlidersHorizontal, Check, Minus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDebounce } from '@/hooks/use-debounce';
+import { Checkbox } from './ui/checkbox';
+import { Label } from './ui/label';
 
 type FilterItem = { id: number; name: string; slug: string; };
 export interface FiltersState {
@@ -22,10 +24,8 @@ export interface FiltersState {
   types: string[]; statuses: string[];
 }
 
-// ЭТО СОСТОЯНИЕ ФИЛЬТРОВ ПО УМОЛЧАНИЮ
 export const DEFAULT_FILTERS: FiltersState = {
-  title: "",
-  sort: "shikimori_votes", // Сортировка по популярности
+  title: "", sort: "shikimori_votes",
   year_from: "", year_to: "",
   rating_from: "", rating_to: "",
   episodes_from: "", episodes_to: "",
@@ -45,16 +45,17 @@ export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps)
   const [studios, setStudios] = useState<FilterItem[]>([]);
   const debouncedTitle = useDebounce(filters.title, 500);
 
-  // Синхронизируем внутреннее состояние, если внешние фильтры (из URL) изменились
   useEffect(() => {
     setFilters(initialFilters);
   }, [initialFilters]);
 
+  // Загружаем справочники
   useEffect(() => {
-    // TODO: Заменить на реальные fetch-запросы к /api/genres и /api/studios
+    // TODO: Заменить на реальные fetch-запросы к вашим API /api/genres и /api/studios
+    // Сейчас используются моковые (тестовые) данные
     setGenres([
         { id: 7, name: 'Детектив', slug: 'mystery' }, { id: 12, name: 'Фэнтези', slug: 'fantasy' },
-        { id: 88, name: 'Ужасы', slug: 'horror' }, { id: 1, name: 'Экшен', slug: 'action' },
+        { id: 1, name: 'Экшен', slug: 'action' }, {id: 2, name: 'Приключения', slug: 'adventure'}
     ]);
     setStudios([
         { id: 1, name: 'Bones', slug: 'bones' }, { id: 2, name: 'Madhouse', slug: 'madhouse' },
@@ -62,7 +63,6 @@ export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps)
     ]);
   }, []);
 
-  // Применяем фильтр по названию с задержкой
   useEffect(() => {
     if (debouncedTitle !== initialFilters.title) {
         onApply({ ...filters, title: debouncedTitle });
@@ -70,12 +70,7 @@ export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps)
   }, [debouncedTitle, initialFilters.title, onApply, filters]);
 
   const handleApply = () => onApply(filters);
-  
-  // ИСПРАВЛЕННАЯ ЛОГИКА СБРОСА
-  const handleReset = () => {
-    setFilters(DEFAULT_FILTERS); // Устанавливаем дефолтные фильтры
-    onApply(DEFAULT_FILTERS);   // И сразу же применяем их
-  };
+  const handleReset = () => onApply(DEFAULT_FILTERS);
   
   return (
     <Card className="sticky top-20 bg-slate-800 border-slate-700">
@@ -103,22 +98,20 @@ export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps)
         <Button onClick={handleApply} className="w-full bg-purple-600 hover:bg-purple-700">Применить</Button>
 
         <Accordion type="multiple" className="w-full" defaultValue={['genres']}>
-            <FilterSection title="Жанры">
-                <MultiSelectFilter items={genres} selected={filters.genres} excluded={filters.genres_exclude} onChange={(s, e) => setFilters(prev => ({ ...prev, genres: s, genres_exclude: e }))} />
-            </FilterSection>
-            <FilterSection title="Год выхода">
-                <RangeInput from={filters.year_from} to={filters.year_to} onFromChange={val => setFilters(prev => ({...prev, year_from: val}))} onToChange={val => setFilters(prev => ({...prev, year_to: val}))} />
-            </FilterSection>
-            <FilterSection title="Студии">
-                <MultiSelectFilter items={studios} selected={filters.studios} excluded={filters.studios_exclude} onChange={(s, e) => setFilters(prev => ({ ...prev, studios: s, studios_exclude: e }))} />
-            </FilterSection>
+            <FilterSection title="Жанры"><MultiSelectFilter items={genres} selected={filters.genres} excluded={filters.genres_exclude} onChange={(s, e) => setFilters(prev => ({ ...prev, genres: s, genres_exclude: e }))} /></FilterSection>
+            <FilterSection title="Год выхода"><RangeInput from={filters.year_from} to={filters.year_to} onFromChange={val => setFilters(prev => ({...prev, year_from: val}))} onToChange={val => setFilters(prev => ({...prev, year_to: val}))} /></FilterSection>
+            <FilterSection title="Тип"><CheckboxGroup items={['TV-сериал', 'Фильм', 'OVA', 'ONA']} selected={filters.types} onChange={val => setFilters(prev => ({...prev, types: val}))} /></FilterSection>
+            <FilterSection title="Статус"><CheckboxGroup items={['Вышел', 'Выходит', 'Анонс']} selected={filters.statuses} onChange={val => setFilters(prev => ({...prev, statuses: val}))} /></FilterSection>
+            <FilterSection title="Кол-во серий"><RangeInput from={filters.episodes_from} to={filters.episodes_to} onFromChange={val => setFilters(prev => ({...prev, episodes_from: val}))} onToChange={val => setFilters(prev => ({...prev, episodes_to: val}))} /></FilterSection>
+            <FilterSection title="Рейтинг"><RangeInput from={filters.rating_from} to={filters.rating_to} onFromChange={val => setFilters(prev => ({...prev, rating_from: val}))} onToChange={val => setFilters(prev => ({...prev, rating_to: val}))} /></FilterSection>
+            <FilterSection title="Студии"><MultiSelectFilter items={studios} selected={filters.studios} excluded={filters.studios_exclude} onChange={(s, e) => setFilters(prev => ({ ...prev, studios: s, studios_exclude: e }))} /></FilterSection>
         </Accordion>
       </CardContent>
     </Card>
   );
 }
 
-// ... Вспомогательные компоненты без изменений ...
+// Вспомогательные компоненты
 const FilterSection = ({ title, children }: { title: string, children: React.ReactNode }) => (
     <AccordionItem value={title} className="border-slate-700"><AccordionTrigger className="text-white hover:no-underline">{title}</AccordionTrigger><AccordionContent>{children}</AccordionContent></AccordionItem>
 );
@@ -155,5 +148,26 @@ const MultiSelectFilter = ({ items, selected, excluded, onChange }: any) => {
                 );
             })}
         </div></ScrollArea>
+    );
+};
+const CheckboxGroup = ({ items, selected, onChange }: { items: string[], selected: string[], onChange: (newSelected: string[]) => void }) => {
+    const handleCheck = (item: string) => {
+        const newSelected = new Set(selected);
+        if (newSelected.has(item)) {
+            newSelected.delete(item);
+        } else {
+            newSelected.add(item);
+        }
+        onChange(Array.from(newSelected));
+    };
+    return (
+        <div className="space-y-2">
+            {items.map(item => (
+                <div key={item} className="flex items-center space-x-2">
+                    <Checkbox id={item} checked={selected.includes(item)} onCheckedChange={() => handleCheck(item)} />
+                    <Label htmlFor={item} className="text-sm font-medium text-gray-300">{item}</Label>
+                </div>
+            ))}
+        </div>
     );
 };

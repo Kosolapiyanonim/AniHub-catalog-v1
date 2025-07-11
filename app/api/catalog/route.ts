@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   const page = parseInt(searchParams.get("page") || "1", 10);
   const limit = parseInt(searchParams.get("limit") || "25", 10);
   const offset = (page - 1) * limit;
-  const sort = searchParams.get("sort") || "shikimori_votes"; // <-- Сортировка по умолчанию "По популярности"
+  const sort = searchParams.get("sort") || "shikimori_votes";
   const order = searchParams.get("order") || "desc";
 
   try {
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
     let query = supabase
       .from('animes_with_details')
-      .select("id, shikimori_id, title, poster_url, year, type, shikimori_rating, episodes_count, weighted_rating", { count: 'exact' });
+      .select("id, shikimori_id, title, poster_url, year, type, status, shikimori_rating, episodes_count, weighted_rating", { count: 'exact' });
 
     // --- ПРИМЕНЯЕМ ВСЕ ФИЛЬТРЫ ---
     const title = searchParams.get("title");
@@ -56,28 +56,28 @@ export async function GET(request: Request) {
     if (episodes_to) query = query.lte('episodes_count', parseInt(episodes_to));
 
     // --- ФИЛЬТРЫ ПО СВЯЗАННЫМ ТАБЛИЦАМ ---
-    const applyRelationFilter = async (filterType: 'genres' | 'studios', includeParam: string | null, excludeParam: string | null) => {
+    const applyRelationFilter = async (tableName: string, entityName: string, includeParam: string | null, excludeParam: string | null) => {
         const includeIds = parseIds(includeParam);
         if (includeIds && includeIds.length > 0) {
-            const { data: animeIds } = await supabase.from(`anime_${filterType}`).select('anime_id').in(`${filterType.slice(0, -1)}_id`, includeIds);
+            const { data: animeIds } = await supabase.from(tableName).select('anime_id').in(`${entityName}_id`, includeIds);
             if (animeIds && animeIds.length > 0) {
-                query = query.in('id', animeIds.map(item => item.anime_id));
+                query = query.in('id', [...new Set(animeIds.map(item => item.anime_id))]);
             } else {
-                query = query.in('id', []); // Если ничего не найдено, возвращаем пустой результат
+                query = query.in('id', []);
             }
         }
         
         const excludeIds = parseIds(excludeParam);
         if (excludeIds && excludeIds.length > 0) {
-            const { data: animeIdsToExclude } = await supabase.from(`anime_${filterType}`).select('anime_id').in(`${filterType.slice(0, -1)}_id`, excludeIds);
+            const { data: animeIdsToExclude } = await supabase.from(tableName).select('anime_id').in(`${entityName}_id`, excludeIds);
             if (animeIdsToExclude && animeIdsToExclude.length > 0) {
                 query = query.not('id', 'in', `(${[...new Set(animeIdsToExclude.map(item => item.anime_id))].join(',')})`);
             }
         }
     };
 
-    await applyRelationFilter('genres', searchParams.get("genres"), searchParams.get("genres_exclude"));
-    await applyRelationFilter('studios', searchParams.get("studios"), searchParams.get("studios_exclude"));
+    await applyRelationFilter('anime_genres', 'genre', searchParams.get("genres"), searchParams.get("genres_exclude"));
+    await applyRelationFilter('anime_studios', 'studio', searchParams.get("studios"), searchParams.get("studios_exclude"));
     
     // --- СОРТИРОВКА И ПАГИНАЦИЯ ---
     query = query.order(sort, { ascending: order === 'asc' });

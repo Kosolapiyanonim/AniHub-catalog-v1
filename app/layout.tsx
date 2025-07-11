@@ -46,8 +46,8 @@ export default function RootLayout({
           enableSystem={false}
         >
           <div className="relative flex min-h-screen flex-col">
-            {/* Оборачиваем Header в Suspense, чтобы избежать ошибок со сборкой */}
-            <Suspense>
+            {/* ИЗМЕНЕНИЕ ЗДЕСЬ: Добавлен обязательный fallback={null} */}
+            <Suspense fallback={null}>
               <Header />
             </Suspense>
             <main className="flex-1">{children}</main>

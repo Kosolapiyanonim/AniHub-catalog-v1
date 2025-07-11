@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { AnimeCard } from "@/components/anime-card";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { Button } from "@/components/ui/button";
-import { CatalogFilters, type FiltersState } from "@/components/catalog-filters";
+import { CatalogFilters, type FiltersState, DEFAULT_FILTERS } from "@/components/catalog-filters";
 
 interface Anime {
   id: number;
@@ -14,21 +14,20 @@ interface Anime {
   title: string;
   poster_url?: string | null;
   year?: number | null;
-  user_list_status?: string | null; // <-- Добавляем статус из списка пользователя
+  user_list_status?: string | null;
 }
 
-const INITIAL_FILTERS: FiltersState = {
-  title: "", sort: "weighted_rating", year_from: "", year_to: "",
-  genres: [], genres_exclude: [], studios: [], studios_exclude: [],
-  types: [], statuses: [],
-};
-
+// Функция для парсинга URL и получения начальных фильтров
 const parseUrlToFilters = (params: URLSearchParams): FiltersState => ({
-    title: params.get('title') || '', sort: params.get('sort') || 'weighted_rating',
-    year_from: params.get('year_from') || '', year_to: params.get('year_to') || '',
-    genres: params.get('genres')?.split(',') || [], genres_exclude: params.get('genres_exclude')?.split(',') || [],
-    studios: params.get('studios')?.split(',') || [], studios_exclude: params.get('studios_exclude')?.split(',') || [],
-    types: params.get('types')?.split(',') || [], statuses: params.get('statuses')?.split(',') || [],
+    ...DEFAULT_FILTERS, // Начинаем с дефолтных
+    title: params.get('title') || '', 
+    sort: params.get('sort') || 'shikimori_votes', // Дефолтная сортировка - по популярности
+    year_from: params.get('year_from') || '',
+    year_to: params.get('year_to') || '',
+    genres: params.get('genres')?.split(',') || [], 
+    genres_exclude: params.get('genres_exclude')?.split(',') || [],
+    studios: params.get('studios')?.split(',') || [], 
+    studios_exclude: params.get('studios_exclude')?.split(',') || [],
 });
 
 function CatalogView() {
@@ -43,6 +42,7 @@ function CatalogView() {
   const [page, setPage] = useState(1);
   const [currentFilters, setCurrentFilters] = useState<FiltersState>(() => parseUrlToFilters(searchParams));
 
+  // Функция для загрузки данных
   const fetchData = useCallback(async (filters: FiltersState, pageNum: number) => {
     const isNewSearch = pageNum === 1;
     if (isNewSearch) setLoading(true); else setLoadingMore(true);
@@ -67,17 +67,26 @@ function CatalogView() {
     finally { setLoading(false); setLoadingMore(false); }
   }, []);
 
+  // Функция для применения фильтров и обновления URL
   const handleApplyFilters = useCallback((newFilters: FiltersState) => {
     setPage(1);
     setCurrentFilters(newFilters);
     fetchData(newFilters, 1);
 
     const params = new URLSearchParams();
+    // Добавляем в URL только те параметры, которые отличаются от дефолтных
     Object.entries(newFilters).forEach(([key, value]) => {
-        if (Array.isArray(value) && value.length > 0) params.set(key, value.join(','));
-        else if (typeof value === 'string' && value) params.set(key, value);
+      const filterKey = key as keyof FiltersState;
+      if (JSON.stringify(value) !== JSON.stringify(DEFAULT_FILTERS[filterKey])) {
+        if (Array.isArray(value) && value.length > 0) {
+          params.set(key, value.join(','));
+        } else if (typeof value === 'string' && value) {
+          params.set(key, value);
+        }
+      }
     });
-    router.push(`/catalog?${params.toString()}`, { scroll: false });
+    const newUrl = params.toString() ? `/catalog?${params.toString()}` : '/catalog';
+    router.push(newUrl, { scroll: false });
   }, [fetchData, router]);
 
   const loadMore = () => {
@@ -88,10 +97,11 @@ function CatalogView() {
     }
   };
 
+  // Начальная загрузка при изменении URL
   useEffect(() => {
     const initialFilters = parseUrlToFilters(searchParams);
     setCurrentFilters(initialFilters);
-    setPage(1);
+    setPage(1); // Всегда сбрасываем на первую страницу при смене фильтров
     fetchData(initialFilters, 1);
   }, [searchParams, fetchData]);
 
@@ -136,6 +146,7 @@ function CatalogView() {
   );
 }
 
+// Обертка для Suspense
 export default function CatalogPageWrapper() {
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><LoadingSpinner size="lg" /></div>}>

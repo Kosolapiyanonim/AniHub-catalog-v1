@@ -2,9 +2,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { Search, Loader2 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/use-debounce";
 import { AnimeCard } from "./anime-card";
@@ -26,7 +25,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<AnimeSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
-  const debouncedQuery = useDebounce(query, 300); // Задержка в 300мс
+  const debouncedQuery = useDebounce(query, 300);
 
   const performSearch = useCallback(async (searchQuery: string) => {
     if (searchQuery.length < 2) {
@@ -50,7 +49,6 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
     performSearch(debouncedQuery);
   }, [debouncedQuery, performSearch]);
 
-  // Очищаем результаты при закрытии окна
   useEffect(() => {
     if (!open) {
       setQuery("");
@@ -63,6 +61,10 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
       <DialogContent className="max-w-3xl max-h-[80vh] bg-slate-900 border-slate-800 flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-white text-xl">Поиск по сайту</DialogTitle>
+          {/* ИСПРАВЛЕНИЕ: Добавлено описание для доступности */}
+          <DialogDescription className="sr-only">
+            Введите название аниме для поиска и результаты появятся ниже.
+          </DialogDescription>
         </DialogHeader>
         <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />

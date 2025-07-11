@@ -19,13 +19,16 @@ export async function GET(request: Request) {
 
   // Преобразуем поисковый запрос в формат, понятный для полнотекстового поиска
   // 'ван пис' -> 'ван & пис'
-  const tsQuery = query.trim().split(' ').join(' & ');
+  const tsQuery = query.trim().split(' ').filter(Boolean).join(' & ');
 
   try {
     const { data, error } = await supabase
       .from('animes')
       .select('id, shikimori_id, title, poster_url, year, type')
-      .textSearch('ts_document', tsQuery) // <-- Используем полнотекстовый поиск
+      .textSearch('ts_document', tsQuery, {
+        type: 'websearch', // Используем более "гибкий" тип поиска
+        config: 'russian'
+      })
       .limit(10); // Ограничиваем количество результатов
 
     if (error) throw error;

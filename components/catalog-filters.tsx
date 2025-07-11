@@ -1,7 +1,7 @@
 // /components/catalog-filters.tsx
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -45,11 +45,12 @@ export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps)
   const [studios, setStudios] = useState<FilterItem[]>([]);
   const debouncedTitle = useDebounce(filters.title, 500);
 
+  // Синхронизируем внутреннее состояние, если внешние фильтры (из URL) изменились
   useEffect(() => {
     setFilters(initialFilters);
   }, [initialFilters]);
 
-  // ИЗМЕНЕНИЕ: Загружаем справочники из API
+  // Загружаем справочники (жанры, студии и т.д.)
   useEffect(() => {
     const fetchFilterData = async () => {
       try {
@@ -57,10 +58,8 @@ export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps)
           fetch('/api/genres'),
           fetch('/api/studios')
         ]);
-        const genresData = await genresRes.json();
-        const studiosData = await studiosRes.json();
-        if (Array.isArray(genresData)) setGenres(genresData);
-        if (Array.isArray(studiosData)) setStudios(studiosData);
+        if (genresRes.ok) setGenres(await genresRes.json());
+        if (studiosRes.ok) setStudios(await studiosRes.json());
       } catch (error) {
         console.error("Failed to fetch filter data", error);
       }
@@ -68,15 +67,26 @@ export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps)
     fetchFilterData();
   }, []);
 
-  useEffect(() => {
-    if (debouncedTitle !== initialFilters.title) {
-        onApply({ ...filters, title: debouncedTitle });
-    }
-  }, [debouncedTitle, initialFilters.title, onApply, filters]);
+  // ИСПРАВЛЕННАЯ ЛОГИКА: Применяем фильтры, как только они меняются
+  const updateAndApplyFilters = useCallback((newFilters: Partial<FiltersState>) => {
+    const updatedFilters = { ...filters, ...newFilters };
+    setFilters(updatedFilters);
+    onApply(updatedFilters);
+  }, [filters, onApply]);
 
-  const handleApply = () => onApply(filters);
-  const handleReset = () => onApply(DEFAULT_FILTERS);
+  // Применяем фильтр по названию с задержкой
+  useEffect(() => {
+    // Применяем, только если значение действительно изменилось, чтобы избежать лишних запросов
+    if (debouncedTitle !== initialFilters.title) {
+        updateAndApplyFilters({ title: debouncedTitle });
+    }
+  }, [debouncedTitle, initialFilters.title, updateAndApplyFilters]);
   
+  const handleReset = () => {
+    setFilters(DEFAULT_FILTERS);
+    onApply(DEFAULT_FILTERS);
+  };
+
   return (
     <Card className="sticky top-20 bg-slate-800 border-slate-700">
       <CardHeader>
@@ -92,7 +102,7 @@ export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps)
             onChange={e => setFilters(prev => ({ ...prev, title: e.target.value }))}
             className="bg-slate-700 border-slate-600"
         />
-        <Select value={filters.sort} onValueChange={val => setFilters(prev => ({...prev, sort: val}))}>
+        <Select value={filters.sort} onValueChange={val => updateAndApplyFilters({ sort: val })}>
             <SelectTrigger className="w-full bg-slate-700 border-slate-600"><SelectValue placeholder="Сортировка" /></SelectTrigger>
             <SelectContent className="bg-slate-800 border-slate-700 text-white">
                 <SelectItem value="shikimori_votes">По популярности</SelectItem>
@@ -100,16 +110,13 @@ export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps)
                 <SelectItem value="year">По дате выхода</SelectItem>
             </SelectContent>
         </Select>
-        <Button onClick={handleApply} className="w-full bg-purple-600 hover:bg-purple-700">Применить</Button>
 
         <Accordion type="multiple" className="w-full" defaultValue={['genres']}>
-            <FilterSection title="Жанры"><MultiSelectFilter items={genres} selected={filters.genres} excluded={filters.genres_exclude} onChange={(s, e) => setFilters(prev => ({ ...prev, genres: s, genres_exclude: e }))} /></FilterSection>
-            <FilterSection title="Год выхода"><RangeInput from={filters.year_from} to={filters.year_to} onFromChange={val => setFilters(prev => ({...prev, year_from: val}))} onToChange={val => setFilters(prev => ({...prev, year_to: val}))} /></FilterSection>
-            <FilterSection title="Тип"><CheckboxGroup items={['tv_series', 'movie', 'ova', 'ona', 'special']} selected={filters.types} onChange={val => setFilters(prev => ({...prev, types: val}))} /></FilterSection>
-            <FilterSection title="Статус"><CheckboxGroup items={['released', 'ongoing', 'anons']} selected={filters.statuses} onChange={val => setFilters(prev => ({...prev, statuses: val}))} /></FilterSection>
-            <FilterSection title="Кол-во серий"><RangeInput from={filters.episodes_from} to={filters.episodes_to} onFromChange={val => setFilters(prev => ({...prev, episodes_from: val}))} onToChange={val => setFilters(prev => ({...prev, episodes_to: val}))} /></FilterSection>
-            <FilterSection title="Рейтинг"><RangeInput from={filters.rating_from} to={filters.rating_to} onFromChange={val => setFilters(prev => ({...prev, rating_from: val}))} onToChange={val => setFilters(prev => ({...prev, rating_to: val}))} /></FilterSection>
-            <FilterSection title="Студии"><MultiSelectFilter items={studios} selected={filters.studios} excluded={filters.studios_exclude} onChange={(s, e) => setFilters(prev => ({ ...prev, studios: s, studios_exclude: e }))} /></FilterSection>
+            <FilterSection title="Жанры"><MultiSelectFilter items={genres} selected={filters.genres} excluded={filters.genres_exclude} onChange={(s, e) => updateAndApplyFilters({ genres: s, genres_exclude: e })} /></FilterSection>
+            <FilterSection title="Год выхода"><RangeInput from={filters.year_from} to={filters.year_to} onFromChange={val => updateAndApplyFilters({ year_from: val })} onToChange={val => updateAndApplyFilters({ year_to: val })} /></FilterSection>
+            <FilterSection title="Тип"><CheckboxGroup items={['tv_series', 'movie', 'ova', 'ona', 'special']} selected={filters.types} onChange={val => updateAndApplyFilters({ types: val })} /></FilterSection>
+            <FilterSection title="Статус"><CheckboxGroup items={['released', 'ongoing', 'anons']} selected={filters.statuses} onChange={val => updateAndApplyFilters({ statuses: val })} /></FilterSection>
+            <FilterSection title="Студии"><MultiSelectFilter items={studios} selected={filters.studios} excluded={filters.studios_exclude} onChange={(s, e) => updateAndApplyFilters({ studios: s, studios_exclude: e })} /></FilterSection>
         </Accordion>
       </CardContent>
     </Card>
@@ -167,7 +174,7 @@ const CheckboxGroup = ({ items, selected, onChange }: { items: string[], selecte
             {items.map(item => (
                 <div key={item} className="flex items-center space-x-2">
                     <Checkbox id={item} checked={selected.includes(item)} onCheckedChange={() => handleCheck(item)} />
-                    <Label htmlFor={item} className="text-sm font-medium text-gray-300 capitalize">{item.replace('_', ' ')}</Label>
+                    <Label htmlFor={item} className="text-sm font-medium text-gray-300 capitalize">{item.replace(/_/g, ' ')}</Label>
                 </div>
             ))}
         </div>

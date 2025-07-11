@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import useEmblaCarousel, { type UseEmblaCarouselType } from "embla-carousel-react"
-import { ArrowLeft, ArrowRight } from "lucide-react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -141,7 +141,7 @@ const CarouselContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HT
       <div ref={carouselRef} className="overflow-hidden">
         <div
           ref={ref}
-          className={cn("flex", orientation === "horizontal" ? "-ml-4" : "-mt-4 flex-col", className)}
+          className={cn("flex", orientation === "horizontal" ? "-ml-8" : "-mt-8 flex-col", className)}
           {...props}
         />
       </div>
@@ -159,7 +159,7 @@ const CarouselItem = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLD
         ref={ref}
         role="group"
         aria-roledescription="slide"
-        className={cn("min-w-0 shrink-0 grow-0 basis-full", orientation === "horizontal" ? "pl-1" : "pt-1", className)}
+        className={cn("min-w-0 shrink-0 grow-0 basis-full", orientation === "horizontal" ? "pl-8" : "pt-8", className)}
         {...props}
       />
     )
@@ -168,7 +168,7 @@ const CarouselItem = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLD
 CarouselItem.displayName = "CarouselItem"
 
 const CarouselPrevious = React.forwardRef<HTMLButtonElement, React.ComponentProps<typeof Button>>(
-  ({ className, variant = "outline", size = "icon", ...props }, ref) => {
+  ({ className, variant = "ghost", size = "icon", ...props }, ref) => {
     const { orientation, scrollPrev, canScrollPrev } = useCarousel()
 
     return (
@@ -177,17 +177,18 @@ const CarouselPrevious = React.forwardRef<HTMLButtonElement, React.ComponentProp
         variant={variant}
         size={size}
         className={cn(
-          "absolute  h-8 w-8 rounded-full",
+          "absolute z-10 h-10 w-10 rounded-full bg-black/50 hover:bg-black/70 text-white border-0 shadow-lg backdrop-blur-sm transition-all duration-200",
           orientation === "horizontal"
-            ? "-left-12 top-1/2 -translate-y-1/2"
-            : "-top-12 left-1/2 -translate-x-1/2 rotate-90",
+            ? "left-8 top-1/2 -translate-y-1/2"
+            : "top-2 left-1/2 -translate-x-1/2 rotate-90",
+          !canScrollPrev && "opacity-50 cursor-not-allowed",
           className,
         )}
         disabled={!canScrollPrev}
         onClick={scrollPrev}
         {...props}
       >
-        <ArrowLeft className="h-4 w-4" />
+        <ChevronLeft className="h-6 w-6" />
         <span className="sr-only">Previous slide</span>
       </Button>
     )
@@ -196,7 +197,7 @@ const CarouselPrevious = React.forwardRef<HTMLButtonElement, React.ComponentProp
 CarouselPrevious.displayName = "CarouselPrevious"
 
 const CarouselNext = React.forwardRef<HTMLButtonElement, React.ComponentProps<typeof Button>>(
-  ({ className, variant = "outline", size = "icon", ...props }, ref) => {
+  ({ className, variant = "ghost", size = "icon", ...props }, ref) => {
     const { orientation, scrollNext, canScrollNext } = useCarousel()
 
     return (
@@ -205,17 +206,18 @@ const CarouselNext = React.forwardRef<HTMLButtonElement, React.ComponentProps<ty
         variant={variant}
         size={size}
         className={cn(
-          "absolute h-8 w-8 rounded-full",
+          "absolute z-10 h-10 w-10 rounded-full bg-black/50 hover:bg-black/70 text-white border-0 shadow-lg backdrop-blur-sm transition-all duration-200",
           orientation === "horizontal"
-            ? "-right-12 top-1/2 -translate-y-1/2"
-            : "-bottom-12 left-1/2 -translate-x-1/2 rotate-90",
+            ? "right-8 top-1/2 -translate-y-1/2"
+            : "bottom-2 left-1/2 -translate-x-1/2 rotate-90",
+          !canScrollNext && "opacity-50 cursor-not-allowed",
           className,
         )}
         disabled={!canScrollNext}
         onClick={scrollNext}
         {...props}
       >
-        <ArrowRight className="h-4 w-4" />
+        <ChevronRight className="h-6 w-6" />
         <span className="sr-only">Next slide</span>
       </Button>
     )

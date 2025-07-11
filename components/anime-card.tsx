@@ -12,7 +12,7 @@ interface AnimeCardProps {
     poster_url?: string | null;
     year?: number | null;
   };
-  priority?: boolean; // Добавим возможность задавать приоритет
+  priority?: boolean; // Добавим возможность задавать приоритет для первых карточек
 }
 
 export function AnimeCard({ anime, priority = false }: AnimeCardProps) {
@@ -28,10 +28,10 @@ export function AnimeCard({ anime, priority = false }: AnimeCardProps) {
             src={anime.poster_url}
             alt={anime.title}
             fill
-            // ИЗМЕНЕНИЕ: Добавляем атрибут sizes
+            // ИЗМЕНЕНИЕ: Добавляем атрибут sizes для адаптивности
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className="object-cover transition-transform duration-300 group-hover:scale-105"
-            priority={priority} // <-- Используем приоритет
+            priority={priority} // Используем приоритет
           />
         ) : (
           <div className="flex items-center justify-center h-full text-slate-500 text-center text-xs p-2">

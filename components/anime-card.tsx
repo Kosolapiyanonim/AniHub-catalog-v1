@@ -1,43 +1,48 @@
-"use client"
+// /components/anime-card.tsx
+'use client';
 
-import Image from "next/image"
-import Link from "next/link"
-import { cn } from "@/lib/utils"
+import Link from 'next/link';
+import Image from 'next/image';
 
-interface Anime {
-  id: number
-  shikimori_id: string
-  title: string
-  poster_url?: string | null
-  year?: number | null
+interface AnimeCardProps {
+  anime: {
+    id: number;
+    shikimori_id: string;
+    title: string;
+    poster_url?: string | null;
+    year?: number | null;
+  };
+  priority?: boolean; // Добавим возможность задавать приоритет
 }
 
-interface Props {
-  anime: Anime
-  priority?: boolean
-  className?: string
-}
+export function AnimeCard({ anime, priority = false }: AnimeCardProps) {
+  if (!anime || !anime.shikimori_id) {
+    return null;
+  }
 
-export function AnimeCard({ anime, priority = false, className }: Props) {
   return (
-    <Link
-      href={`/anime/${anime.id}`}
-      className={cn(
-        "group relative rounded-md overflow-hidden bg-slate-800 hover:ring-2 hover:ring-primary transition",
-        className,
-      )}
-    >
-      <Image
-        src={anime.poster_url || "/placeholder.svg?width=300&height=450"}
-        alt={anime.title}
-        width={300}
-        height={450}
-        priority={priority}
-        className="object-cover w-full h-full group-hover:scale-105 transition-transform"
-      />
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-black/0 p-2">
-        <h3 className="text-sm line-clamp-2">{anime.title}</h3>
+    <Link href={`/anime/${anime.shikimori_id}`} key={anime.id} className="group cursor-pointer block">
+      <div className="aspect-[2/3] overflow-hidden rounded-lg bg-slate-800 relative">
+        {anime.poster_url ? (
+          <Image
+            src={anime.poster_url}
+            alt={anime.title}
+            fill
+            // ИЗМЕНЕНИЕ: Добавляем атрибут sizes
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            priority={priority} // <-- Используем приоритет
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full text-slate-500 text-center text-xs p-2">
+            Постер отсутствует
+          </div>
+        )}
       </div>
+      <h3 className="mt-2 text-sm font-medium text-white truncate group-hover:text-purple-400">
+        {anime.title}
+      </h3>
+      {anime.year && <p className="text-xs text-slate-400">{anime.year}</p>}
     </Link>
-  )
+  );
 }

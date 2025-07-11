@@ -114,7 +114,7 @@ export async function POST(request: Request) {
         continue;
       }
 
-      // 1. Отбираем только у��икальные аниме по shikimori_id
+      // 1. Отбираем только у����икальные аниме по shikimori_id
       const uniqueAnimeMap = new Map<string, KodikAnimeData>();
       animeListFromKodik.forEach(anime => {
         if (anime.shikimori_id && !uniqueAnimeMap.has(anime.shikimori_id)) {

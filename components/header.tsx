@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Search, Menu, Bell, User, LogOut, Settings, Heart } from "lucide-react"
+import { Menu, Bell, User, LogOut, Settings, Heart } from "lucide-react"
 import { SearchDialog } from "./search-dialog"
 import { toast } from "sonner"
 import type { User as SupabaseUser } from "@supabase/auth-helpers-nextjs"
@@ -70,11 +70,12 @@ export function Header() {
   }
 
   return (
-    <header className="w-full border-b border-white/10 bg-black/50 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <Link href="/" className="text-lg font-bold">
+    <header className="fixed inset-x-0 top-0 z-40 bg-slate-900/80 backdrop-blur border-b border-slate-800">
+      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+        <Link href="/" className="text-xl font-bold">
           AniHub
         </Link>
+
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-6">
           <Link href="/catalog" className="text-sm font-medium hover:text-primary transition-colors">
@@ -85,17 +86,10 @@ export function Header() {
           </Link>
         </nav>
 
-        {/* Search and User Actions */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center gap-4">
           {/* Search Button */}
-          <Button variant="ghost" size="sm" onClick={() => setSearchOpen(true)} className="hidden sm:flex">
-            <Search className="h-4 w-4 mr-2" />
-            Поиск...
-          </Button>
-
-          {/* Mobile Search */}
-          <Button variant="ghost" size="sm" onClick={() => setSearchOpen(true)} className="sm:hidden">
-            <Search className="h-4 w-4" />
+          <Button size="sm" variant="ghost" onClick={() => setSearchOpen(true)}>
+            Поиск
           </Button>
 
           {/* User Section */}

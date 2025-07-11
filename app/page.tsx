@@ -1,39 +1,30 @@
 // /app/page.tsx
-import dynamic from 'next/dynamic'
-import { LoadingSpinner } from '@/components/loading-spinner';
+import { LoadingSpinner } from "@/components/loading-spinner"
+import AnimeCarousel from "@/components/anime-carousel-client"
 
 // HeroSlider загружаем как обычно, так как он виден сразу
-import { HeroSlider } from "@/components/HeroSlider";
+import { HeroSlider } from "@/components/HeroSlider"
 
-// А вот карусели, которые находятся ниже, загружаем динамически
-const AnimeCarousel = dynamic(
-  () => import('@/components/AnimeCarousel').then(mod => mod.AnimeCarousel),
-  { 
-    loading: () => <div className="h-64 flex items-center justify-center"><LoadingSpinner /></div>,
-    ssr: false // Не рендерить на сервере, так как это интерактивный компонент
-  }
-)
-import { LoadingSpinner } from "@/components/loading-spinner";
-import { TrendingUp, Star, Zap, CheckCircle } from "lucide-react";
-import { Suspense } from "react";
+import { TrendingUp, Star, Zap, CheckCircle } from "lucide-react"
+import { Suspense } from "react"
 
 // Определяем типы данных, которые мы ожидаем от API
 interface Anime {
-  id: number;
-  shikimori_id: string;
-  title: string;
-  poster_url?: string | null;
-  year?: number | null;
+  id: number
+  shikimori_id: string
+  title: string
+  poster_url?: string | null
+  year?: number | null
 }
 
 interface HomePageData {
-  hero?: Anime[] | null;
-  trending?: Anime[] | null;
-  popular?: Anime[] | null;
-  recentlyCompleted?: Anime[] | null;
-  latestUpdates?: Anime[] | null;
-  continueWatching?: (Anime & { progress: number })[] | null;
-  myUpdates?: Anime[] | null;
+  hero?: Anime[] | null
+  trending?: Anime[] | null
+  popular?: Anime[] | null
+  recentlyCompleted?: Anime[] | null
+  latestUpdates?: Anime[] | null
+  continueWatching?: (Anime & { progress: number })[] | null
+  myUpdates?: Anime[] | null
 }
 
 // Асинхронная функция для загрузки данных
@@ -41,25 +32,25 @@ async function getHomePageData(): Promise<HomePageData> {
   try {
     // Делаем запрос к нашему API. 'force-dynamic' гарантирует, что данные будут свежими.
     const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/homepage-sections`, {
-      cache: 'no-store', 
-    });
-    
+      cache: "no-store",
+    })
+
     if (!response.ok) {
       // В случае ошибки возвращаем пустые данные
-      console.error("Failed to fetch homepage data:", response.statusText);
-      return {};
+      console.error("Failed to fetch homepage data:", response.statusText)
+      return {}
     }
-    
-    return response.json();
+
+    return response.json()
   } catch (error) {
-    console.error("Error in getHomePageData:", error);
-    return {};
+    console.error("Error in getHomePageData:", error)
+    return {}
   }
 }
 
 // Основной компонент главной страницы
 export default async function HomePage() {
-  const data = await getHomePageData();
+  const data = await getHomePageData()
 
   return (
     <div className="min-h-screen bg-slate-900">
@@ -68,36 +59,36 @@ export default async function HomePage() {
       <main className="container mx-auto px-4 py-12 space-y-12">
         {/* Оборачиваем каждую секцию в Suspense для лучшего UX */}
         <Suspense fallback={<LoadingSpinner />}>
-          <AnimeCarousel 
-            title="Тренды сезона" 
-            items={data.trending} 
+          <AnimeCarousel
+            title="Тренды сезона"
+            items={data.trending}
             viewAllLink="/catalog?sort=trending"
             icon={<TrendingUp />}
           />
         </Suspense>
-        
+
         <Suspense fallback={<LoadingSpinner />}>
-          <AnimeCarousel 
-            title="Самое популярное" 
-            items={data.popular} 
+          <AnimeCarousel
+            title="Самое популярное"
+            items={data.popular}
             viewAllLink="/catalog?sort=popular"
             icon={<Star />}
           />
         </Suspense>
-        
+
         <Suspense fallback={<LoadingSpinner />}>
-          <AnimeCarousel 
-            title="Последние обновления" 
-            items={data.latestUpdates} 
+          <AnimeCarousel
+            title="Последние обновления"
+            items={data.latestUpdates}
             viewAllLink="/catalog?sort=updated_at"
             icon={<Zap />}
           />
         </Suspense>
 
         <Suspense fallback={<LoadingSpinner />}>
-          <AnimeCarousel 
-            title="Недавно завершенные" 
-            items={data.recentlyCompleted} 
+          <AnimeCarousel
+            title="Недавно завершенные"
+            items={data.recentlyCompleted}
             viewAllLink="/catalog?status=released"
             icon={<CheckCircle />}
           />
@@ -109,5 +100,5 @@ export default async function HomePage() {
         */}
       </main>
     </div>
-  );
+  )
 }

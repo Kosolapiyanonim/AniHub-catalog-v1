@@ -36,7 +36,7 @@ interface HeroSliderProps {
 
 export function HeroSlider({ items }: HeroSliderProps) {
   const plugin = React.useRef(
-    Autoplay({ delay: 5000, stopOnInteraction: false })
+    Autoplay({ delay: 5000, stopOnInteraction: true })
   );
 
   if (!items || items.length === 0) {
@@ -59,17 +59,18 @@ export function HeroSlider({ items }: HeroSliderProps) {
         {items.map((anime, index) => (
           <CarouselItem key={anime.id}>
             <div className="relative h-[70vh] w-full">
-              {/* Фоновое изображение */}
+              {/* Фоновое изображение с оптимизацией */}
               <Image
                 src={anime.poster_url || "/placeholder.svg"}
                 alt={`${anime.title} background`}
                 fill
-                className="object-cover object-center md:object-right" // Фокус на правой части изображения
-                priority={index === 0} // <-- ВАЖНО ДЛЯ LCP
-                sizes="100vw" // <-- ВАЖНО ДЛЯ ОПТИМИЗАЦИИ
+                className="object-cover object-center md:object-right"
+                priority={index === 0} // Загружаем первое изображение в приоритете
+                sizes="100vw" // Сообщаем, что картинка занимает всю ширину экрана
+                quality={85} // <-- ИЗМЕНЕНИЕ: Увеличиваем качество до 85
               />
-              {/* Градиентный оверлей */}
-              <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-transparent" />
+              {/* Градиентный оверлей для читаемости текста */}
+              <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent" />
 
               {/* Контейнер для контента */}
               <div className="relative z-10 container mx-auto h-full flex items-center">
@@ -78,7 +79,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
                   
                   <p className="font-semibold text-purple-400 mb-4"># {index + 1} В центре внимания</p>
                   
-                  <h1 className="text-4xl lg:text-5xl font-bold mb-4">{anime.title}</h1>
+                  <h1 className="text-4xl lg:text-5xl font-bold mb-4 line-clamp-2">{anime.title}</h1>
                   
                   {/* Блок с метаданными */}
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-gray-300 mb-4">
@@ -89,7 +90,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
                         </div>
                     )}
                     {anime.year && <span>{anime.year}</span>}
-                    {anime.type && <Badge variant="secondary">{anime.type}</Badge>}
+                    {anime.type && <Badge variant="secondary">{anime.type.replace('_', ' ')}</Badge>}
                     {anime.episodes_count && (
                         <div className="flex items-center gap-1">
                             <Clapperboard className="w-4 h-4" />

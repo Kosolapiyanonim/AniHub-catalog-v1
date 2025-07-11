@@ -1,33 +1,25 @@
-// Создайте новый файл: /app/api/studios/route.ts
-
+// /app/api/studios/route.ts
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  const cookieStore = cookies();
+  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+
   try {
-    console.log("🏢 Fetching studios from database...");
-
-    // Получаем все уникальные студии из базы, отсортированные по имени
     const { data, error } = await supabase
-      .from("studios")
-      .select("name")
-      .order("name");
+      .from('studios')
+      .select('id, name, slug')
+      .order('name', { ascending: true });
 
-    if (error) {
-      console.error("❌ Error fetching studios:", error);
-      throw error;
-    }
+    if (error) throw error;
 
-    const studios = data?.map((item) => item.name) || [];
-    console.log(`✅ Found ${studios.length} studios`);
-
-    return NextResponse.json({
-      studios,
-      total: studios.length,
-    });
+    return NextResponse.json(data);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Неизвестная ошибка";
-    console.error("❌ Studios API error:", message);
-    return NextResponse.json({ status: "error", message, studios: [] }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

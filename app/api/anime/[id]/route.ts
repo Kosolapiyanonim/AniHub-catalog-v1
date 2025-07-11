@@ -1,55 +1,77 @@
 // /app/api/anime/[id]/route.ts
 
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export const dynamic = 'force-dynamic';
+
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  const shikimoriId = params.id;
+  if (!shikimoriId) {
+    return NextResponse.json({ error: "Shikimori ID is required" }, { status: 400 });
+  }
+
+  const cookieStore = cookies();
+  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+
   try {
-    const { id } = params;
-
-    if (!id || !/^\d+$/.test(id)) {
-      return NextResponse.json({ error: "Неверный формат ID аниме" }, { status: 400 });
-    }
-
-    // Шаг 1: Находим основную информацию об аниме по shikimori_id
+    // 1. Находим наше аниме по shikimori_id
     const { data: anime, error: animeError } = await supabase
-      .from("animes")
-      .select("*") // Запрашиваем все поля из основной таблицы
-      .eq("shikimori_id", id)
+      .from('animes')
+      .select('*')
+      .eq('shikimori_id', shikimoriId)
       .single();
 
-    if (animeError) {
-      if (animeError.code === 'PGRST116') { // Код ошибки "не найдено"
-        return NextResponse.json({ error: "Аниме не найдено" }, { status: 404 });
-      }
-      throw animeError; 
+    if (animeError || !anime) {
+      return NextResponse.json({ error: 'Anime not found' }, { status: 404 });
     }
 
-    // Шаг 2: Используя внутренний ID аниме (anime.id), находим все связанные озвучки
-    const { data: translations, error: translationsError } = await supabase
-      .from("translations")
-      .select("*")
-      .eq("anime_id", anime.id); // Связь по внутреннему ID
+    // 2. Параллельно запрашиваем озвучки и связанные произведения
+    const [translationsResponse, relatedResponse] = await Promise.all([
+      supabase.from('translations').select('*').eq('anime_id', anime.id),
+      supabase.from('anime_relations').select('related_id, relation_type').eq('anime_id', anime.id)
+    ]);
+    
+    if (translationsResponse.error) throw translationsResponse.error;
+    if (relatedResponse.error) throw relatedResponse.error;
 
-    if (translationsError) {
-      throw translationsError;
+    const translations = translationsResponse.data;
+    const relatedAnimeIds = relatedResponse.data.map(r => r.related_id);
+
+    // 3. Если есть связанные аниме, запрашиваем их данные
+    let relatedAnimesWithInfo = [];
+    if (relatedAnimeIds.length > 0) {
+        const { data: relatedInfo, error: relatedInfoError } = await supabase
+            .from('animes')
+            .select('id, shikimori_id, title, poster_url, type, year')
+            .in('id', relatedAnimeIds);
+        
+        if (relatedInfoError) throw relatedInfoError;
+
+        // Собираем все вместе: ID, тип связи и инфо
+        relatedAnimesWithInfo = relatedResponse.data.map(relation => {
+            const animeInfo = relatedInfo.find(a => a.id === relation.related_id);
+            return {
+                ...animeInfo,
+                relation_type: relation.relation_type,
+            };
+        });
     }
 
-    // Шаг 3: Объединяем все в один ответ для страницы
-    const responseData = {
+    // 4. Собираем финальный ответ
+    return NextResponse.json({
       ...anime,
-      translations: translations || [], // Это поле теперь будет заполнено
-      // Добавляем пустые массивы для совместимости с другими компонентами
-      genres: [], 
-      studios: [],
-      countries: [],
-    };
+      translations,
+      related: relatedAnimesWithInfo,
+    });
 
-    return NextResponse.json(responseData);
-
-  } catch (err) {
-    const message = err instanceof Error ? err.message : JSON.stringify(err);
-    console.error("❌ Ошибка в /api/anime/[id]:", message);
-    return NextResponse.json({ error: "Внутренняя ошибка сервера", details: message }, { status: 500 });
+  } catch (error) {
+    console.error("Anime detail API error:", error);
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

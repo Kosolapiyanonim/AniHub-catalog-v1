@@ -100,6 +100,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                       fill
                       className="object-cover rounded"
                       sizes="56px"
+                      quality={90} // <-- ИЗМЕНЕНИЕ: Увеличиваем качество до 90
                     />
                   </div>
                   <div className="flex-1 min-w-0">

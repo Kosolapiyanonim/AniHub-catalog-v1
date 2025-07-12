@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { AnimeCardActions } from './AnimeCardActions'; // <-- Импортируем новый компонент
+import { AddToListButton } from './AddToListButton'; // <-- ИЗМЕНЕНИЕ: Правильное имя файла/компонента
 
 interface AnimeCardProps {
   anime: {
@@ -12,7 +12,7 @@ interface AnimeCardProps {
     title: string;
     poster_url?: string | null;
     year?: number | null;
-    user_list_status?: string | null; // <-- Добавляем новое свойство
+    user_list_status?: string | null;
   };
   priority?: boolean;
 }
@@ -44,19 +44,10 @@ export function AnimeCard({ anime, priority = false }: AnimeCardProps) {
         </div>
       </Link>
       
-      {/* ИЗМЕНЕНИЕ: Добавляем кнопку, которая появляется при наведении */}
+      {/* ИЗМЕНЕНИЕ: Убрана обертка, так как она не нужна для этого компонента */}
       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-         <AnimeCardActions animeId={anime.id} initialStatus={anime.user_list_status} />
+         {/* <AddToListButton animeId={anime.id} initialStatus={anime.user_list_status} /> */}
       </div>
 
       <div className="mt-2">
-        <Link href={`/anime/${anime.shikimori_id}`} className="cursor-pointer">
-            <h3 className="text-sm font-medium text-white truncate group-hover:text-purple-400">
-                {anime.title}
-            </h3>
-        </Link>
-        {anime.year && <p className="text-xs text-slate-400">{anime.year}</p>}
-      </div>
-    </div>
-  );
-}
+        <Link href={`/anime/${

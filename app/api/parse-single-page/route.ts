@@ -1,4 +1,4 @@
-// /app/api/parse-single-page/route.ts (ОТЛАДОЧНАЯ ВЕРСИЯ)
+// /app/api/parse-single-page/route.ts
 
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
@@ -8,17 +8,18 @@ import { transformToAnimeRecord, processAllRelationsForAnime } from "@/lib/parse
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-    try {
-        const KODIK_TOKEN = process.env.KODIK_API_TOKEN;
-        const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const KODIK_TOKEN = process.env.KODIK_API_TOKEN;
+    const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-        if (!KODIK_TOKEN || !SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-            throw new Error("Одна или несколько переменных окружения не настроены на сервере.");
-        }
-        
-        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-        
+    if (!KODIK_TOKEN || !SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+        return NextResponse.json({ error: "Переменные окружения не настроены на сервере" }, { status: 500 });
+    }
+    
+    // ИСПРАВЛЕНИЕ: Создаем клиент Supabase с сервисным ключом для этого запроса
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    
+    try {
         const { nextPageUrl } = await request.json();
         const baseUrl = "https://kodikapi.com";
         let targetUrl: URL;
@@ -68,3 +69,42 @@ export async function POST(request: Request) {
         if (!upsertedAnimes) return NextResponse.json({ message: "Нет данных для обновления", processed: 0, nextPageUrl: data.next_page || null });
 
         const animeIdMap = new Map(upsertedAnimes.map(a => [a.shikimori_id, a.id]));
+
+        for (const anime of uniqueAnimeList) {
+            const animeId = animeIdMap.get(anime.shikimori_id!);
+            if (animeId) {
+                await processAllRelationsForAnime(supabase, anime, animeId);
+            }
+        }
+        
+        const allTranslations = animeList
+            .map(anime => {
+                const anime_id = animeIdMap.get(anime.shikimori_id!);
+                if (!anime_id) return null;
+                return {
+                    anime_id,
+                    kodik_id: anime.id,
+                    title: anime.translation.title,
+                    type: anime.translation.type,
+                    quality: anime.quality,
+                    player_link: anime.link,
+                };
+            })
+            .filter(Boolean) as any[]; // Убираем null и приводим тип
+
+        if(allTranslations.length > 0) {
+            const { error: translationError } = await supabase.from('translations').upsert(allTranslations, { onConflict: 'kodik_id' });
+            if (translationError) throw translationError;
+        }
+        
+        return NextResponse.json({
+            message: `Обработано. Сохранено/обновлено: ${uniqueAnimeList.length} уникальных аниме.`,
+            processed: uniqueAnimeList.length,
+            nextPageUrl: data.next_page || null,
+        });
+
+    } catch (err: any) {
+        console.error("Parser Error:", err);
+        return NextResponse.json({ error: err.message || "Произошла критическая ошибка на сервере." }, { status: 500 });
+    }
+}

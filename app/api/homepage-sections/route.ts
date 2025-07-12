@@ -25,6 +25,12 @@ export async function GET() {
   try {
     const { data: { session } } = await supabase.auth.getSession();
 
+    const twoMonthsAgo = new Date();
+    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+    
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
     const [
       heroAnimesResponse,
       trending,
@@ -32,23 +38,17 @@ export async function GET() {
       recentlyCompleted,
       latestUpdates,
     ] = await Promise.all([
-      // ИЗМЕНЕНИЕ: Добавлен фильтр .not('shikimori_id', 'is', null) ко всем запросам для надежности
-      supabase.from("animes").select(HERO_ANIME_SELECT).eq("is_featured_in_hero", true).not('shikimori_id', 'is', null).limit(5),
-      supabase.from("animes").select(ANIME_CARD_SELECT).gte("year", new Date().getFullYear() - 1).not('shikimori_id', 'is', null).order("shikimori_votes", { ascending: false }).limit(12),
+      supabase.from("animes").select(HERO_ANIME_SELECT).eq("is_featured_in_hero", true).not('shikimori_id', 'is', null).limit(10),
+      supabase.from("animes_with_details").select(ANIME_CARD_SELECT).gte("updated_at_kodik", twoMonthsAgo.toISOString()).not('shikimori_id', 'is', null).order("weighted_rating", { ascending: false }).limit(12),
       supabase.from("animes").select(ANIME_CARD_SELECT).not('shikimori_id', 'is', null).order("shikimori_votes", { ascending: false }).limit(12),
-      supabase.from("animes").select(ANIME_CARD_SELECT).eq("status", "released").not('shikimori_id', 'is', null).order("updated_at_kodik", { ascending: false }).limit(12),
-      supabase.from("animes").select(ANIME_CARD_SELECT).not('shikimori_id', 'is', null).order("updated_at_kodik", { ascending: false }).limit(12),
+      supabase.from("animes_with_details").select(ANIME_CARD_SELECT).eq("status", "released").gte("updated_at_kodik", oneMonthAgo.toISOString()).not('shikimori_id', 'is', null).order("weighted_rating", { ascending: false }).limit(12),
+      supabase.from("animes_with_details").select(ANIME_CARD_SELECT).not('shikimori_id', 'is', null).order("updated_at_kodik", { ascending: false }).order("weighted_rating", { ascending: false }).limit(12),
     ]);
 
     let heroWithDetails = [];
     if (heroAnimesResponse.data) {
       const heroAnimeIds = heroAnimesResponse.data.map(a => a.id);
-      
-      const { data: translations } = await supabase
-        .from("translations")
-        .select("anime_id, quality")
-        .in("anime_id", heroAnimeIds);
-
+      const { data: translations } = await supabase.from("translations").select("anime_id, quality").in("anime_id", heroAnimeIds);
       const translationsMap = new Map<number, { quality: string | null }[]>();
       if (translations) {
         for (const t of translations) {
@@ -58,7 +58,6 @@ export async function GET() {
           translationsMap.get(t.anime_id)!.push(t);
         }
       }
-
       heroWithDetails = heroAnimesResponse.data.map(anime => ({
         ...anime,
         best_quality: getBestQuality(translationsMap.get(anime.id) || [])
@@ -68,15 +67,13 @@ export async function GET() {
     let continueWatching = null;
     let myUpdates = null;
     if (session) {
-        const user = session.user;
-        const [continueWatchingResponse, myUpdatesResponse] = await Promise.all([
-            // Добавляем фильтр и для персональных секций
-            supabase.from("user_lists").select(`progress, animes!inner(${ANIME_CARD_SELECT})`).eq("user_id", user.id).eq("status", "watching").not('animes.shikimori_id', 'is', null).order("updated_at", { ascending: false }).limit(6),
-            supabase.from("user_subscriptions").select(`animes!inner(${ANIME_CARD_SELECT})`).eq("user_id", user.id).not('animes.shikimori_id', 'is', null).order('created_at', { ascending: false }).limit(12)
-        ]);
-        
-        continueWatching = continueWatchingResponse.data?.map(item => ({...item.animes, progress: item.progress })) || [];
-        myUpdates = myUpdatesResponse.data?.map(item => item.animes) || [];
+      const user = session.user;
+      const [continueWatchingResponse, myUpdatesResponse] = await Promise.all([
+          supabase.from("user_lists").select(`progress, animes!inner(${ANIME_CARD_SELECT})`).eq("user_id", user.id).eq("status", "watching").not('animes.shikimori_id', 'is', null).order("updated_at", { ascending: false }).limit(6),
+          supabase.from("user_subscriptions").select(`animes!inner(${ANIME_CARD_SELECT})`).eq("user_id", user.id).not('animes.shikimori_id', 'is', null).order('created_at', { ascending: false }).limit(12)
+      ]);
+      continueWatching = continueWatchingResponse.data?.map(item => item.animes ? {...item.animes, progress: item.progress } : null).filter(Boolean) || [];
+      myUpdates = myUpdatesResponse.data?.map(item => item.animes).filter(Boolean) || [];
     }
     
     const responseData = {

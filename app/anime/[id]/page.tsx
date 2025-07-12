@@ -88,6 +88,7 @@ export default function AnimePage() {
                 <CardContent className="p-0">
                   <div className="aspect-[3/4] relative">
                     <Image src={anime.poster_url || "/placeholder.svg"} alt={anime.title} fill className="object-cover rounded-t-lg" priority />
+                    {/* ИЗМЕНЕНИЕ: Кнопка "Оценить" на постере */}
                     <Button variant="secondary" size="sm" className="absolute top-2 right-2 flex items-center gap-1 opacity-80 hover:opacity-100">
                         <Star className="w-4 h-4" /> Оценить
                     </Button>
@@ -98,6 +99,7 @@ export default function AnimePage() {
                   </div>
                 </CardContent>
               </Card>
+              {/* ИЗМЕНЕНИЕ: Информационный блок отсюда удален */}
             </div>
           </aside>
 
@@ -105,18 +107,19 @@ export default function AnimePage() {
           <main className="lg:col-span-3 space-y-8">
             <section>
               <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4">
-                    <h1 className="text-3xl md:text-4xl font-bold text-white">{anime.title}</h1>
-                    <a href={`https://shikimori.one/animes/${anime.shikimori_id}`} target="_blank" rel="noopener noreferrer" className="shrink-0 pt-2">
-                      <Image src="/shikimori-logo.svg" alt="Shikimori" width={24} height={24} />
-                    </a>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <SubscribeButton animeId={anime.id} />
+                  <h1 className="text-3xl md:text-4xl font-bold text-white">{anime.title}</h1>
+                  {/* ИЗМЕНЕНИЕ: Оценка Shikimori добавлена рядом с иконкой */}
+                  <div className="flex items-center gap-2 pt-2 shrink-0">
+                      <a href={`https://shikimori.one/animes/${anime.shikimori_id}`} target="_blank" rel="noopener noreferrer" title="Смотреть на Shikimori">
+                          <Image src="/shikimori-logo.svg" alt="Shikimori" width={24} height={24} />
+                      </a>
+                      {anime.shikimori_rating && (
+                          <span className="font-bold text-xl text-white">{anime.shikimori_rating}</span>
+                      )}
                   </div>
               </div>
-
               <div className="flex items-center gap-2 mt-4">
+                <SubscribeButton animeId={anime.id} />
                 <Button variant="outline" disabled>Смотреть вместе (скоро)</Button>
               </div>
             </section>
@@ -147,11 +150,18 @@ export default function AnimePage() {
                     ))}
                 </div>
             </section>}
-
+            
+            {/* ИЗМЕНЕНИЕ: Разделение на Отзывы и Обсуждения */}
             <section>
-                <h2 className="text-2xl font-bold text-white mb-4">Комментарии</h2>
+                <h2 className="text-2xl font-bold text-white mb-4">Отзывы</h2>
                 <div className="bg-slate-800 border border-slate-700 rounded-lg p-8 text-center text-gray-500">
-                    <p>Раздел с комментариями находится в разработке и скоро появится!</p>
+                    <p>Здесь будут развернутые рецензии от пользователей. Раздел в разработке.</p>
+                </div>
+            </section>
+            <section>
+                <h2 className="text-2xl font-bold text-white mb-4">Обсуждение</h2>
+                <div className="bg-slate-800 border border-slate-700 rounded-lg p-8 text-center text-gray-500">
+                    <p>Здесь будут комментарии ко всему аниме. Раздел в разработке.</p>
                 </div>
             </section>
           </main>

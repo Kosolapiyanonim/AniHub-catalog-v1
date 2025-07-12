@@ -7,13 +7,21 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
+    unoptimized: false,
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**.vusercontent.net',
-      },
+      { hostname: 'shikimori.one' },
+      { hostname: 'dere.shikimori.one' },
+      { hostname: 'nyaa.shikimori.one' },
+      { hostname: 'kodik.biz' }, // Simpler wildcard
+      { hostname: 'st.kodik.biz' }, // Explicit subdomain
+      { hostname: 'kodik.info' },
+      { hostname: 'st.kodik.info' },
+      { hostname: 'avatars.mds.yandex.net' },
+      { hostname: 'kinopoiskapiunofficial.tech' },
     ],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
-}
+};
 
-export default nextConfig
+export default nextConfig;

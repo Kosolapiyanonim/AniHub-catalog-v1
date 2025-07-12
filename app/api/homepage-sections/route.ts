@@ -1,10 +1,10 @@
 // /app/api/homepage-sections/route.ts
 
-export const dynamic = 'force-dynamic';
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
+// Единственное правильное объявление
 export const dynamic = 'force-dynamic';
 
 const ANIME_CARD_SELECT = "id, shikimori_id, title, poster_url, year, shikimori_rating, episodes_count, type";
@@ -68,13 +68,13 @@ export async function GET() {
     let continueWatching = null;
     let myUpdates = null;
     if (session) {
-      const user = session.user;
-      const [continueWatchingResponse, myUpdatesResponse] = await Promise.all([
-          supabase.from("user_lists").select(`progress, animes!inner(${ANIME_CARD_SELECT})`).eq("user_id", user.id).eq("status", "watching").not('animes.shikimori_id', 'is', null).order("updated_at", { ascending: false }).limit(6),
-          supabase.from("user_subscriptions").select(`animes!inner(${ANIME_CARD_SELECT})`).eq("user_id", user.id).not('animes.shikimori_id', 'is', null).order('created_at', { ascending: false }).limit(12)
-      ]);
-      continueWatching = continueWatchingResponse.data?.map(item => item.animes ? {...item.animes, progress: item.progress } : null).filter(Boolean) || [];
-      myUpdates = myUpdatesResponse.data?.map(item => item.animes).filter(Boolean) || [];
+        const user = session.user;
+        const [continueWatchingResponse, myUpdatesResponse] = await Promise.all([
+            supabase.from("user_lists").select(`progress, animes!inner(${ANIME_CARD_SELECT})`).eq("user_id", user.id).eq("status", "watching").not('animes.shikimori_id', 'is', null).order("updated_at", { ascending: false }).limit(6),
+            supabase.from("user_subscriptions").select(`animes!inner(${ANIME_CARD_SELECT})`).eq("user_id", user.id).not('animes.shikimori_id', 'is', null).order('created_at', { ascending: false }).limit(12)
+        ]);
+        continueWatching = continueWatchingResponse.data?.map(item => item.animes ? {...item.animes, progress: item.progress } : null).filter(Boolean) || [];
+        myUpdates = myUpdatesResponse.data?.map(item => item.animes).filter(Boolean) || [];
     }
     
     const responseData = {

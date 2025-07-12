@@ -1,14 +1,14 @@
 "use client"
 
-import type React from "react"
+import type { MouseEvent } from "react"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useSupabase } from "@/components/supabase-provider"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast" // ✅ correct path
 
 /**
  * Button rendered on an AnimeCard to add the title to the
- * authenticated user’s personal list / favourites.
+ * authenticated user’s personal list.
  */
 export function AddToListButtonOnCard({
   animeId,
@@ -18,7 +18,7 @@ export function AddToListButtonOnCard({
   const supabase = useSupabase()
   const { toast } = useToast()
 
-  async function handleAdd(e: React.MouseEvent<HTMLButtonElement>) {
+  async function handleAdd(e: MouseEvent<HTMLButtonElement>) {
     e.stopPropagation()
 
     if (!supabase) {

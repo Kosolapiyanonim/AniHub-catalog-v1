@@ -25,20 +25,31 @@ export async function GET(request: Request) {
 
     let query = supabase
       .from('animes_with_details')
-      .select("id, shikimori_id, title, poster_url, year, type, status, shikimori_rating, episodes_count, weighted_rating", { count: 'exact' });
+      .select("id, shikimori_id, title, poster_url, year, type, status, shikimori_rating, episodes_count, weighted_rating", { count: 'exact' })
+      // ИСПРАВЛЕНИЕ 1: Отфильтровываем записи без shikimori_id
+      .not('shikimori_id', 'is', null);
 
     // --- ПРИМЕНЯЕМ ВСЕ ФИЛЬТРЫ ---
-    // (весь ваш код для фильтров остается здесь без изменений)
     const title = searchParams.get("title");
     if (title) query = query.or(`title.ilike.%${title}%,title_orig.ilike.%${title}%`);
-    // ... и т.д.
-
-    // --- ИСПРАВЛЕНИЕ: Стабильная сортировка ---
-    const isAsc = order === 'asc';
-    query = query.order(sort, { ascending: isAsc });
-    // Добавляем вторую, уникальную сортировку для стабильности пагинации
-    query = query.order('id', { ascending: false }); 
     
+    // ... (весь ваш код для остальных фильтров остается здесь без изменений) ...
+
+
+    // --- ИСПРАВЛЕНИЕ 2: Улучшенная стабильная сортировка ---
+    const isAsc = order === 'asc';
+    
+    // Основная сортировка
+    query = query.order(sort, { ascending: isAsc, nullsFirst: false });
+    
+    // Дополнительная сортировка для стабильности
+    if (sort !== 'shikimori_rating') {
+      query = query.order('shikimori_rating', { ascending: false, nullsFirst: true });
+    }
+    if (sort !== 'id') {
+      query = query.order('id', { ascending: false });
+    }
+
     // --- ПАГИНАЦИЯ ---
     query = query.range(offset, offset + limit - 1);
 

@@ -1,83 +1,55 @@
 // /app/api/anime/[id]/route.ts
 
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
 
-export const dynamic = 'force-dynamic';
-
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
-  const shikimoriId = params.id;
-  if (!shikimoriId) {
-    return NextResponse.json({ error: "Shikimori ID is required" }, { status: 400 });
-  }
-
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-
+export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
-    // --- ШАГ 1: Получаем основную информацию об аниме ---
+    const { id } = params;
+
+    if (!id || !/^\d+$/.test(id)) {
+      return NextResponse.json({ error: "Неверный формат ID аниме" }, { status: 400 });
+    }
+
+    // Шаг 1: Находим основную информацию об аниме по shikimori_id
     const { data: anime, error: animeError } = await supabase
-      .from('animes')
-      .select('*, genres:anime_genres(genres(id, name, slug)), studios:anime_studios(studios(id, name, slug))')
-      .eq('shikimori_id', shikimoriId)
+      .from("animes")
+      .select("*") // Запрашиваем все поля из основной таблицы
+      .eq("shikimori_id", id)
       .single();
 
     if (animeError) {
-      if (animeError.code === 'PGRST116') return NextResponse.json({ error: 'Anime not found' }, { status: 404 });
-      throw animeError;
+      if (animeError.code === 'PGRST116') { // Код ошибки "не найдено"
+        return NextResponse.json({ error: "Аниме не найдено" }, { status: 404 });
+      }
+      throw animeError; 
     }
 
-    // --- ШАГ 2: Получаем озвучки и связанные произведения параллельно ---
-    const [translationsResponse, relatedResponse] = await Promise.all([
-      supabase.from('translations').select('*').eq('anime_id', anime.id),
-      supabase.from('anime_relations').select('relation_type, related_id').eq('anime_id', anime.id)
-    ]);
+    // Шаг 2: Используя внутренний ID аниме (anime.id), находим все связанные озвучки
+    const { data: translations, error: translationsError } = await supabase
+      .from("translations")
+      .select("*")
+      .eq("anime_id", anime.id); // Связь по внутреннему ID
 
-    // Даже если один из запросов не удался, мы не "роняем" весь API
-    const translations = translationsResponse.data || [];
-    const relations = relatedResponse.data || [];
-
-    // --- ШАГ 3: Получаем информацию о связанных аниме (если они есть) ---
-    let relatedAnimesWithInfo = [];
-    if (relations.length > 0) {
-      const relatedAnimeIds = relations.map(r => r.related_id);
-      
-      const { data: relatedInfo } = await supabase
-        .from('animes')
-        .select('id, shikimori_id, title, poster_url, year, type')
-        .in('id', relatedAnimeIds);
-
-      // Собираем все вместе, отфильтровывая "битые" связи, где relatedInfo не нашлось
-      relatedAnimesWithInfo = relations
-        .map(relation => {
-          const animeInfo = relatedInfo?.find(a => a.id === relation.related_id);
-          if (!animeInfo) return null; // Если связанное аниме не найдено, пропускаем
-          return {
-            ...animeInfo,
-            relation_type: relation.relation_type,
-          };
-        })
-        .filter(Boolean); // Убираем все null из массива
+    if (translationsError) {
+      throw translationsError;
     }
-    
-    // --- ШАГ 4: Собираем финальный ответ ---
+
+    // Шаг 3: Объединяем все в один ответ для страницы
     const responseData = {
       ...anime,
-      genres: (anime.genres || []).map((g: any) => g.genres).filter(Boolean),
-      studios: (anime.studios || []).map((s: any) => s.studios).filter(Boolean),
-      translations: translations,
-      related: relatedAnimesWithInfo,
+      translations: translations || [], // Это поле теперь будет заполнено
+      // Добавляем пустые массивы для совместимости с другими компонентами
+      genres: [], 
+      studios: [],
+      countries: [],
     };
 
     return NextResponse.json(responseData);
 
-  } catch (error) {
-    console.error(`Anime detail API error for ID ${shikimoriId}:`, error);
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : JSON.stringify(err);
+    console.error("❌ Ошибка в /api/anime/[id]:", message);
+    return NextResponse.json({ error: "Внутренняя ошибка сервера", details: message }, { status: 500 });
   }
 }

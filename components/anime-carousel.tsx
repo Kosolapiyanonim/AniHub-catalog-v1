@@ -1,75 +1,37 @@
-// /components/AnimeCarousel.tsx
-"use client";
+"use client"
 
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
-import { AnimeCard } from "./anime-card";
-import Link from "next/link";
-import { Button } from "./ui/button";
-import { ArrowRight } from "lucide-react";
+import type React from "react"
 
-interface Anime {
-  id: number;
-  shikimori_id: string;
-  title: string;
-  poster_url?: string | null;
-  year?: number | null;
-}
+import { AnimeCard } from "@/components/anime-card"
+import type { Anime } from "@/lib/types"
+import Link from "next/link"
+import { cn } from "@/lib/utils"
 
 interface AnimeCarouselProps {
-  title: string;
-  items?: (Anime | null)[] | null; // <-- Уточняем, что в массиве могут быть null
-  viewAllLink?: string;
-  icon?: React.ReactNode;
+  title: string
+  items?: Anime[] | null
+  viewAllLink: string
+  icon?: React.ReactNode
 }
 
 export function AnimeCarousel({ title, items, viewAllLink, icon }: AnimeCarouselProps) {
-  if (!items || items.length === 0) {
-    return null;
-  }
+  if (!items?.length) return null
 
   return (
     <section>
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          {icon && <div className="text-purple-400">{icon}</div>}
-          <h2 className="text-2xl md:text-3xl font-bold text-white">{title}</h2>
-        </div>
-        {viewAllLink && (
-          <Button variant="outline" asChild>
-            <Link href={viewAllLink} className="flex items-center">
-              Смотреть все <ArrowRight className="w-4 h-4 ml-2" />
-            </Link>
-          </Button>
-        )}
+        <h3 className="text-xl font-semibold flex items-center gap-2">
+          {icon} {title}
+        </h3>
+        <Link href={viewAllLink} className="text-sm hover:underline">
+          Смотреть все →
+        </Link>
       </div>
-      <Carousel
-        opts={{
-          align: "start",
-          dragFree: true,
-        }}
-        className="w-full"
-      >
-        <CarouselContent>
-          {items.map((anime, index) => 
-            // ИСПРАВЛЕНИЕ: Добавляем проверку, чтобы аниме не было null
-            anime && (
-              <CarouselItem key={anime.id || index} className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/6">
-                <div className="p-1">
-                  <AnimeCard anime={anime} />
-                </div>
-              </CarouselItem>
-            )
-          )}
-        </CarouselContent>
-        <CarouselPrevious className="hidden md:flex" />
-        <CarouselNext className="hidden md:flex" />
-      </Carousel>
+      <div className={cn("flex gap-4 overflow-x-auto pb-2")}>
+        {items.map((anime) => (
+          <AnimeCard key={anime.id} anime={anime} className="min-w-[150px] max-w-[150px]" />
+        ))}
+      </div>
     </section>
-  );
+  )
 }

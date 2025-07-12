@@ -32,6 +32,7 @@ export async function GET() {
       recentlyCompleted,
       latestUpdates,
     ] = await Promise.all([
+      // ИЗМЕНЕНИЕ: Добавлен фильтр .not('shikimori_id', 'is', null) ко всем запросам для надежности
       supabase.from("animes").select(HERO_ANIME_SELECT).eq("is_featured_in_hero", true).not('shikimori_id', 'is', null).limit(5),
       supabase.from("animes").select(ANIME_CARD_SELECT).gte("year", new Date().getFullYear() - 1).not('shikimori_id', 'is', null).order("shikimori_votes", { ascending: false }).limit(12),
       supabase.from("animes").select(ANIME_CARD_SELECT).not('shikimori_id', 'is', null).order("shikimori_votes", { ascending: false }).limit(12),
@@ -66,17 +67,16 @@ export async function GET() {
 
     let continueWatching = null;
     let myUpdates = null;
-
     if (session) {
         const user = session.user;
         const [continueWatchingResponse, myUpdatesResponse] = await Promise.all([
+            // Добавляем фильтр и для персональных секций
             supabase.from("user_lists").select(`progress, animes!inner(${ANIME_CARD_SELECT})`).eq("user_id", user.id).eq("status", "watching").not('animes.shikimori_id', 'is', null).order("updated_at", { ascending: false }).limit(6),
             supabase.from("user_subscriptions").select(`animes!inner(${ANIME_CARD_SELECT})`).eq("user_id", user.id).not('animes.shikimori_id', 'is', null).order('created_at', { ascending: false }).limit(12)
         ]);
         
-        // ИСПРАВЛЕНИЕ: Добавляем .filter(Boolean), чтобы удалить "пустые" аниме
-        continueWatching = continueWatchingResponse.data?.map(item => item.animes ? {...item.animes, progress: item.progress } : null).filter(Boolean) || [];
-        myUpdates = myUpdatesResponse.data?.map(item => item.animes).filter(Boolean) || [];
+        continueWatching = continueWatchingResponse.data?.map(item => ({...item.animes, progress: item.progress })) || [];
+        myUpdates = myUpdatesResponse.data?.map(item => item.animes) || [];
     }
     
     const responseData = {

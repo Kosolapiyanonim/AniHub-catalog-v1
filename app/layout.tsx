@@ -10,7 +10,6 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Toaster } from "@/components/ui/sonner";
 import { Suspense } from "react";
-import { SupabaseProvider } from "@/components/supabase-provider"; // <-- 1. ИМПОРТИРУЕМ ПРОВАЙДЕР
 
 const inter = Inter({
   subsets: ["latin", "cyrillic"],
@@ -31,6 +30,7 @@ export default function RootLayout({
   return (
     <html lang="ru" suppressHydrationWarning>
       <body className={`${inter.className} bg-slate-900 text-white`}>
+        {/* GTM noscript должен быть сразу после открытия body */}
         <noscript>
           <iframe
             src={`https://www.googletagmanager.com/ns.html?id=${process.env.NEXT_PUBLIC_GTM_ID}`}
@@ -45,19 +45,19 @@ export default function RootLayout({
           defaultTheme="dark"
           enableSystem={false}
         >
-          {/* 2. ОБОРАЧИВАЕМ ОСНОВНОЙ КОНТЕНТ */}
-          <SupabaseProvider>
-            <div className="relative flex min-h-screen flex-col">
-              <Suspense fallback={null}>
-                <Header />
-              </Suspense>
-              <main className="flex-1">{children}</main>
-              <Footer />
-            </div>
-            <Toaster />
-          </SupabaseProvider>
+          <div className="relative flex min-h-screen flex-col">
+            {/* ИЗМЕНЕНИЕ ЗДЕСЬ: Добавлен обязательный fallback={null} */}
+            <Suspense fallback={null}>
+              <Header />
+            </Suspense>
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </div>
+          {/* Компонент для всплывающих уведомлений */}
+          <Toaster />
         </ThemeProvider>
 
+        {/* Аналитика и скрипты загружаются в конце для лучшей производительности */}
         <Analytics />
         <SpeedInsights />
         <Script

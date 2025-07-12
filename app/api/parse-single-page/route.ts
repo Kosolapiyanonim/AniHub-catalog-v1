@@ -8,18 +8,17 @@ import { transformToAnimeRecord, processAllRelationsForAnime } from "@/lib/parse
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-    const KODIK_TOKEN = process.env.KODIK_API_TOKEN;
-    const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!KODIK_TOKEN || !SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-        return NextResponse.json({ error: "Переменные окружения не настроены на сервере" }, { status: 500 });
-    }
-    
-    // ИСПРАВЛЕНИЕ: Создаем клиент Supabase с сервисным ключом для этого запроса
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-    
     try {
+        const KODIK_TOKEN = process.env.KODIK_API_TOKEN;
+        const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+        if (!KODIK_TOKEN || !SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+            throw new Error("Одна или несколько переменных окружения не настроены на сервере.");
+        }
+        
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+        
         const { nextPageUrl } = await request.json();
         const baseUrl = "https://kodikapi.com";
         let targetUrl: URL;
@@ -60,6 +59,7 @@ export async function POST(request: Request) {
         }
 
         const animeRecordsToUpsert = uniqueAnimeList.map(transformToAnimeRecord);
+        
         const { data: upsertedAnimes, error: animeError } = await supabase
             .from('animes')
             .upsert(animeRecordsToUpsert, { onConflict: 'shikimori_id' })
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
                     player_link: anime.link,
                 };
             })
-            .filter(Boolean) as any[]; // Убираем null и приводим тип
+            .filter(Boolean) as any[];
 
         if(allTranslations.length > 0) {
             const { error: translationError } = await supabase.from('translations').upsert(allTranslations, { onConflict: 'kodik_id' });
@@ -104,7 +104,17 @@ export async function POST(request: Request) {
         });
 
     } catch (err: any) {
-        console.error("Parser Error:", err);
-        return NextResponse.json({ error: err.message || "Произошла критическая ошибка на сервере." }, { status: 500 });
+        // УЛУЧШЕННЫЙ БЛОК ПЕРЕХВАТА ОШИБОК
+        console.error("--- [PARSER_ERROR] КРИТИЧЕСКАЯ ОШИБКА ---");
+        console.error("[PARSER_ERROR] Сообщение:", err.message);
+        // Выводим только если это ошибка от Supabase, чтобы лог был чище
+        if (err.code) {
+             console.error("[PARSER_ERROR] Код Supabase:", err.code);
+             console.error("[PARSER_ERROR] Детали:", err.details);
+             console.error("[PARSER_ERROR] Подсказка:", err.hint);
+        }
+        console.error("[PARSER_ERROR] Стек вызовов:", err.stack);
+        
+        return NextResponse.json({ error: "Произошла критическая ошибка на сервере. См. логи Vercel для деталей." }, { status: 500 });
     }
 }

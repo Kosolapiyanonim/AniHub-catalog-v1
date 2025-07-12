@@ -6,22 +6,21 @@ import type { KodikAnimeData } from "@/lib/types";
 export function transformToAnimeRecord(anime: KodikAnimeData) {
     const material = anime.material_data || {};
     
-    // --- ИСПРАВЛЕНИЕ: Новая, многоуровневая логика выбора постера ---
-    let finalPosterUrl: string | undefined | null = null;
+    // --- НОВАЯ, СТРОГАЯ ЛОГИКА ВЫБОРА ПОСТЕРА БЕЗ ЯНДЕКСА ---
+    let finalPosterUrl: string | null = null;
+    const shikimoriPoster = material.poster_url;
+    const otherPoster = anime.poster_url;
 
     // 1. Приоритет №1: Постер с Shikimori
-    if (material.poster_url) {
-        finalPosterUrl = material.poster_url;
+    if (shikimoriPoster && shikimoriPoster.includes('shikimori.one')) {
+        finalPosterUrl = shikimoriPoster;
     } 
-    // 2. Приоритет №2: Первый скриншот (если постера Shikimori нет)
-    else if (anime.screenshots && anime.screenshots.length > 0) {
-        finalPosterUrl = anime.screenshots[0];
+    // 2. Приоритет №2: Любой другой постер, НЕ с Яндекса
+    else if (otherPoster && !otherPoster.includes('yandex')) {
+        finalPosterUrl = otherPoster;
     }
-    // 3. Приоритет №3: Любой другой постер (включая яндекс) как крайний случай
-    else {
-        finalPosterUrl = anime.poster_url;
-    }
-    
+    // Если оба условия не выполнены, finalPosterUrl останется null
+
     return {
         poster_url: finalPosterUrl,
         
@@ -51,15 +50,18 @@ export async function processAllRelationsForAnime(supabase: any, anime: KodikAni
 async function processRelation(supabase: any, entityName: string, entityPluralName: string, animeId: number, entityValues: string[]) {
     if (!entityValues || entityValues.length === 0) return;
 
-    const { data: existingEntities } = await supabase.from(entityPluralName).select('id, name').in('name', entityValues);
+    const validValues = entityValues.filter(name => name && name.trim() !== "");
+    if (validValues.length === 0) return;
+
+    const { data: existingEntities } = await supabase.from(entityPluralName).select('id, name').in('name', validValues);
     const existingMap = new Map((existingEntities || []).map((e: any) => [e.name, e.id]));
     
-    const newEntitiesToCreate = entityValues
-        .filter(name => name && !existingMap.has(name))
-        .map(name => ({
-            name,
-            slug: name.toLowerCase().replace(/[^a-z0-9а-яё]+/gi, '-').replace(/^-+|-+$/g, '') || name
-        }));
+    const newEntitiesToCreate = validValues
+      .filter(name => !existingMap.has(name))
+      .map(name => ({
+        name,
+        slug: name.toLowerCase().replace(/[^a-z0-9а-яё]+/gi, '-').replace(/^-+|-+$/g, '') || name
+    }));
 
     if (newEntitiesToCreate.length > 0) {
         const { data } = await supabase.from(entityPluralName).insert(newEntitiesToCreate).select('id, name');
@@ -68,7 +70,7 @@ async function processRelation(supabase: any, entityName: string, entityPluralNa
         }
     }
 
-    const relationRecords = entityValues
+    const relationRecords = validValues
         .map(name => {
             if (!name) return null;
             return {
@@ -79,6 +81,6 @@ async function processRelation(supabase: any, entityName: string, entityPluralNa
         .filter(r => r && r[`${entityName}_id`]);
 
     if (relationRecords.length > 0) {
-        await supabase.from(`anime_${entityPluralName}`).upsert(relationRecords, { onConflict: `anime_id,${entityName}_id` });
+        await supabase.from(`anime_${entityPluralName}`).upsert(relationRecords);
     }
 }

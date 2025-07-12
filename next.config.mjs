@@ -40,12 +40,7 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'kinopoiskapiunofficial.tech',
-      },
-      // Allow images served by the v0 preview CDN
-      {
-        protocol: 'https',
-        hostname: '**.vusercontent.net',
-      },
+      }
     ],
     // Настройки для генерации разных размеров изображений
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],

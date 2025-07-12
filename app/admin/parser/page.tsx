@@ -4,16 +4,14 @@
 import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Play, Square } from "lucide-react";
+import { Play, Pause, Square } from "lucide-react";
 import { toast } from "sonner";
 
-type LogEntry = {
-  type: "info" | "success" | "error" | "warn";
-  message: string;
-};
+type LogEntry = { type: "info" | "success" | "error" | "warn"; message: string; };
 
 export default function ParserAdminPage() {
   const [isParsing, setIsParsing] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   
   const nextPageUrlRef = useRef<string | null>(null);
@@ -25,9 +23,15 @@ export default function ParserAdminPage() {
 
   const runParseStep = useCallback(async () => {
     if (!isRunningRef.current) {
-      addLog("Парсинг остановлен пользователем.", "warn");
+      addLog("Парсинг остановлен.", "warn");
       setIsParsing(false);
+      setIsPaused(false);
       return;
+    }
+    
+    if (isPaused) {
+        addLog("Парсинг на паузе.", "info");
+        return;
     }
     
     addLog(`Запрос для: ${nextPageUrlRef.current || "начальной страницы"}...`);
@@ -46,9 +50,9 @@ export default function ParserAdminPage() {
       
       if (result.nextPageUrl) {
         nextPageUrlRef.current = result.nextPageUrl;
-        setTimeout(runParseStep, 1500); // Задержка 1.5 секунды между запросами
+        setTimeout(runParseStep, 1500);
       } else {
-        addLog("Полная синхронизация завершена. Больше страниц нет.", "success");
+        addLog("Полная синхронизация завершена.", "success");
         toast.success("Полный парсинг успешно завершен!");
         isRunningRef.current = false;
         setIsParsing(false);
@@ -60,16 +64,28 @@ export default function ParserAdminPage() {
       isRunningRef.current = false;
       setIsParsing(false);
     }
-  }, [addLog]);
+  }, [addLog, isPaused]);
 
   const handleStart = () => {
     setLogs([]);
     setIsParsing(true);
+    setIsPaused(false);
     isRunningRef.current = true;
     nextPageUrlRef.current = null;
     addLog("Запуск полной синхронизации...");
-    toast.info("Начат полный парсинг. Это может занять много времени.");
+    toast.info("Начат полный парсинг.");
     runParseStep();
+  };
+
+  const handlePause = () => {
+      setIsPaused(true);
+  };
+
+  const handleResume = () => {
+      setIsPaused(false);
+      addLog("Возобновление парсинга...");
+      // Запускаем процесс снова, он подхватит текущий nextPageUrl
+      runParseStep();
   };
 
   const handleStop = () => {
@@ -81,18 +97,29 @@ export default function ParserAdminPage() {
       <Card>
         <CardHeader>
           <CardTitle>Панель управления парсером</CardTitle>
-          <CardDescription>Запускает полный пошаговый парсинг всех аниме из Kodik. Используйте это для первоначального наполнения или полной перепроверки базы.</CardDescription>
+          <CardDescription>Запускает полный пошаговый парсинг всех аниме из Kodik.</CardDescription>
         </CardHeader>
-        <CardContent>
-          {!isParsing ? (
+        <CardContent className="space-y-4">
+            {!isParsing ? (
               <Button onClick={handleStart} className="bg-blue-600 hover:bg-blue-700">
                   <Play className="mr-2 h-4 w-4" /> Начать полную синхронизацию
               </Button>
-          ) : (
-              <Button onClick={handleStop} variant="destructive">
-                  <Square className="mr-2 h-4 w-4" /> Остановить
-              </Button>
-          )}
+            ) : (
+                <div className="flex gap-2">
+                    {isPaused ? (
+                        <Button onClick={handleResume} className="bg-green-600 hover:bg-green-700">
+                            <Play className="mr-2 h-4 w-4" /> Продолжить
+                        </Button>
+                    ) : (
+                        <Button onClick={handlePause} variant="outline">
+                            <Pause className="mr-2 h-4 w-4" /> Пауза
+                        </Button>
+                    )}
+                    <Button onClick={handleStop} variant="destructive">
+                        <Square className="mr-2 h-4 w-4" /> Стоп
+                    </Button>
+                </div>
+            )}
         </CardContent>
       </Card>
 

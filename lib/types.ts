@@ -1,116 +1,52 @@
-// Базовые типы для Kodik API
+// /lib/types.ts
+
+// --- Типы для данных, приходящих от Kodik API ---
+
 export interface KodikTranslation {
-  id: string
-  title: string
-  type: string
+  id: number;
+  title: string;
+  type: "voice" | "subtitles";
 }
 
 export interface KodikMaterialData {
-  title?: string
-  anime_title?: string
-  title_orig?: string
-  poster_url?: string
-  anime_poster_url?: string
-  description?: string
-  anime_description?: string
-  year?: number
-  kinopoisk_rating?: number
-  shikimori_rating?: number
-  shikimori_votes?: number
-  anime_genres?: string[]
-  anime_studios?: string[]
-  countries?: string[]
-  anime_status?: string
-  episodes_count?: number
-  duration?: number
+  poster_url?: string;
+  description?: string;
+  genres?: string[];
+  studios?: string[];
+  anime_title?: string;
+  title_orig?: string;
+  anime_status?: string;
+  episodes_total?: number;
+  shikimori_rating?: number;
+  shikimori_votes?: number;
+  // Добавляем остальные поля, которые могут пригодиться
 }
 
 export interface KodikAnimeData {
-  id: string
-  title: string
-  title_orig?: string
-  year?: number
-  link: string
-  type: string
-  quality?: string
-  translation: KodikTranslation
-  episodes_count?: number
-  shikimori_id?: string
-  material_data?: KodikMaterialData
+  id: string; // Уникальный ID озвучки от Kodik
+  title: string;
+  title_orig?: string;
+  shikimori_id?: string;
+  type: 'anime-serial' | 'anime' | 'movie'; // и другие возможные типы
+  year?: number;
+  link: string; // Ссылка на плеер
+  quality?: string;
+  episodes_count?: number;
+  translation: KodikTranslation;
+  updated_at: string;
+  material_data?: KodikMaterialData;
 }
 
-// Типы для нашей базы данных
-export interface AnimeRecord {
-  id: number
-  shikimori_id: string
-  title: string
-  title_orig?: string
-  year?: number
-  poster_url?: string
-  description?: string
-  status?: string
-  episodes_count?: number
-  shikimori_rating?: number
-  shikimori_votes?: number
-  player_link?: string
-  created_at: string
-  updated_at: string
-}
 
-export interface GenreRecord {
-  id: number
-  name: string
-  created_at: string
-}
+// --- Типы для компонентов на фронтенде ---
 
-export interface StudioRecord {
-  id: number
-  name: string
-  created_at: string
-}
-
-export interface CountryRecord {
-  id: number
-  name: string
-  created_at: string
-}
-
-// Тип для представления с отношениями
-export interface CatalogAnime {
-  id: number
-  shikimori_id: string
-  title: string
-  title_orig?: string
-  year?: number
-  poster_url?: string
-  description?: string
-  status?: string
-  episodes_count?: number
-  shikimori_rating?: number
-  shikimori_votes?: number
-  player_link?: string
-  genres?: string[]
-  studios?: string[]
-  countries?: string[]
-  created_at: string
-  updated_at: string
-}
-
-// API Response типы
-export interface CatalogResponse {
-  results: CatalogAnime[]
-  total: number
-  hasMore: boolean
-  page: number
-  limit: number
-}
-
-export interface GenresResponse {
-  genres: string[]
-  total: number
-}
-
-export interface YearsResponse {
-  years: number[]
-  total: number
+// Облегченный тип для карточки аниме в каруселях и каталоге
+export interface AnimeForCard {
+  id: number;
+  shikimori_id: string;
+  title: string;
+  poster_url?: string | null;
+  year?: number | null;
+  // Это поле будет добавляться, если пользователь авторизован
+  user_list_status?: string | null; 
 }

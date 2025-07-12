@@ -1,7 +1,7 @@
 // /components/HeroSlider.tsx
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Carousel,
   CarouselContent,
@@ -15,7 +15,6 @@ import Link from "next/link";
 import { Button } from "./ui/button";
 import { Play, Info } from "lucide-react";
 
-// Интерфейс данных
 interface Anime {
   id: number;
   shikimori_id: string;
@@ -26,21 +25,33 @@ interface Anime {
 }
 
 interface HeroSliderProps {
-  // Компонент теперь просто принимает массив аниме
-  items?: Anime[] | null;
+  initialItems?: Anime[] | null;
 }
 
-export function HeroSlider({ items }: HeroSliderProps) {
+export function HeroSlider({ initialItems = [] }: HeroSliderProps) {
+  // We manage the state of the items to be displayed
+  const [items, setItems] = useState(initialItems?.slice(0, 2) || []);
+
+  // After the page loads, we add the rest of the slides
+  useEffect(() => {
+    if (initialItems && initialItems.length > 2) {
+      const timer = setTimeout(() => {
+        setItems(initialItems); // Set the full array of items
+      }, 2000); // 2-second delay
+
+      return () => clearTimeout(timer);
+    }
+  }, [initialItems]);
+
   const plugin = React.useRef(
     Autoplay({ delay: 5000, stopOnInteraction: true })
   );
 
-  // Проверяем наличие данных сразу
   if (!items || items.length === 0) {
     return (
-      <div className="h-[60vh] bg-slate-800 flex items-center justify-center text-white">
-        <p>Загрузка Hero-секции...</p>
-      </div>
+        <div className="h-[60vh] bg-slate-800 flex items-center justify-center text-white">
+            <p>Loading Hero Section...</p>
+        </div>
     );
   }
 
@@ -61,7 +72,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
                 alt={`${anime.title} background`}
                 fill
                 className="object-cover object-center"
-                priority={index < 2}
+                priority={index < 2} // Prioritize only the first two slides
                 sizes="100vw"
                 quality={85}
               />
@@ -72,8 +83,8 @@ export function HeroSlider({ items }: HeroSliderProps) {
                   {anime.description}
                 </p>
                 <div className="flex gap-4">
-                  <Link href={`/anime/${anime.shikimori_id}/watch`}><Button size="lg" className="bg-purple-600 hover:bg-purple-700"><Play className="w-5 h-5 mr-2" />Смотреть</Button></Link>
-                  <Link href={`/anime/${anime.shikimori_id}`}><Button size="lg" variant="outline"><Info className="w-5 h-5 mr-2" />Подробнее</Button></Link>
+                  <Link href={`/anime/${anime.shikimori_id}/watch`}><Button size="lg" className="bg-purple-600 hover:bg-purple-700"><Play className="w-5 h-5 mr-2" />Watch</Button></Link>
+                  <Link href={`/anime/${anime.shikimori_id}`}><Button size="lg" variant="outline"><Info className="w-5 h-5 mr-2" />Details</Button></Link>
                 </div>
               </div>
             </div>

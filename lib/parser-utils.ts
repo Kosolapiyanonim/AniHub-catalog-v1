@@ -6,53 +6,36 @@ import type { KodikAnimeData } from "@/lib/types";
 export function transformToAnimeRecord(anime: KodikAnimeData) {
     const material = anime.material_data || {};
     
-    // Финальная, строгая логика выбора постера
-    let finalPosterUrl: string | null = null;
+    // --- НОВАЯ, ПРАВИЛЬНАЯ ЛОГИКА ВЫБОРА ПОСТЕРА ---
+    // Сначала ищем 'anime_poster_url', и только если его нет, берем 'poster_url'.
+    const poster = material.anime_poster_url || material.poster_url || anime.poster_url;
 
-    // 1. Приоритет №1: Постер с Shikimori
-    if (material.poster_url && material.poster_url.includes('shikimori.one')) {
-        finalPosterUrl = material.poster_url;
-    } 
-    // 2. Приоритет №2: Любой другой постер, если он НЕ с Яндекса
-    else if (anime.poster_url && !anime.poster_url.includes('yandex')) {
-        finalPosterUrl = anime.poster_url;
-    }
-    // 3. Приоритет №3: Первый скриншот как крайний случай
-    else if (anime.screenshots && anime.screenshots.length > 0) {
-        finalPosterUrl = anime.screenshots[0];
-    }
-    
     return {
+        poster_url: poster,
+        
+        // Остальные поля остаются как есть
         shikimori_id: anime.shikimori_id,
-        poster_url: finalPosterUrl,
         title: material.anime_title || anime.title,
         title_orig: anime.title_orig,
-        description: material.description || "Описание отсутствует.",
         year: anime.year,
+        description: material.description || "Описание отсутствует.",
         status: material.anime_status,
         type: anime.type,
-        episodes_count: anime.episodes_count || material.episodes_total,
+        episodes_count: anime.episodes_count || material.episodes_total || 0,
         shikimori_rating: material.shikimori_rating,
         shikimori_votes: material.shikimori_votes,
-        rating_mpaa: material.rating_mpaa,
-        raw_data: anime, // Сохраняем все сырые данные
         updated_at_kodik: anime.updated_at,
     };
 }
 
-// Обрабатывает все связи для одного аниме (жанры, студии, теги)
+// Обрабатывает все связи для одного аниме (жанры, студии)
 export async function processAllRelationsForAnime(supabase: any, anime: KodikAnimeData, animeId: number) {
     const material = anime.material_data || {};
-    // Используем Promise.all для параллельной обработки
-    await Promise.all([
-        processRelation(supabase, 'genre', 'genres', animeId, material.genres || []),
-        processRelation(supabase, 'studio', 'studios', animeId, material.studios || []),
-        // Добавляем обработку тегов на будущее
-        // processRelation(supabase, 'tag', 'tags', animeId, material.mydramalist_tags || []),
-    ]);
+    await processRelation(supabase, 'genre', 'genres', animeId, material.genres || []);
+    await processRelation(supabase, 'studio', 'studios', animeId, material.studios || []);
 }
 
-// Внутренняя функция для обработки одного типа связей (жанр, студия, и т.д.)
+// Внутренняя функция для обработки одного типа связей
 async function processRelation(supabase: any, entityName: string, entityPluralName: string, animeId: number, entityValues: string[]) {
     if (!entityValues || entityValues.length === 0) return;
 
@@ -78,14 +61,13 @@ async function processRelation(supabase: any, entityName: string, entityPluralNa
 
     const relationRecords = validValues
         .map(name => {
-            const entityId = existingMap.get(name);
-            if (!entityId) return null;
+            if (!name) return null;
             return {
                 anime_id: animeId,
-                [`${entityName}_id`]: entityId
-            };
+                [`${entityName}_id`]: existingMap.get(name)
+            }
         })
-        .filter(Boolean);
+        .filter(r => r && r[`${entityName}_id`]);
 
     if (relationRecords.length > 0) {
         await supabase.from(`anime_${entityPluralName}`).upsert(relationRecords);

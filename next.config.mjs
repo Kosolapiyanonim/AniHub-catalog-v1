@@ -7,10 +7,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    // ВКЛЮЧАЕМ ОПТИМИЗАЦИЮ
     unoptimized: false,
-    
-    // Указываем, с каких доменов можно загружать и оптимизировать картинки
     remotePatterns: [
       {
         protocol: 'https',
@@ -24,14 +21,13 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'nyaa.shikimori.one',
       },
-      // Добавим и остальные на всякий случай
       {
         protocol: 'https',
-        hostname: '**.kodik.biz',
+        hostname: '*.kodik.biz', // <-- Исправленный синтаксис
       },
       {
         protocol: 'https',
-        hostname: '**.kodik.info',
+        hostname: '*.kodik.info', // <-- Исправленный синтаксис
       },
       {
         protocol: 'https',
@@ -42,7 +38,6 @@ const nextConfig = {
         hostname: 'kinopoiskapiunofficial.tech',
       }
     ],
-    // Настройки для генерации разных размеров изображений
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },

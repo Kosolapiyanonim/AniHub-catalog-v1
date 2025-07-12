@@ -1,54 +1,38 @@
-// Рекомендуемый путь: /app/admin/parser/page.tsx
-
+// /app/admin/parser/page.tsx
 "use client";
 
 import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Play, Pause, Square, RefreshCw } from "lucide-react";
+import { Play, Pause, Square, RefreshCw, Zap } from "lucide-react";
+import { toast } from "sonner";
 
-// Тип для логов, чтобы они были цветными
 type LogEntry = {
-  type: "info" | "success" | "error";
+  type: "info" | "success" | "error" | "warn";
   message: string;
 };
 
-// Основной компонент страницы
 export default function ParserControlPage() {
-  const [isParsing, setIsParsing] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [isFullParsing, setIsFullParsing] = useState(false);
+  const [isLatestParsing, setIsLatestParsing] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [error, setError] = useState<string | null>(null);
   
-  // Используем useRef для хранения URL следующей страницы и статуса парсинга,
-  // чтобы избежать лишних перерисовок компонента.
   const nextPageUrlRef = useRef<string | null>(null);
-  const isParsingRef = useRef(false);
+  const isRunningRef = useRef(false);
 
-  // Функция дл�� добавления записей в лог
   const addLog = useCallback((message: string, type: LogEntry['type'] = "info") => {
-    setLogs(prev => [...prev, { type, message: `[${new Date().toLocaleTimeString()}] ${message}` }]);
+    setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${message}`, ...prev.slice(0, 100)]);
   }, []);
 
-  // Главная функция управления парсингом
-  const runParsingProcess = useCallback(async () => {
-    // Если уже не парсим (нажали "Стоп"), выходим из цикла
-    if (!isParsingRef.current) {
-        setIsParsing(false);
-        setIsPaused(false);
-        addLog("Парсинг остановлен пользователем.", "error");
-        return;
+  const runFullParseStep = useCallback(async () => {
+    if (!isRunningRef.current) {
+      addLog("Полная синхронизация остановлена.", "warn");
+      setIsFullParsing(false);
+      return;
     }
     
-    // Если парсинг на паузе
-    if (isPaused) {
-        addLog("Парсинг на паузе.", "info");
-        return;
-    }
-
-    addLog(`Отправка запроса для: ${nextPageUrlRef.current || "начальной страницы"}...`);
+    addLog(`Запрос для: ${nextPageUrlRef.current || "начальной страницы"}...`);
 
     try {
       const response = await fetch("/api/parse-single-page", {
@@ -58,126 +42,109 @@ export default function ParserControlPage() {
       });
 
       const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || `Ошибка сервера: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(result.error || `Ошибка сервера: ${response.status}`);
       
-      addLog(`Успешно обработано: ${result.processed || 0} записей. ${result.message}`, "success");
+      addLog(result.message, "success");
       
-      // Обновляем прогресс (для примера, можно сделать более сложную логику)
-      setProgress(prev => Math.min(prev + 5, 100)); 
-
-      // Если сервер прислал URL следующей страницы
       if (result.nextPageUrl) {
         nextPageUrlRef.current = result.nextPageUrl;
-        // Рекурсивно вызываем себя для следующего шага
-        setTimeout(runParsingProcess, 1000); // Небольшая задержка между запросами
+        setTimeout(runFullParseStep, 1500); // Задержка между запросами
       } else {
-        // Если URL нет, значит парсинг завершен
-        addLog("Парсинг успешно завершен. Больше страниц нет.", "success");
-        setProgress(100);
-        isParsingRef.current = false;
-        setIsParsing(false);
+        addLog("Полная синхронизация завершена. Больше страниц нет.", "success");
+        isRunningRef.current = false;
+        setIsFullParsing(false);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Неизвестная ошибка";
-      setError(errorMessage);
       addLog(`Критическая ошибка: ${errorMessage}`, "error");
-      isParsingRef.current = false;
-      setIsParsing(false);
+      toast.error(`Ошибка парсинга: ${errorMessage}`);
+      isRunningRef.current = false;
+      setIsFullParsing(false);
     }
-  }, [addLog, isPaused]);
+  }, [addLog]);
 
-  // Обработчики кнопок
-  const handleStart = () => {
+  const handleStartFull = () => {
     setLogs([]);
-    setError(null);
-    setProgress(0);
-    setIsPaused(false);
-    setIsParsing(true);
-    isParsingRef.current = true;
-    nextPageUrlRef.current = null; // Начинаем с самого начала
-    addLog("Запуск парсинга...");
-    runParsingProcess();
+    setIsFullParsing(true);
+    isRunningRef.current = true;
+    nextPageUrlRef.current = null; 
+    addLog("Запуск полной синхронизации...");
+    runFullParseStep();
+  };
+
+  const handleStopFull = () => {
+    isRunningRef.current = false;
   };
   
-  const handlePause = () => {
-      setIsPaused(true);
-  };
-
-  const handleResume = () => {
-      setIsPaused(false);
-      addLog("Возобновление парсинга...");
-      // Запускаем процесс снова, он подхватит текущий nextPageUrl
-      runParsingProcess();
-  };
-
-  const handleStop = () => {
-    isParsingRef.current = false; // Устанавливаем флаг остановки
-    // Состояние isParsing обновится в самом цикле runParsingProcess
-  };
+  const handleParseLatest = async () => {
+    setIsLatestParsing(true);
+    addLog("Запуск быстрого обновления...");
+    toast.info("Запущен процесс обновления последних аниме.");
+    try {
+        const response = await fetch('/api/parse-latest', { method: 'POST' });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error);
+        addLog(result.message, 'success');
+        toast.success(result.message);
+    } catch (err) {
+        const message = err instanceof Error ? err.message : "Неизвестная ошибка";
+        addLog(message, 'error');
+        toast.error(message);
+    } finally {
+        setIsLatestParsing(false);
+    }
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 pt-24 min-h-screen">
-      <Card className="max-w-4xl mx-auto">
+      <div className="grid gap-8 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3"><RefreshCw className="text-blue-500"/>Полная синхронизация</CardTitle>
+            <CardDescription>Запускает полный пошаговый парсинг всех аниме из Kodik. Используйте это для первоначального наполнения или полной перепроверки базы.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!isFullParsing ? (
+                <Button onClick={handleStartFull} className="bg-blue-600 hover:bg-blue-700">
+                    <Play className="mr-2 h-4 w-4" /> Начать полную синхронизацию
+                </Button>
+            ) : (
+                <Button onClick={handleStopFull} variant="destructive">
+                    <Square className="mr-2 h-4 w-4" /> Остановить
+                </Button>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3"><Zap className="text-yellow-500"/>Быстрое обновление</CardTitle>
+            <CardDescription>Сканирует последние 100 обновленных на Kodik аниме. Идеально для ежедневного поддержания актуальности.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={handleParseLatest} disabled={isLatestParsing || isFullParsing}>
+                {isLatestParsing ? "Обновление..." : "Запустить быстрое обновление"}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="mt-8">
         <CardHeader>
-          <CardTitle className="text-2xl flex items-center gap-3">
-            <RefreshCw className="text-blue-500"/>
-            Панель управления парсером
-          </CardTitle>
+            <CardTitle>Логи выполнения</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap items-center gap-4 mb-6">
-            {!isParsing ? (
-              <Button onClick={handleStart} className="bg-blue-600 hover:bg-blue-700">
-                <Play className="mr-2 h-4 w-4" /> Начать парсинг
-              </Button>
-            ) : (
-                <>
-                    {isPaused ? (
-                         <Button onClick={handleResume} className="bg-green-600 hover:bg-green-700">
-                            <Play className="mr-2 h-4 w-4" /> Продолжить
-                        </Button>
-                    ) : (
-                        <Button onClick={handlePause} variant="outline">
-                            <Pause className="mr-2 h-4 w-4" /> Пауза
-                        </Button>
-                    )}
-                    <Button onClick={handleStop} variant="destructive">
-                        <Square className="mr-2 h-4 w-4" /> Стоп
-                    </Button>
-                </>
-            )}
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Прогресс:</label>
-              <Progress value={progress} className="w-full mt-1" />
+            <div className="bg-gray-900 text-white font-mono text-xs rounded-lg p-4 h-96 overflow-y-auto">
+              {logs.map((log, index) => (
+                <p key={index} className={
+                  log.type === 'error' ? 'text-red-400' : 
+                  log.type === 'success' ? 'text-green-400' : 
+                  log.type === 'warn' ? 'text-yellow-400' : 'text-gray-300'
+                }>
+                  {log.message}
+                </p>
+              ))}
             </div>
-            
-            {error && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-sm font-bold text-red-800">Произошла ошибка:</p>
-                    <p className="text-sm text-red-700 font-mono mt-1">{error}</p>
-                </div>
-            )}
-
-            <div>
-              <label className="text-sm font-medium">Логи выполнения:</label>
-              <div className="bg-gray-900 text-white font-mono text-xs rounded-lg p-4 mt-1 h-80 overflow-y-auto">
-                {logs.map((log, index) => (
-                  <p key={index} className={
-                    log.type === 'error' ? 'text-red-400' : 
-                    log.type === 'success' ? 'text-green-400' : 'text-gray-300'
-                  }>
-                    {log.message}
-                  </p>
-                ))}
-              </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>

@@ -40,81 +40,57 @@ export async function POST(request: Request) {
         }
         
         const data = await response.json();
-        const animeList: KodikAnimeData[] = data.results || [];
+        const animeList: KodikAnimeData[] = (data.results || []).filter((anime: any) => anime.id);
 
         if (animeList.length === 0) {
             return NextResponse.json({ message: "Страница пуста. Возможно, достигнут конец.", processed: 0, nextPageUrl: data.next_page || null });
         }
 
-        const uniqueAnimeMap = new Map<string, KodikAnimeData>();
-        animeList.forEach(anime => {
-            if (anime.shikimori_id && !uniqueAnimeMap.has(anime.shikimori_id)) {
-                uniqueAnimeMap.set(anime.shikimori_id, anime);
-            }
-        });
-        const uniqueAnimeList = Array.from(uniqueAnimeMap.values());
-
-        if (uniqueAnimeList.length === 0) {
-             return NextResponse.json({ message: "На странице не найдено записей с shikimori_id.", processed: 0, nextPageUrl: data.next_page || null });
-        }
-
-        const animeRecordsToUpsert = uniqueAnimeList.map(transformToAnimeRecord);
+        // --- ИЗМЕНЕНИЕ: Теперь мы обрабатываем КАЖДУЮ запись от Kodik ---
+        const animeRecordsToUpsert = animeList.map(transformToAnimeRecord);
         
+        // Используем onConflict: 'kodik_id' для таблицы animes
         const { data: upsertedAnimes, error: animeError } = await supabase
             .from('animes')
-            .upsert(animeRecordsToUpsert, { onConflict: 'shikimori_id' })
-            .select('id, shikimori_id');
+            .upsert(animeRecordsToUpsert, { onConflict: 'kodik_id' }) // <-- ГЛАВНОЕ ИЗМЕНЕНИЕ
+            .select('id, kodik_id');
 
         if (animeError) throw animeError;
         if (!upsertedAnimes) return NextResponse.json({ message: "Нет данных для обновления", processed: 0, nextPageUrl: data.next_page || null });
 
-        const animeIdMap = new Map(upsertedAnimes.map(a => [a.shikimori_id, a.id]));
+        // Связи и озвучки обрабатываем для каждой записи
+        const animeIdMap = new Map(upsertedAnimes.map(a => [a.kodik_id, a.id]));
 
-        for (const anime of uniqueAnimeList) {
-            const animeId = animeIdMap.get(anime.shikimori_id!);
+        for (const anime of animeList) {
+            const animeId = animeIdMap.get(anime.id!);
             if (animeId) {
+                // Обрабатываем жанры и студии
                 await processAllRelationsForAnime(supabase, anime, animeId);
-            }
-        }
-        
-        const allTranslations = animeList
-            .map(anime => {
-                const anime_id = animeIdMap.get(anime.shikimori_id!);
-                if (!anime_id) return null;
-                return {
-                    anime_id,
+                
+                // Сохраняем озвучку в отдельную таблицу
+                await supabase.from('translations').upsert({
+                    anime_id: animeId,
                     kodik_id: anime.id,
                     title: anime.translation.title,
                     type: anime.translation.type,
                     quality: anime.quality,
                     player_link: anime.link,
-                };
-            })
-            .filter(Boolean) as any[];
-
-        if(allTranslations.length > 0) {
-            const { error: translationError } = await supabase.from('translations').upsert(allTranslations, { onConflict: 'kodik_id' });
-            if (translationError) throw translationError;
+                }, { onConflict: 'kodik_id' });
+            }
         }
         
         return NextResponse.json({
-            message: `Обработано. Сохранено/обновлено: ${uniqueAnimeList.length} уникальных аниме.`,
-            processed: uniqueAnimeList.length,
+            message: `Обработано: ${animeList.length} записей.`,
+            processed: animeList.length,
             nextPageUrl: data.next_page || null,
         });
 
     } catch (err: any) {
-        // УЛУЧШЕННЫЙ БЛОК ПЕРЕХВАТА ОШИБОК
         console.error("--- [PARSER_ERROR] КРИТИЧЕСКАЯ ОШИБКА ---");
         console.error("[PARSER_ERROR] Сообщение:", err.message);
-        // Выводим только если это ошибка от Supabase, чтобы лог был чище
         if (err.code) {
              console.error("[PARSER_ERROR] Код Supabase:", err.code);
-             console.error("[PARSER_ERROR] Детали:", err.details);
-             console.error("[PARSER_ERROR] Подсказка:", err.hint);
         }
-        console.error("[PARSER_ERROR] Стек вызовов:", err.stack);
-        
-        return NextResponse.json({ error: "Произошла критическая ошибка на сервере. См. логи Vercel для деталей." }, { status: 500 });
+        return NextResponse.json({ error: "Произошла критическая ошибка на сервере." }, { status: 500 });
     }
 }

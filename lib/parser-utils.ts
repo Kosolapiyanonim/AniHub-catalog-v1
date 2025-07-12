@@ -1,15 +1,21 @@
 // /lib/parser-utils.ts
 
-import { createClient } from "@supabase/supabase-js";
 import type { KodikAnimeData } from "@/lib/types";
 
 // Трансформирует данные из Kodik в формат таблицы 'animes'
 export function transformToAnimeRecord(anime: KodikAnimeData) {
     const material = anime.material_data || {};
+    
+    // ИСПРАВЛЕНИЕ: Добавлена правильная логика выбора постера с приоритетом Shikimori
+    // 1. Пытаемся взять постер из material_data.poster_url (обычно это Shikimori)
+    // 2. Если его нет, пытаемся взять из material_data.anime_poster_url (запасной вариант Shikimori)
+    // 3. Если и его нет, берем любой другой постер из корневого объекта.
+    const poster = material.poster_url || anime.poster_url;
+
     return {
-        // ИСПРАВЛЕНИЕ: Добавлена правильная логика выбора постера
-        poster_url: material.poster_url || anime.poster_url,
+        poster_url: poster,
         
+        // Остальные поля остаются как есть
         shikimori_id: anime.shikimori_id,
         title: material.anime_title || anime.title,
         title_orig: anime.title_orig,
@@ -27,7 +33,6 @@ export function transformToAnimeRecord(anime: KodikAnimeData) {
 // Обрабатывает все связи для одного аниме (жанры, студии)
 export async function processAllRelationsForAnime(supabase: any, anime: KodikAnimeData, animeId: number) {
     const material = anime.material_data || {};
-    // Убедимся, что используем правильные поля из material_data
     await processRelation(supabase, 'genre', 'genres', animeId, material.genres || []);
     await processRelation(supabase, 'studio', 'studios', animeId, material.studios || []);
 }
@@ -51,10 +56,12 @@ async function processRelation(supabase: any, entityName: string, entityPluralNa
         }
     }
 
-    const relationRecords = entityValues.map(name => ({
-        anime_id: animeId,
-        [`${entityName}_id`]: existingMap.get(name)
-    })).filter(r => r[`${entityName}_id`]);
+    const relationRecords = entityValues
+        .map(name => ({
+            anime_id: animeId,
+            [`${entityName}_id`]: existingMap.get(name)
+        }))
+        .filter(r => r[`${entityName}_id`]);
 
     if (relationRecords.length > 0) {
         await supabase.from(`anime_${entityPluralName}`).upsert(relationRecords, { onConflict: `anime_id,${entityName}_id` });

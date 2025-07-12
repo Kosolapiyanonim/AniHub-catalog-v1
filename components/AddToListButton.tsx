@@ -1,7 +1,9 @@
 // /components/AddToListButton.tsx
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import type { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,10 +12,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Loader2, Check, Plus, Bookmark, Trash2 } from "lucide-react";
-import { useSupabase } from './supabase-provider';
-import { toast } from 'sonner';
-import Link from 'next/link';
+import { Loader2, Check, Plus, Bookmark } from "lucide-react";
 
 const statuses = [
   { key: "watching", label: "Смотрю" },
@@ -26,87 +25,99 @@ const statuses = [
 
 interface AddToListButtonProps {
   animeId: number;
-  initialStatus?: string | null;
-  variant?: 'full' | 'icon';
 }
 
-export function AddToListButton({ animeId, initialStatus, variant = 'full' }: AddToListButtonProps) {
-  const { session } = useSupabase();
-  const [currentStatus, setCurrentStatus] = useState(initialStatus || null);
-  const [loading, setLoading] = useState(false);
+export function AddToListButton({ animeId }: AddToListButtonProps) {
+  const [user, setUser] = useState<User | null>(null);
+  const [currentStatus, setCurrentStatus] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClientComponentClient();
 
   useEffect(() => {
-    // Этот эффект будет обновлять статус, если initialStatus изменится
-    setCurrentStatus(initialStatus || null);
-  }, [initialStatus]);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+    });
 
-  const handleStatusChange = async (e: React.MouseEvent, newStatus: string) => {
-    e.preventDefault();
-    e.stopPropagation();
+    return () => subscription.unsubscribe();
+  }, [supabase.auth]);
 
-    if (!session) {
-      toast.error("Нужно войти в аккаунт, чтобы добавлять в списки.");
-      return;
-    }
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+
+      if (user) {
+        setLoading(true);
+        const response = await fetch(`/api/lists?anime_id=${animeId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setCurrentStatus(data?.status || null);
+        }
+        setLoading(false);
+      } else {
+        setLoading(false);
+      }
+    };
+    fetchStatus();
+  }, [animeId, supabase.auth]);
+
+  const handleStatusChange = async (newStatus: string) => {
     setLoading(true);
-    try {
-      const response = await fetch("/api/lists", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ anime_id: animeId, status: newStatus }),
-      });
-      if (!response.ok) throw new Error("Ошибка обновления статуса");
-      
-      setCurrentStatus(newStatus === 'remove' ? null : newStatus);
-      toast.success("Статус обновлен!");
-    } catch (error) {
-      toast.error("Не удалось обновить статус.");
-    } finally {
-      setLoading(false);
-    }
+    await fetch("/api/lists", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ anime_id: animeId, status: newStatus }),
+    });
+    setCurrentStatus(newStatus === 'remove' ? null : newStatus);
+    setLoading(false);
   };
 
-  if (!session) {
-    if (variant === 'icon') return null; // Не показываем иконку гостям
-    return (
-        <Link href="/login" className="w-full">
-            <Button variant="outline" className="w-full">
-                <Plus className="w-4 h-4 mr-2" /> Добавить в список
-            </Button>
-        </Link>
-    );
+  if (!user) {
+    return <Button disabled>Добавить в список</Button>;
   }
-  
+
   const currentStatusLabel = statuses.find(s => s.key === currentStatus)?.label;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        {variant === 'full' ? (
-          <Button variant="outline" className="w-full" disabled={loading}>
-            {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : 
-             currentStatus ? (<><Check className="w-4 h-4 mr-2 text-green-500" />{currentStatusLabel}</>) : 
-             (<><Plus className="w-4 h-4 mr-2" />Добавить в список</>)}
-          </Button>
-        ) : (
-          <Button variant="secondary" size="icon" className="h-8 w-8" disabled={loading} onClick={(e) => e.stopPropagation()}>
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 
-             currentStatus ? <Check className="w-4 h-4 text-green-500" /> : 
-             <Plus className="w-4 h-4" />}
-          </Button>
-        )}
+        <Button variant="outline" className="w-full" disabled={loading}>
+          {loading ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : currentStatus ? (
+            <>
+              <Check className="w-4 h-4 mr-2 text-green-500" />
+              {currentStatusLabel}
+            </>
+          ) : (
+            <>
+              <Plus className="w-4 h-4 mr-2" />
+              Добавить в список
+            </>
+          )}
+        </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent onClick={(e) => e.stopPropagation()} className="bg-slate-800 border-slate-700 text-white">
+      <DropdownMenuContent>
         {statuses.map((status) => (
-          <DropdownMenuItem key={status.key} onSelect={(e) => handleStatusChange(e, status.key)} className="cursor-pointer hover:bg-slate-700">
-            <Bookmark className="w-4 h-4 mr-2" /><span>{status.label}</span>
+          <DropdownMenuItem
+            key={status.key}
+            onSelect={() => handleStatusChange(status.key)}
+          >
+            <Bookmark className="w-4 h-4 mr-2" />
+            {status.label}
           </DropdownMenuItem>
         ))}
         {currentStatus && (
           <>
-            <DropdownMenuSeparator className="bg-slate-700" />
-            <DropdownMenuItem className="text-red-500 hover:!text-red-500 hover:!bg-red-500/10 cursor-pointer" onSelect={(e) => handleStatusChange(e, "remove")}>
-              <Trash2 className="w-4 h-4 mr-2" /><span>Удалить из списка</span>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-red-500"
+              onSelect={() => handleStatusChange("remove")}
+            >
+              Удалить из списка
             </DropdownMenuItem>
           </>
         )}

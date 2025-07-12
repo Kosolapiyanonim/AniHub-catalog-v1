@@ -1,4 +1,4 @@
-// /app/api/parse-single-page/route.ts
+// /app/api/parser/route.ts (или /app/api/parse-single-page/route.ts)
 
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
@@ -46,48 +46,64 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: "На странице не найдено аниме с shikimori_id.", processed: 0, nextPageUrl: data.next_page || null });
         }
 
-        // --- ДОБАВЛЕНО ЛОГИРОВАНИЕ ---
-        console.log(`[Parser] Начинаю обработку ${animeList.length} записей...`);
-
-        for (const animeData of animeList) {
-            // ВЫВОДИМ НАЗВАНИЕ КАЖДОГО АНИМЕ В ЛОГ VERCEL
-            console.log(`[Parser] Обработка: ${animeData.title} (Shikimori ID: ${animeData.shikimori_id})`);
-
-            // --- Логика обработки, как и раньше ---
-            const uniqueAnime = transformToAnimeRecord(animeData);
-            const { data: savedAnime, error: animeError } = await supabase
-                .from('animes')
-                .upsert(uniqueAnime, { onConflict: 'shikimori_id' })
-                .select('id, shikimori_id')
-                .single();
-
-            if (animeError) {
-                console.error(`[Parser] Ошибка при сохранении аниме ${animeData.title}:`, animeError.message);
-                continue; // Пропускаем это аниме и идем дальше
+        // 1. Собираем УНИКАЛЬНЫЕ аниме по shikimori_id
+        const uniqueAnimeMap = new Map<string, KodikAnimeData>();
+        animeList.forEach(anime => {
+            if (!uniqueAnimeMap.has(anime.shikimori_id!)) {
+                uniqueAnimeMap.set(anime.shikimori_id!, anime);
             }
-            if (!savedAnime) continue;
+        });
+        const uniqueAnimeList = Array.from(uniqueAnimeMap.values());
 
-            await processAllRelationsForAnime(supabase, animeData, savedAnime.id);
+        // 2. Сохраняем/обновляем основную информацию об аниме
+        const animeRecordsToUpsert = uniqueAnimeList.map(transformToAnimeRecord);
+        const { data: upsertedAnimes, error: animeError } = await supabase
+            .from('animes')
+            .upsert(animeRecordsToUpsert, { onConflict: 'shikimori_id' })
+            .select('id, shikimori_id');
 
-            await supabase.from('translations').upsert({
-                anime_id: savedAnime.id,
-                kodik_id: animeData.id,
-                title: animeData.translation.title,
-                type: animeData.translation.type,
-                quality: animeData.quality,
-                player_link: animeData.link,
-            }, { onConflict: 'kodik_id' });
+        if (animeError) throw animeError;
+        if (!upsertedAnimes) return NextResponse.json({ message: "Нет данных для обновления", processed: 0, nextPageUrl: data.next_page || null });
+
+        const animeIdMap = new Map(upsertedAnimes.map(a => [a.shikimori_id, a.id]));
+
+        // 3. Обрабатываем связи для каждого УНИКАЛЬНОГО аниме
+        for (const anime of uniqueAnimeList) {
+            const animeId = animeIdMap.get(anime.shikimori_id!);
+            if (animeId) {
+                await processAllRelationsForAnime(supabase, anime, animeId);
+            }
+        }
+        
+        // 4. Сохраняем ВСЕ озвучки из исходного списка
+        const allTranslations = animeList
+            .map(anime => {
+                const anime_id = animeIdMap.get(anime.shikimori_id!);
+                if (!anime_id) return null;
+                return {
+                    anime_id,
+                    kodik_id: anime.id,
+                    title: anime.translation.title,
+                    type: anime.translation.type,
+                    quality: anime.quality,
+                    player_link: anime.link,
+                };
+            })
+            .filter(Boolean);
+
+        if(allTranslations.length > 0) {
+            const { error: translationError } = await supabase.from('translations').upsert(allTranslations as any, { onConflict: 'kodik_id' });
+            if (translationError) throw translationError;
         }
         
         return NextResponse.json({
-            message: `Успешно обработано ${animeList.length} записей.`,
-            processed: animeList.length,
+            message: `Обработано. Уникальных аниме: ${uniqueAnimeList.length}. Всего озвучек: ${allTranslations.length}.`,
+            processed: uniqueAnimeList.length,
             nextPageUrl: data.next_page || null,
         });
 
     } catch (err: any) {
-        console.error("--- [PARSER_ERROR] КРИТИЧЕСКАЯ ОШИБКА ---");
-        console.error("[PARSER_ERROR] Сообщение:", err.message);
+        console.error("--- [PARSER_ERROR] ---", err.message);
         return NextResponse.json({ error: "Произошла критическая ошибка. См. логи Vercel." }, { status: 500 });
     }
 }

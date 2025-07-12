@@ -1,57 +1,34 @@
-// /components/supabase-provider.tsx
-"use client";
+"use client"
 
-import { createContext, useContext, useEffect, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import type { SupabaseClient, Session } from "@supabase/supabase-js";
+import type React from "react"
+import { createContext, useContext, useRef } from "react"
+import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 
-// Определяем тип для нашего контекста
-type SupabaseContextType = {
-  supabase: SupabaseClient;
-  session: Session | null;
-};
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-// Создаем сам контекст
-const SupabaseContext = createContext<SupabaseContextType | null>(null);
-
-// Создаем компонент-провайдер
-export function SupabaseProvider({ children }: { children: React.ReactNode }) {
-  const [supabase] = useState(() => createClientComponentClient());
-  const [session, setSession] = useState<Session | null>(null);
-
-  useEffect(() => {
-    // Получаем первоначальную сессию
-    const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-    };
-    getInitialSession();
-
-    // Подписываемся на изменения состояния аутентификации
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      setSession(session);
-    });
-
-    // Отписываемся при размонтировании компонента
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase]);
-
-  return (
-    <SupabaseContext.Provider value={{ supabase, session }}>
-      {children}
-    </SupabaseContext.Provider>
-  );
+/**
+ * Create a singleton Supabase client so we don’t instantiate it
+ * on every render.
+ */
+let browserSupabaseClient: SupabaseClient | null = null
+function getBrowserClient() {
+  if (!browserSupabaseClient) {
+    browserSupabaseClient = createClient(supabaseUrl, supabaseAnonKey)
+  }
+  return browserSupabaseClient
 }
 
-// Создаем наш собственный хук useSupabase
-export const useSupabase = () => {
-  const context = useContext(SupabaseContext);
-  if (context === null) {
-    throw new Error("useSupabase must be used within a SupabaseProvider");
-  }
-  return context;
-};
+const SupabaseContext = createContext<SupabaseClient | null>(null)
+
+export function SupabaseProvider({ children }: { children: React.ReactNode }) {
+  const clientRef = useRef<SupabaseClient>(getBrowserClient())
+  return <SupabaseContext.Provider value={clientRef.current}>{children}</SupabaseContext.Provider>
+}
+
+export function useSupabase() {
+  return useContext(SupabaseContext)
+}
+
+/* provide a default export too */
+export default SupabaseProvider

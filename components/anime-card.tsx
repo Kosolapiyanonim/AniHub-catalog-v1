@@ -3,7 +3,6 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { AddToListButton } from './AddToListButton'; // <-- ИЗМЕНЕНИЕ: Правильное имя файла/компонента
 
 interface AnimeCardProps {
   anime: {
@@ -12,9 +11,8 @@ interface AnimeCardProps {
     title: string;
     poster_url?: string | null;
     year?: number | null;
-    user_list_status?: string | null;
   };
-  priority?: boolean;
+  priority?: boolean; // Добавим возможность задавать приоритет для первых карточек
 }
 
 export function AnimeCard({ anime, priority = false }: AnimeCardProps) {
@@ -23,31 +21,28 @@ export function AnimeCard({ anime, priority = false }: AnimeCardProps) {
   }
 
   return (
-    <div className="group relative">
-      <Link href={`/anime/${anime.shikimori_id}`} className="cursor-pointer block">
-        <div className="aspect-[2/3] overflow-hidden rounded-lg bg-slate-800 relative">
-          {anime.poster_url ? (
-            <Image
-              src={anime.poster_url}
-              alt={anime.title}
-              fill
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
-              priority={priority}
-              quality={75}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-slate-500 text-center text-xs p-2">
-              Постер отсутствует
-            </div>
-          )}
-        </div>
-      </Link>
-      
-      {/* ИЗМЕНЕНИЕ: Убрана обертка, так как она не нужна для этого компонента */}
-      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-         {/* <AddToListButton animeId={anime.id} initialStatus={anime.user_list_status} /> */}
+    <Link href={`/anime/${anime.shikimori_id}`} key={anime.id} className="group cursor-pointer block">
+      <div className="aspect-[2/3] overflow-hidden rounded-lg bg-slate-800 relative">
+        {anime.poster_url ? (
+          <Image
+            src={anime.poster_url}
+            alt={anime.title}
+            fill
+            // ИЗМЕНЕНИЕ: Добавляем атрибут sizes для адаптивности
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            priority={priority} // Используем приоритет
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full text-slate-500 text-center text-xs p-2">
+            Постер отсутствует
+          </div>
+        )}
       </div>
-
-      <div className="mt-2">
-        <Link href={`/anime/${
+      <h3 className="mt-2 text-sm font-medium text-white truncate group-hover:text-purple-400">
+        {anime.title}
+      </h3>
+      {anime.year && <p className="text-xs text-slate-400">{anime.year}</p>}
+    </Link>
+  );
+}

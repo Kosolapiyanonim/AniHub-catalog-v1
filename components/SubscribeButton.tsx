@@ -46,7 +46,7 @@ export function SubscribeButton({ animeId }: { animeId: number }) {
     if (!session) return null;
 
     return (
-        <Button onClick={handleSubscribe} variant="ghost" size="icon" disabled={loading} className="text-gray-400 hover:text-white">
+        <Button onClick={handleSubscribe} variant="ghost" size="icon" disabled={loading} className="text-gray-400 hover:text-white" title={isSubscribed ? "Отписаться от обновлений" : "Подписаться на обновления"}>
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 
              isSubscribed ? <BellRing className="w-5 h-5 text-purple-400" /> : <Bell className="w-5 h-5" />}
         </Button>

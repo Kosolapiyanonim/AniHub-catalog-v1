@@ -8,7 +8,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Star, Calendar, Play, Tv } from "lucide-react";
+import { ArrowLeft, Star, Play } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { AddToListButton } from "@/components/AddToListButton";
 import { AnimeCard } from "@/components/anime-card";
@@ -20,7 +20,7 @@ interface RelatedAnime {
   shikimori_id: string;
   title: string;
   poster_url?: string | null;
-  relation_type_formatted: string;
+  relation_type: string;
 }
 interface AnimeData {
   id: number;
@@ -28,12 +28,8 @@ interface AnimeData {
   title: string;
   description?: string;
   poster_url?: string;
-  year?: number;
-  status?: string;
-  episodes_count?: number;
   shikimori_rating?: number;
   genres: { id: number; name: string; slug: string }[];
-  studios: { id: number; name: string; slug: string }[];
   related: RelatedAnime[];
 }
 
@@ -88,7 +84,6 @@ export default function AnimePage() {
                 <CardContent className="p-0">
                   <div className="aspect-[3/4] relative">
                     <Image src={anime.poster_url || "/placeholder.svg"} alt={anime.title} fill className="object-cover rounded-t-lg" priority />
-                    {/* ИЗМЕНЕНИЕ: Кнопка "Оценить" на постере */}
                     <Button variant="secondary" size="sm" className="absolute top-2 right-2 flex items-center gap-1 opacity-80 hover:opacity-100">
                         <Star className="w-4 h-4" /> Оценить
                     </Button>
@@ -99,7 +94,6 @@ export default function AnimePage() {
                   </div>
                 </CardContent>
               </Card>
-              {/* ИЗМЕНЕНИЕ: Информационный блок отсюда удален */}
             </div>
           </aside>
 
@@ -108,7 +102,6 @@ export default function AnimePage() {
             <section>
               <div className="flex items-start justify-between">
                   <h1 className="text-3xl md:text-4xl font-bold text-white">{anime.title}</h1>
-                  {/* ИЗМЕНЕНИЕ: Оценка Shikimori добавлена рядом с иконкой */}
                   <div className="flex items-center gap-2 pt-2 shrink-0">
                       <a href={`https://shikimori.one/animes/${anime.shikimori_id}`} target="_blank" rel="noopener noreferrer" title="Смотреть на Shikimori">
                           <Image src="/shikimori-logo.svg" alt="Shikimori" width={24} height={24} />
@@ -144,14 +137,13 @@ export default function AnimePage() {
                         relatedAnime && (
                             <div key={relatedAnime.id || index}>
                                 <AnimeCard anime={relatedAnime} />
-                                <p className="text-xs text-center mt-1 text-gray-400">{relatedAnime.relation_type_formatted}</p>
+                                <p className="text-xs text-center mt-1 text-gray-400">{relatedAnime.relation_type}</p>
                             </div>
                         )
                     ))}
                 </div>
             </section>}
             
-            {/* ИЗМЕНЕНИЕ: Разделение на Отзывы и Обсуждения */}
             <section>
                 <h2 className="text-2xl font-bold text-white mb-4">Отзывы</h2>
                 <div className="bg-slate-800 border border-slate-700 rounded-lg p-8 text-center text-gray-500">

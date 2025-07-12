@@ -33,7 +33,7 @@ export async function GET() {
       latestUpdates,
     ] = await Promise.all([
       // ИЗМЕНЕНИЕ: Добавлен фильтр .not('shikimori_id', 'is', null) ко всем запросам для надежности
-      supabase.from("animes").select(HERO_ANIME_SELECT).eq("is_featured_in_hero", true).not('shikimori_id', 'is', null).limit(5),
+      supabase.from("animes").select(HERO_ANIME_SELECT).eq("is_featured_in_hero", true).not('shikimori_id', 'is', null).limit(10),
       supabase.from("animes").select(ANIME_CARD_SELECT).gte("year", new Date().getFullYear() - 1).not('shikimori_id', 'is', null).order("shikimori_votes", { ascending: false }).limit(12),
       supabase.from("animes").select(ANIME_CARD_SELECT).not('shikimori_id', 'is', null).order("shikimori_votes", { ascending: false }).limit(12),
       supabase.from("animes").select(ANIME_CARD_SELECT).eq("status", "released").not('shikimori_id', 'is', null).order("updated_at_kodik", { ascending: false }).limit(12),

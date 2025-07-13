@@ -1,4 +1,4 @@
-// /app/api/parse-single-page/route.ts
+// /app/api/parser/route.ts (или /app/api/parse-single-page/route.ts)
 
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
@@ -46,16 +46,15 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: "На странице не найдено аниме с shikimori_id.", processed: 0, nextPageUrl: data.next_page || null });
         }
 
-        // 1. Собираем УНИКАЛЬНЫЕ аниме по shikimori_id
         const uniqueAnimeMap = new Map<string, KodikAnimeData>();
         animeList.forEach(anime => {
-            if (!uniqueAnimeMap.has(anime.shikimori_id!)) {
-                uniqueAnimeMap.set(anime.shikimori_id!, anime);
+            if (anime.shikimori_id && !uniqueAnimeMap.has(anime.shikimori_id)) {
+                uniqueAnimeMap.set(anime.shikimori_id, anime);
             }
         });
         const uniqueAnimeList = Array.from(uniqueAnimeMap.values());
 
-        // 2. ИЗМЕНЕНИЕ: Теперь мы обрабатываем трансформацию асинхронно, ожидая все запросы к Jikan
+        // ИЗМЕНЕНИЕ: Теперь мы обрабатываем трансформацию асинхронно
         const animeRecordsToUpsert = await Promise.all(
             uniqueAnimeList.map(anime => transformToAnimeRecord(anime))
         );
@@ -70,7 +69,6 @@ export async function POST(request: Request) {
 
         const animeIdMap = new Map(upsertedAnimes.map(a => [a.shikimori_id, a.id]));
 
-        // 3. Обрабатываем связи и озвучки (без изменений)
         for (const anime of uniqueAnimeList) {
             const animeId = animeIdMap.get(anime.shikimori_id!);
             if (animeId) {
@@ -82,7 +80,14 @@ export async function POST(request: Request) {
             .map(anime => {
                 const anime_id = animeIdMap.get(anime.shikimori_id!);
                 if (!anime_id) return null;
-                return { /* ... */ };
+                return {
+                    anime_id,
+                    kodik_id: anime.id,
+                    title: anime.translation.title,
+                    type: anime.translation.type,
+                    quality: anime.quality,
+                    player_link: anime.link,
+                };
             })
             .filter(Boolean) as any[];
 

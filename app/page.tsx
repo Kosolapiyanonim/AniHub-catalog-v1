@@ -22,6 +22,7 @@ interface HomePageData {
   latestUpdates?: Anime[] | null;
 }
 
+// Эта функция остается без изменений
 async function getHomePageData(): Promise<HomePageData> {
   try {
     const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/homepage-sections`, {
@@ -43,6 +44,7 @@ async function getHomePageData(): Promise<HomePageData> {
 export default async function HomePage() {
   const data = await getHomePageData();
 
+  // Фильтруем данные для надежности
   const cleanHeroItems = data.hero?.filter(Boolean) || [];
   const cleanTrendingItems = data.trending?.filter(Boolean) || [];
   const cleanPopularItems = data.popular?.filter(Boolean) || [];
@@ -51,13 +53,13 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-slate-900">
-      {/* Pass all hero items to the component */}
+      {/* Передаем ВЕСЬ массив в компонент, он сам разберется с поэтапной загрузкой */}
       <HeroSlider initialItems={cleanHeroItems} />
 
       <main className="container mx-auto px-4 py-12 space-y-12">
         <Suspense fallback={<LoadingSpinner />}>
           <AnimeCarousel 
-            title="Trending this Season" 
+            title="Тренды сезона" 
             items={cleanTrendingItems} 
             viewAllLink="/catalog?sort=updated_at"
             icon={<TrendingUp />}
@@ -66,7 +68,7 @@ export default async function HomePage() {
         
         <Suspense fallback={<LoadingSpinner />}>
           <AnimeCarousel 
-            title="Most Popular" 
+            title="Самое популярное" 
             items={cleanPopularItems} 
             viewAllLink="/catalog?sort=shikimori_votes"
             icon={<Star />}
@@ -75,7 +77,7 @@ export default async function HomePage() {
         
         <Suspense fallback={<LoadingSpinner />}>
           <AnimeCarousel 
-            title="Latest Updates" 
+            title="Последние обновления" 
             items={cleanLatestUpdates} 
             viewAllLink="/catalog?sort=updated_at_kodik"
             icon={<Zap />}
@@ -84,7 +86,7 @@ export default async function HomePage() {
 
         <Suspense fallback={<LoadingSpinner />}>
           <AnimeCarousel 
-            title="Recently Completed" 
+            title="Недавно завершенные" 
             items={cleanRecentlyCompleted} 
             viewAllLink="/catalog?status=released"
             icon={<CheckCircle />}

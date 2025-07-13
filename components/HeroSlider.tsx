@@ -14,11 +14,12 @@ interface Anime {
   shikimori_id: string;
   title: string;
   poster_url?: string | null;
+  screenshots?: string[] | null;
   description?: string;
 }
 
 interface HeroSliderProps {
-  items?: (Anime | null)[] | null;
+  items?: Anime[] | null;
 }
 
 export function HeroSlider({ items }: HeroSliderProps) {
@@ -41,19 +42,19 @@ export function HeroSlider({ items }: HeroSliderProps) {
         {validItems.map((anime, index) => (
           <CarouselItem key={anime.id}>
             <div className="relative h-[70vh] w-full">
+              {/* ИЗМЕНЕНИЕ: Новая логика выбора изображения */}
               <Image
-                src={anime.poster_url || "/placeholder.svg"}
+                src={(anime.screenshots && anime.screenshots.length > 0) ? anime.screenshots[0] : (anime.poster_url || "/placeholder.svg")}
                 alt={`${anime.title} background`}
                 fill
                 className="object-cover object-center"
-                // ИЗМЕНЕНИЯ: Атрибуты для оптимизации LCP
                 priority={index === 0}
                 sizes="100vw"
                 quality={85}
               />
               <div className="absolute inset-0 bg-black/60" />
               <div className="relative z-10 container mx-auto h-full flex flex-col justify-center items-center text-center text-white">
-                <h1 className="text-4xl md:text-6xl font-bold mb-4">{anime.title}</h1>
+                <h1 className="text-4xl md:text-6xl font-bold mb-4 line-clamp-2">{anime.title}</h1>
                 <p className="text-lg md:text-xl max-w-3xl mb-8 line-clamp-3">
                   {anime.description}
                 </p>

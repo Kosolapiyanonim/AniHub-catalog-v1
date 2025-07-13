@@ -31,10 +31,10 @@ export function AnimeCard({ anime, priority = false }: AnimeCardProps) {
               src={anime.poster_url}
               alt={anime.title}
               fill
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+              // ИЗМЕНЕНИЕ: Добавляем атрибут sizes для адаптивности
+              sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 16vw"
               className="object-cover transition-transform duration-300 group-hover:scale-105"
               priority={priority}
-              quality={75}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-slate-500 text-center text-xs p-2">

@@ -7,18 +7,21 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
+    // ВКЛЮЧАЕМ ОПТИМИЗАЦИЮ
     unoptimized: false,
+    
+    // Указываем, с каких доменов можно загружать и оптимизировать картинки
     remotePatterns: [
-      { hostname: 'shikimori.one' },
-      { hostname: 'dere.shikimori.one' },
-      { hostname: 'nyaa.shikimori.one' },
-      { hostname: '*.kodik.biz' },
-      { hostname: 'st.kodik.biz' },
-      { hostname: '*.kodik.info' },
-      { hostname: 'st.kodik.info' },
-      { hostname: 'avatars.mds.yandex.net' },
-      { hostname: 'kinopoiskapiunofficial.tech' },
+      { protocol: 'https', hostname: 'shikimori.one' },
+      { protocol: 'https', hostname: '*.shikimori.one' }, // Для всех поддоменов, например, nyaa.shikimori.one
+      { protocol: 'https', hostname: 'st.kp.yandex.net' },
+      // Добавим и остальные на всякий случай
+      { protocol: 'https', hostname: '**.kodik.biz' },
+      { protocol: 'https', hostname: '**.kodik.info' },
+      { protocol: 'https', hostname: 'avatars.mds.yandex.net' },
+      { protocol: 'https', hostname: 'kinopoiskapiunofficial.tech' },
     ],
+    // Настройки для генерации разных размеров изображений
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },

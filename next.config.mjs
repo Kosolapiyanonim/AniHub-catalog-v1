@@ -20,6 +20,11 @@ const nextConfig = {
       { protocol: 'https', hostname: '**.kodik.info' },
       { protocol: 'https', hostname: 'avatars.mds.yandex.net' },
       { protocol: 'https', hostname: 'kinopoiskapiunofficial.tech' },
+        // ИЗМЕНЕНИЕ: Добавляем новый домен для MyAnimeList
+      {
+        protocol: 'https',
+        hostname: 'cdn.myanimelist.net',
+      },
     ],
     // Настройки для генерации разных размеров изображений
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],

@@ -10,7 +10,6 @@ export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  // Мы будем использовать shikimori_id как основной идентификатор в URL
   const shikimoriId = params.id;
   if (!shikimoriId) {
     return NextResponse.json({ error: "Shikimori ID is required" }, { status: 400 });
@@ -20,58 +19,66 @@ export async function GET(
   const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
 
   try {
-    // Делаем один мощный запрос, чтобы получить все и сразу, используя VIEW
-    const { data: anime, error } = await supabase
-      .from('animes_with_details') // Используем наше "умное" представление
-      .select(`
-        *, 
-        translations(*),
-        genres:anime_genres(genres(id, name, slug)),
-        studios:anime_studios(studios(id, name, slug)),
-        tags:anime_tags(tags(id, name, slug)),
-        related:anime_relations!anime_id(
-          relation_type,
-          relation_type_formatted,
-          related_anime:animes!related_id(id, shikimori_id, title, poster_url, year, type)
-        )
-      `)
+    // --- ШАГ 1: Получаем основную информацию об аниме ---
+    const { data: anime, error: animeError } = await supabase
+      .from('animes')
+      .select('*, genres:anime_genres(genres(id, name, slug)), studios:anime_studios(studios(id, name, slug))')
       .eq('shikimori_id', shikimoriId)
       .single();
 
-    if (error) {
-      // Если аниме не найдено, возвращаем 404
-      if (error.code === 'PGRST116') {
+    if (animeError) {
+      if (animeError.code === 'PGRST116') {
         return NextResponse.json({ error: 'Anime not found' }, { status: 404 });
       }
-      throw error;
+      throw animeError;
+    }
+
+    // --- ШАГ 2: Получаем озвучки и связанные произведения параллельно ---
+    const [translationsResponse, relatedResponse] = await Promise.all([
+      supabase.from('translations').select('*').eq('anime_id', anime.id),
+      supabase.from('anime_relations').select('relation_type, related_id').eq('anime_id', anime.id)
+    ]);
+
+    const translations = translationsResponse.data || [];
+    const relations = relatedResponse.data || [];
+
+    // --- ШАГ 3: Получаем информацию о связанных аниме (если они есть) ---
+    let relatedAnimesWithInfo = [];
+    if (relations.length > 0) {
+      const relatedAnimeIds = relations.map(r => r.related_id);
+      
+      const { data: relatedInfo } = await supabase
+        .from('animes')
+        .select('id, shikimori_id, title, poster_url, year, type')
+        .in('id', relatedAnimeIds);
+
+      // Собираем все вместе, отфильтровывая "битые" связи
+      relatedAnimesWithInfo = relations
+        .map(relation => {
+          const animeInfo = relatedInfo?.find(a => a.id === relation.related_id);
+          if (!animeInfo) return null;
+          return {
+            ...animeInfo,
+            relation_type: relation.relation_type,
+          };
+        })
+        .filter(Boolean); // Убираем все null из массива
     }
     
-    // Форматируем данные для удобства фронтенда
+    // --- ШАГ 4: Собираем финальный ответ ---
     const responseData = {
       ...anime,
-      // Преобразуем массив объектов в простой массив
       genres: (anime.genres || []).map((g: any) => g.genres).filter(Boolean),
       studios: (anime.studios || []).map((s: any) => s.studios).filter(Boolean),
-      tags: (anime.tags || []).map((t: any) => t.tags).filter(Boolean),
-      // Обрабатываем связанные аниме, отфильтровывая "битые" связи
-      related: (anime.related || [])
-        .map((r: any) => {
-          if (r && r.related_anime && r.related_anime.shikimori_id) {
-            return {
-              ...r.related_anime,
-              relation_type_formatted: r.relation_type_formatted,
-            };
-          }
-          return null;
-        })
-        .filter(Boolean),
+      translations: translations,
+      related: relatedAnimesWithInfo,
     };
 
     return NextResponse.json(responseData);
 
   } catch (error) {
     console.error(`Anime detail API error for ID ${shikimoriId}:`, error);
-    const message = error instanceof Error ? error.message : "Unknown error";
+    const message = error instanceof Error ? error.message : "Неизвестная ошибка";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

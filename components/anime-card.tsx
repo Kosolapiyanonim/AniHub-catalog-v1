@@ -1,10 +1,11 @@
+// /components/anime-card.tsx
 'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { Badge } from './ui/badge';
-import { AddToListButton } from './AddToListButton';
+import { AddToListButton } from './AddToListButton'; // <-- Теперь используем одну кнопку
 import { Star } from 'lucide-react';
 
 interface Anime {
@@ -37,7 +38,7 @@ export function AnimeCard({ anime, priority = false }: AnimeCardProps) {
               {anime.poster_url ? (
                 <Image
                   src={anime.poster_url} alt={anime.title} fill
-                  sizes="(max-width: 640px) 50vw, 33vw"
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
                   className="object-cover transition-transform duration-300 group-hover:scale-105"
                   priority={priority}
                 />
@@ -65,6 +66,7 @@ export function AnimeCard({ anime, priority = false }: AnimeCardProps) {
             {anime.genres?.slice(0, 3).map(g => <Badge key={g.name} variant="secondary">{g.name}</Badge>)}
           </div>
           <div className="pt-2">
+            {/* Используем нашу универсальную кнопку */}
             <AddToListButton animeId={anime.id} initialStatus={anime.user_list_status} />
           </div>
         </div>

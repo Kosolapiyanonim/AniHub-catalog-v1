@@ -1,19 +1,13 @@
 // /components/AddToListButton.tsx
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
-import { toast } from 'sonner';
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import { Loader2, Check, Plus, Bookmark, Trash2 } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useSupabase } from './supabase-provider';
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Loader2, Check, Plus, Bookmark, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { toast } from "sonner";
 
 const statuses = [
   { key: "watching", label: "Смотрю" },
@@ -27,33 +21,28 @@ const statuses = [
 interface AddToListButtonProps {
   animeId: number;
   initialStatus?: string | null;
-  variant?: 'full' | 'icon';
+  // Добавляем вариант для компактного отображения
+  variant?: 'full' | 'icon'; 
 }
 
 export function AddToListButton({ animeId, initialStatus, variant = 'full' }: AddToListButtonProps) {
   const { session } = useSupabase();
-  const [currentStatus, setCurrentStatus] = useState(initialStatus || null);
+  const [currentStatus, setCurrentStatus] = useState(initialStatus);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setCurrentStatus(initialStatus || null);
+    setCurrentStatus(initialStatus);
   }, [initialStatus]);
 
-  const handleStatusChange = useCallback(async (newStatus: string) => {
-    if (!session) {
-      toast.error("Нужно войти в аккаунт, чтобы добавлять в списки.");
-      return;
-    }
-
+  const handleStatusChange = async (newStatus: string) => {
+    if (!session) return toast.error("Нужно войти в аккаунт");
     setLoading(true);
     try {
-      const response = await fetch("/api/lists", {
+      await fetch("/api/lists", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ anime_id: animeId, status: newStatus }),
       });
-      if (!response.ok) throw new Error("Ошибка обновления статуса");
-      
       setCurrentStatus(newStatus === 'remove' ? null : newStatus);
       toast.success("Статус обновлен!");
     } catch (error) {
@@ -61,15 +50,13 @@ export function AddToListButton({ animeId, initialStatus, variant = 'full' }: Ad
     } finally {
       setLoading(false);
     }
-  }, [animeId, session]);
+  };
 
   if (!session) {
-    if (variant === 'icon') return null;
+    if (variant === 'icon') return null; // Не показываем иконку гостям
     return (
         <Link href="/login" className="w-full">
-            <Button variant="outline" className="w-full">
-                <Plus className="w-4 h-4 mr-2" /> Добавить в список
-            </Button>
+            <Button variant="outline" className="w-full"><Plus className="w-4 h-4 mr-2" /> Добавить в список</Button>
         </Link>
     );
   }
@@ -79,6 +66,7 @@ export function AddToListButton({ animeId, initialStatus, variant = 'full' }: Ad
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
+        {/* Разные стили для кнопки в зависимости от варианта */}
         {variant === 'full' ? (
           <Button variant="outline" className="w-full" disabled={loading}>
             {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : 
@@ -92,10 +80,7 @@ export function AddToListButton({ animeId, initialStatus, variant = 'full' }: Ad
               className="h-8 w-8" 
               disabled={loading}
               // ИСПРАВЛЕНИЕ: Останавливаем всплытие клика
-              onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-              }}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 
              currentStatus ? <Check className="w-4 h-4 text-green-500" /> : 
@@ -103,23 +88,14 @@ export function AddToListButton({ animeId, initialStatus, variant = 'full' }: Ad
           </Button>
         )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent onClick={(e) => {e.preventDefault(); e.stopPropagation();}} className="bg-slate-800 border-slate-700 text-white">
+      <DropdownMenuContent onClick={(e) => { e.preventDefault(); e.stopPropagation();}} className="bg-slate-800 border-slate-700 text-white">
         {statuses.map((status) => (
-          <DropdownMenuItem
-            key={status.key}
-            onSelect={() => handleStatusChange(status.key)}
-            className="cursor-pointer hover:bg-slate-700"
-          >
+          <DropdownMenuItem key={status.key} onSelect={() => handleStatusChange(status.key)} className="cursor-pointer hover:bg-slate-700">
             <Bookmark className="w-4 h-4 mr-2" /><span>{status.label}</span>
           </DropdownMenuItem>
         ))}
         {currentStatus && (
-          <>
-            <DropdownMenuSeparator className="bg-slate-700" />
-            <DropdownMenuItem className="text-red-500 hover:!text-red-500 hover:!bg-red-500/10 cursor-pointer" onSelect={() => handleStatusChange("remove")}>
-              <Trash2 className="w-4 h-4 mr-2" /><span>Удалить из списка</span>
-            </DropdownMenuItem>
-          </>
+          <><DropdownMenuSeparator className="bg-slate-700" /><DropdownMenuItem className="text-red-500 hover:!text-red-500 hover:!bg-red-500/10 cursor-pointer" onSelect={() => handleStatusChange("remove")}><Trash2 className="w-4 h-4 mr-2" /><span>Удалить из списка</span></DropdownMenuItem></>
         )}
       </DropdownMenuContent>
     </DropdownMenu>

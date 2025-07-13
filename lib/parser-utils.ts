@@ -8,27 +8,19 @@ export function transformToAnimeRecord(anime: KodikAnimeData) {
     
     let finalPosterUrl: string | null = null;
 
-    // --- ФИНАЛЬНАЯ ЛОГИКА ВЫБОРА ПОСТЕРА С ПОЛНОЙ БЛОКИРОВКОЙ ЯНДЕКСА ---
-    const shikimoriPoster = material.poster_url;
-    const otherPoster = anime.poster_url;
+    // --- ФИНАЛЬНАЯ ЛОГИКА ВЫБОРА ПОСТЕРА С БЛОКИРОВКОЙ ЯНДЕКСА ---
+    const materialPoster = material.poster_url;
+    const rootPoster = anime.poster_url;
 
-    // 1. Приоритет №1: Постер с Shikimori
-    if (shikimoriPoster && shikimoriPoster.includes('shikimori.one')) {
-        finalPosterUrl = shikimoriPoster;
+    // 1. Проверяем постер из material_data
+    if (materialPoster && !materialPoster.includes('yandex')) {
+        finalPosterUrl = materialPoster;
+    } 
+    // 2. Если первый не подошел, проверяем корневой постер
+    else if (rootPoster && !rootPoster.includes('yandex')) {
+        finalPosterUrl = rootPoster;
     }
-    // 2. Приоритет №2: Любой другой постер, если он НЕ с Яндекса
-    else if (otherPoster && !otherPoster.includes('yandex')) {
-        finalPosterUrl = otherPoster;
-    }
-    // Если постер с material_data тоже не с Яндекса, используем его как запасной вариант
-    else if (shikimoriPoster && !shikimoriPoster.includes('yandex')) {
-        finalPosterUrl = shikimoriPoster;
-    }
-    // 3. Приоритет №3: Первый скриншот как крайний случай
-    else if (anime.screenshots && anime.screenshots.length > 0) {
-        finalPosterUrl = anime.screenshots[0];
-    }
-    // Если все условия не выполнены, finalPosterUrl останется null
+    // Если оба условия не выполнены, finalPosterUrl останется null
 
     return {
         poster_url: finalPosterUrl,

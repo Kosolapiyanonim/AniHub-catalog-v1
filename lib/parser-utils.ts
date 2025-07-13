@@ -2,35 +2,47 @@
 
 import type { KodikAnimeData } from "@/lib/types";
 
+// Хелпер для проверки, является ли URL ссылкой на Shikimori
+const isShikimoriUrl = (url: string | null | undefined): boolean => {
+    if (!url) return false;
+    return url.includes('shikimori.one') || url.includes('dere.shikimori.one') || url.includes('nyaa.shikimori.one');
+};
+
 // Трансформирует данные из Kodik в формат таблицы 'animes'
 export function transformToAnimeRecord(anime: KodikAnimeData) {
     const material = anime.material_data || {};
     
     let finalPosterUrl: string | null = null;
 
-    // --- ФИНАЛЬНАЯ ЛОГИКА ВЫБОРА ПОСТЕРА С БЛОКИРОВКОЙ ЯНДЕКСА ---
-
-    const shikimoriPoster = material.poster_url;
-    const otherPoster = anime.poster_url;
+    // --- ФИНАЛЬНАЯ ЛОГИКА ВЫБОРА ПОСТЕРА ---
+    const materialPoster = material.poster_url;
+    const rootPoster = anime.poster_url;
 
     // 1. Приоритет №1: Постер с Shikimori
-    if (shikimoriPoster && shikimoriPoster.includes('shikimori.one')) {
-        finalPosterUrl = shikimoriPoster;
+    if (isShikimoriUrl(materialPoster)) {
+        finalPosterUrl = materialPoster;
+    } else if (isShikimoriUrl(rootPoster)) {
+        finalPosterUrl = rootPoster;
     }
-    // 2. Приоритет №2: Любой другой постер, если он НЕ с Яндекса
-    else if (otherPoster && !otherPoster.includes('yandex')) {
-        finalPosterUrl = otherPoster;
+    // 2. Приоритет №2: Любой другой постер (кроме Яндекса)
+    else if (materialPoster && !materialPoster.includes('yandex')) {
+        finalPosterUrl = materialPoster;
+    } else if (rootPoster && !rootPoster.includes('yandex')) {
+        finalPosterUrl = rootPoster;
     }
-    // 3. Приоритет №3: Первый скриншот как крайний случай, если постеры не подошли
+    // 3. Приоритет №3: Первый скриншот
     else if (anime.screenshots && anime.screenshots.length > 0) {
         finalPosterUrl = anime.screenshots[0];
+    }
+    // 4. Приоритет №4: Яндекс как крайний случай
+    else {
+        finalPosterUrl = materialPoster || rootPoster || null;
     }
 
     return {
         poster_url: finalPosterUrl,
         screenshots: anime.screenshots || [],
         
-        // Остальные поля
         shikimori_id: anime.shikimori_id,
         title: material.anime_title || anime.title,
         title_orig: anime.title_orig,

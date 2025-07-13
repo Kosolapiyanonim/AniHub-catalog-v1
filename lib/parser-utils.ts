@@ -6,36 +6,39 @@ import type { KodikAnimeData } from "@/lib/types";
 export function transformToAnimeRecord(anime: KodikAnimeData) {
     const material = anime.material_data || {};
     
-    // ИСПРАВЛЕНИЕ: Логика выбора постера. Приоритет у постеров.
-    // Скриншот используется только в крайнем случае, если постера нет.
-    const finalPosterUrl = material.poster_url || anime.poster_url || (anime.screenshots && anime.screenshots.length > 0 ? anime.screenshots[0] : null);
+    // Логика выбора постера
+    const poster = material.poster_url || anime.poster_url;
 
     return {
-        poster_url: finalPosterUrl,
+        poster_url: poster,
         screenshots: anime.screenshots || [],
-        
-        // Остальные поля
         shikimori_id: anime.shikimori_id,
         title: material.anime_title || anime.title,
         title_orig: anime.title_orig,
-        year: anime.year,
         description: material.description || "Описание отсутствует.",
+        year: anime.year,
         status: material.anime_status,
         type: anime.type,
-        episodes_count: anime.episodes_count || material.episodes_total || 0,
+        // ИСПРАВЛЕНИЕ: Добавляем точное кол-во вышедших и запланированных серий
+        episodes_aired: anime.last_episode || 0,
+        episodes_total: anime.episodes_total || anime.episodes_count || 0,
         shikimori_rating: material.shikimori_rating,
         shikimori_votes: material.shikimori_votes,
+        rating_mpaa: material.rating_mpaa,
         updated_at_kodik: anime.updated_at,
         raw_data: anime,
     };
 }
 
-// Обрабатывает все связи для одного аниме (жанры, студии)
+// Обрабатывает все связи для одного аниме (жанры, студии, теги)
 export async function processAllRelationsForAnime(supabase: any, anime: KodikAnimeData, animeId: number) {
     const material = anime.material_data || {};
     await Promise.all([
         processRelation(supabase, 'genre', 'genres', animeId, material.genres || []),
-        processRelation(supabase, 'studio', 'studios', animeId, material.studios || [])
+        // ИСПРАВЛЕНИЕ: Используем правильное поле `studios`
+        processRelation(supabase, 'studio', 'studios', animeId, material.studios || []),
+        // ИСПРАВЛЕНИЕ: Добавляем обработку тегов
+        processRelation(supabase, 'tag', 'tags', animeId, material.mydramalist_tags || []),
     ]);
 }
 

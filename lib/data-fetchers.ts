@@ -22,6 +22,12 @@ export async function getHomePageData() {
   try {
     const { data: { session } } = await supabase.auth.getSession();
 
+    const twoMonthsAgo = new Date();
+    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+    
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
     const [
       heroAnimesResponse,
       trending,
@@ -29,10 +35,12 @@ export async function getHomePageData() {
       recentlyCompleted,
       latestUpdates,
     ] = await Promise.all([
-      supabase.from("animes").select(HERO_ANIME_SELECT).eq("is_featured_in_hero", true).not('shikimori_id', 'is', null).limit(10),
-      supabase.from("animes_with_details").select(ANIME_CARD_SELECT).gte("updated_at_kodik", new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString()).not('shikimori_id', 'is', null).order("weighted_rating", { ascending: false }).limit(12),
+      // ИЗМЕНЕНИЕ: Добавлена сортировка по shikimori_rating
+      supabase.from("animes").select(HERO_ANIME_SELECT).eq("is_featured_in_hero", true).not('shikimori_id', 'is', null).order("shikimori_rating", { ascending: false, nullsFirst: true }).limit(10),
+      
+      supabase.from("animes_with_details").select(ANIME_CARD_SELECT).gte("updated_at_kodik", twoMonthsAgo.toISOString()).not('shikimori_id', 'is', null).order("weighted_rating", { ascending: false }).limit(12),
       supabase.from("animes").select(ANIME_CARD_SELECT).not('shikimori_id', 'is', null).order("shikimori_votes", { ascending: false }).limit(12),
-      supabase.from("animes_with_details").select(ANIME_CARD_SELECT).eq("status", "released").gte("updated_at_kodik", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()).not('shikimori_id', 'is', null).order("weighted_rating", { ascending: false }).limit(12),
+      supabase.from("animes_with_details").select(ANIME_CARD_SELECT).eq("status", "released").gte("updated_at_kodik", oneMonthAgo.toISOString()).not('shikimori_id', 'is', null).order("weighted_rating", { ascending: false }).limit(12),
       supabase.from("animes_with_details").select(ANIME_CARD_SELECT).not('shikimori_id', 'is', null).order("updated_at_kodik", { ascending: false }).order("weighted_rating", { ascending: false }).limit(12),
     ]);
 

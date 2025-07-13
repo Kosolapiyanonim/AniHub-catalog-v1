@@ -10,69 +10,41 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Toaster } from "@/components/ui/sonner";
 import { Suspense } from "react";
-import { SupabaseProvider } from "@/components/supabase-provider"; // <-- 1. ИМПОРТИРУЕМ ПРОВАЙДЕР
+import { SupabaseProvider } from "@/components/supabase-provider"; // <-- Импорт
 
-const inter = Inter({
-  subsets: ["latin", "cyrillic"],
-  display: "swap",
-});
-
+const inter = Inter({ subsets: ["latin", "cyrillic"], display: "swap" });
 export const metadata: Metadata = {
   title: "AniHub - Смотреть аниме онлайн",
-  description: "Лучший сайт для просмотра аниме онлайн. Большая коллекция аниме с русской озвучкой и субтитрами.",
+  description: "Лучший сайт для просмотра аниме онлайн.",
     generator: 'v0.dev'
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ru" suppressHydrationWarning>
       <body className={`${inter.className} bg-slate-900 text-white`}>
-        <noscript>
-          <iframe
-            src={`https://www.googletagmanager.com/ns.html?id=${process.env.NEXT_PUBLIC_GTM_ID}`}
-            height="0"
-            width="0"
-            style={{ display: "none", visibility: "hidden" }}
-          />
-        </noscript>
-
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem={false}
-        >
-          {/* 2. ОБОРАЧИВАЕМ ОСНОВНОЙ КОНТЕНТ */}
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+          {/* Оборачиваем основной контент в SupabaseProvider */}
           <SupabaseProvider>
             <div className="relative flex min-h-screen flex-col">
-              <Suspense fallback={null}>
-                <Header />
-              </Suspense>
+              <Suspense fallback={null}><Header /></Suspense>
               <main className="flex-1">{children}</main>
               <Footer />
             </div>
             <Toaster />
           </SupabaseProvider>
         </ThemeProvider>
-
         <Analytics />
         <SpeedInsights />
-        <Script
-            id="gtm-script"
-            strategy="afterInteractive"
-            dangerouslySetInnerHTML={{
-              __html: `
-              (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-              new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-              j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-              'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-              })(window,document,'script','dataLayer', '${process.env.NEXT_PUBLIC_GTM_ID}');
-            `,
-            }}
-        />
+        <Script id="gtm-script" strategy="afterInteractive">
+          {`
+            (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+            new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+            j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+            'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+            })(window,document,'script','dataLayer', '${process.env.NEXT_PUBLIC_GTM_ID}');
+          `}
+        </Script>
       </body>
     </html>
   );

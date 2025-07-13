@@ -1,43 +1,44 @@
-"use client"
+// /components/supabase-provider.tsx
+"use client";
 
-import { createContext, useContext, type ReactNode } from "react"
-import { createClient, type SupabaseClient } from "@supabase/supabase-js"
+import { createContext, useContext, useEffect, useState } from "react";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import type { SupabaseClient, Session } from "@supabase/supabase-js";
 
-/* -------------------------------------------------
-   1.  Singleton Supabase browser client
-   ------------------------------------------------- */
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+type SupabaseContextType = {
+  supabase: SupabaseClient;
+  session: Session | null;
+};
 
-let _client: SupabaseClient | null = null
-function getBrowserClient() {
-  if (_client) return _client
-  // you can pass additional options if needed
-  _client = createClient(supabaseUrl, supabaseAnonKey)
-  return _client
+const SupabaseContext = createContext<SupabaseContextType | null>(null);
+
+export function SupabaseProvider({ children }: { children: React.ReactNode }) {
+  const [supabase] = useState(() => createClientComponentClient());
+  const [session, setSession] = useState<Session | null>(null);
+
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  return (
+    <SupabaseContext.Provider value={{ supabase, session }}>
+      {children}
+    </SupabaseContext.Provider>
+  );
 }
 
-/* -------------------------------------------------
-   2.  React Context
-   ------------------------------------------------- */
-const SupabaseContext = createContext<SupabaseClient | null>(null)
-
-/**
- * Provider that makes a singleton Supabase browser client
- * available to all child components.
- */
-export function SupabaseProvider({ children }: { children: ReactNode }) {
-  const supabase = getBrowserClient()
-
-  return <SupabaseContext.Provider value={supabase}>{children}</SupabaseContext.Provider>
-}
-
-/**
- * Convenience hook to access the client.
- */
-export function useSupabase() {
-  return useContext(SupabaseContext)
-}
-
-/* default export for easier importing */
-export default SupabaseProvider
+export const useSupabase = () => {
+  const context = useContext(SupabaseContext);
+  if (context === null) {
+    throw new Error("useSupabase must be used within a SupabaseProvider");
+  }
+  return context;
+};

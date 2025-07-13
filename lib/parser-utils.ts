@@ -6,27 +6,13 @@ import type { KodikAnimeData } from "@/lib/types";
 export function transformToAnimeRecord(anime: KodikAnimeData) {
     const material = anime.material_data || {};
     
-    // ИСПРАВЛЕНИЕ: Новая логика выбора постера с приоритетом постеров
-    let finalPosterUrl: string | null = null;
-    const shikimoriPoster = material.poster_url;
-    const otherPoster = anime.poster_url;
-
-    // 1. Приоритет №1: Постер с Shikimori
-    if (shikimoriPoster && shikimoriPoster.includes('shikimori.one')) {
-        finalPosterUrl = shikimoriPoster;
-    }
-    // 2. Приоритет №2: Любой другой постер (кроме Яндекса)
-    else if (otherPoster && !otherPoster.includes('yandex')) {
-        finalPosterUrl = otherPoster;
-    }
-    // 3. Приоритет №3: Первый скриншот как крайний случай, если постеров нет
-    else if (anime.screenshots && anime.screenshots.length > 0) {
-        finalPosterUrl = anime.screenshots[0];
-    }
+    // ИСПРАВЛЕНИЕ: Логика выбора постера. Приоритет у постеров.
+    // Скриншот используется только в крайнем случае, если постера нет.
+    const finalPosterUrl = material.poster_url || anime.poster_url || (anime.screenshots && anime.screenshots.length > 0 ? anime.screenshots[0] : null);
 
     return {
         poster_url: finalPosterUrl,
-        screenshots: anime.screenshots || [], // По-прежнему сохраняем скриншоты в отдельное поле
+        screenshots: anime.screenshots || [],
         
         // Остальные поля
         shikimori_id: anime.shikimori_id,

@@ -1,4 +1,4 @@
-// /app/api/studios/route.ts
+// /app/api/tags/route.ts
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
@@ -11,7 +11,7 @@ export async function GET() {
 
   try {
     const { data, error } = await supabase
-      .from('studios')
+      .from('tags')
       .select('id, name, slug')
       .order('name', { ascending: true });
 

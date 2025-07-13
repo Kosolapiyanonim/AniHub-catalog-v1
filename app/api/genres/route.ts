@@ -1,3 +1,4 @@
+// /app/api/genres/route.ts
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
@@ -15,6 +16,7 @@ export async function GET() {
       .order('name', { ascending: true });
 
     if (error) throw error;
+
     return NextResponse.json(data);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

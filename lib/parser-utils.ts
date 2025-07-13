@@ -14,7 +14,7 @@ export function transformToAnimeRecord(anime: KodikAnimeData) {
     
     let finalPosterUrl: string | null = null;
 
-    // --- ФИНАЛЬНАЯ ЛОГИКА ВЫБОРА ПОСТЕРА ---
+    // --- ФИНАЛЬНАЯ ЛОГИКА ВЫБОРА ПОСТЕРА (БЕЗ СКРИНШОТОВ) ---
     const materialPoster = material.poster_url;
     const rootPoster = anime.poster_url;
 
@@ -30,18 +30,15 @@ export function transformToAnimeRecord(anime: KodikAnimeData) {
     } else if (rootPoster && !rootPoster.includes('yandex')) {
         finalPosterUrl = rootPoster;
     }
-    // 3. Приоритет №3: Первый скриншот
-    else if (anime.screenshots && anime.screenshots.length > 0) {
-        finalPosterUrl = anime.screenshots[0];
+    // 3. Приоритет №3: Яндекс как крайний случай
+    else if (materialPoster || rootPoster) {
+        finalPosterUrl = materialPoster || rootPoster;
     }
-    // 4. Приоритет №4: Яндекс как крайний случай
-    else {
-        finalPosterUrl = materialPoster || rootPoster || null;
-    }
+    // Если ничего не подошло, finalPosterUrl останется null
 
     return {
         poster_url: finalPosterUrl,
-        screenshots: anime.screenshots || [],
+        screenshots: anime.screenshots || [], // По-прежнему сохраняем скриншоты в их собственное поле
         
         shikimori_id: anime.shikimori_id,
         title: material.anime_title || anime.title,

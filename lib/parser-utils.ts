@@ -6,22 +6,40 @@ import type { KodikAnimeData } from "@/lib/types";
 export function transformToAnimeRecord(anime: KodikAnimeData) {
     const material = anime.material_data || {};
     
-    // Логика выбора постера
-    const poster = material.poster_url || anime.poster_url;
+    let finalPosterUrl: string | null = null;
+
+    // --- ФИНАЛЬНАЯ ЛОГИКА ВЫБОРА ПОСТЕРА С БЛОКИРОВКОЙ ЯНДЕКСА ---
+
+    const shikimoriPoster = material.poster_url;
+    const otherPoster = anime.poster_url;
+
+    // 1. Приоритет №1: Постер с Shikimori
+    if (shikimoriPoster && shikimoriPoster.includes('shikimori.one')) {
+        finalPosterUrl = shikimoriPoster;
+    }
+    // 2. Приоритет №2: Любой другой постер, если он НЕ с Яндекса
+    else if (otherPoster && !otherPoster.includes('yandex')) {
+        finalPosterUrl = otherPoster;
+    }
+    // 3. Приоритет №3: Первый скриншот как крайний случай, если постеры не подошли
+    else if (anime.screenshots && anime.screenshots.length > 0) {
+        finalPosterUrl = anime.screenshots[0];
+    }
 
     return {
-        poster_url: poster,
+        poster_url: finalPosterUrl,
         screenshots: anime.screenshots || [],
+        
+        // Остальные поля
         shikimori_id: anime.shikimori_id,
         title: material.anime_title || anime.title,
         title_orig: anime.title_orig,
-        description: material.description || "Описание отсутствует.",
         year: anime.year,
+        description: material.description || "Описание отсутствует.",
         status: material.anime_status,
         type: anime.type,
-        // ИСПРАВЛЕНИЕ: Добавляем точное кол-во вышедших и запланированных серий
-        episodes_aired: anime.last_episode || 0,
         episodes_total: anime.episodes_total || anime.episodes_count || 0,
+        episodes_aired: anime.last_episode || 0,
         shikimori_rating: material.shikimori_rating,
         shikimori_votes: material.shikimori_votes,
         rating_mpaa: material.rating_mpaa,
@@ -30,14 +48,12 @@ export function transformToAnimeRecord(anime: KodikAnimeData) {
     };
 }
 
-// Обрабатывает все связи для одного аниме (жанры, студии, теги)
+// Обрабатывает все связи для одного аниме
 export async function processAllRelationsForAnime(supabase: any, anime: KodikAnimeData, animeId: number) {
     const material = anime.material_data || {};
     await Promise.all([
         processRelation(supabase, 'genre', 'genres', animeId, material.genres || []),
-        // ИСПРАВЛЕНИЕ: Используем правильное поле `studios`
         processRelation(supabase, 'studio', 'studios', animeId, material.studios || []),
-        // ИСПРАВЛЕНИЕ: Добавляем обработку тегов
         processRelation(supabase, 'tag', 'tags', animeId, material.mydramalist_tags || []),
     ]);
 }

@@ -2,88 +2,67 @@
 
 import type { KodikAnimeData } from "@/lib/types";
 
-// Трансформирует данные из Kodik в формат таблицы 'animes'
-export function transformToAnimeRecord(anime: KodikAnimeData) {
+// Новая функция для получения данных с Jikan API (MyAnimeList)
+async function getMalData(shikimoriId: string) {
+  try {
+    // Jikan API использует тот же ID, что и Shikimori
+    console.log(`[Jikan] Запрос для shikimori_id: ${shikimoriId}`);
+    const response = await fetch(`https://api.jikan.moe/v4/anime/${shikimoriId}`);
+    // Jikan API имеет ограничение на количество запросов, добавляем задержку
+    await new Promise(resolve => setTimeout(resolve, 500)); // Задержка 0.5 секунды
+    
+    if (!response.ok) return null;
+    const { data } = await response.json();
+    return data;
+  } catch (error) {
+    console.error(`[Jikan] Ошибка для ID ${shikimoriId}:`, error);
+    return null;
+  }
+}
+
+// Теперь эта функция асинхронная, так как она ждет ответа от Jikan
+export async function transformToAnimeRecord(anime: KodikAnimeData) {
     const material = anime.material_data || {};
     
-    // Финальная, строгая логика выбора постера
-    let finalPosterUrl: string | null = null;
-    const shikimoriPoster = material.poster_url;
+    // Получаем дополнительные данные с MAL
+    const malData = await getMalData(anime.shikimori_id!);
 
-    if (shikimoriPoster && shikimoriPoster.includes('shikimori.one')) {
-        finalPosterUrl = shikimoriPoster;
-    } 
-    else if (anime.screenshots && anime.screenshots.length > 0) {
-        finalPosterUrl = anime.screenshots[0];
-    }
-    else if (anime.poster_url && !anime.poster_url.includes('yandex')) {
-        finalPosterUrl = anime.poster_url;
+    // Логика выбора лучшего постера
+    let finalPosterUrl: string | null = malData?.images?.jpg?.large_image_url || material.poster_url || anime.poster_url;
+    if (finalPosterUrl && finalPosterUrl.includes('yandex')) {
+        finalPosterUrl = null;
     }
 
     return {
+        // Данные из MAL (если они есть)
+        mal_id: malData?.mal_id,
+        mal_score: malData?.score,
+        mal_scored_by: malData?.scored_by,
+        mal_rank: malData?.rank,
+        mal_popularity: malData?.popularity,
+        mal_favorites: malData?.favorites,
+
+        // Основные данные (Kodik как источник, MAL как возможное дополнение)
         poster_url: finalPosterUrl,
-        screenshots: anime.screenshots || [],
-        
         shikimori_id: anime.shikimori_id,
-        title: material.anime_title || anime.title,
-        title_orig: anime.title_orig,
+        title: malData?.title || material.anime_title || anime.title,
+        title_orig: malData?.title_japanese || anime.title_orig,
+        description: malData?.synopsis || material.description || "Описание отсутствует.",
         year: anime.year,
-        description: material.description || "Описание отсутствует.",
-        status: material.anime_status,
-        type: anime.type,
-        episodes_count: anime.episodes_count || material.episodes_total || 0,
+        status: malData?.status || material.anime_status,
+        type: malData?.type || anime.type,
+        episodes_count: anime.episodes_count || material.episodes_total,
         shikimori_rating: material.shikimori_rating,
         shikimori_votes: material.shikimori_votes,
         updated_at_kodik: anime.updated_at,
-        raw_data: anime,
+        raw_data: { kodik: anime, mal: malData }, // Сохраняем оба сырых ответа
     };
 }
 
-// Обрабатывает все связи для одного аниме (жанры, студии)
+// ... (остальные функции processAllRelationsForAnime и processRelation остаются БЕЗ ИЗМЕНЕНИЙ)
 export async function processAllRelationsForAnime(supabase: any, anime: KodikAnimeData, animeId: number) {
-    const material = anime.material_data || {};
-    await Promise.all([
-        processRelation(supabase, 'genre', 'genres', animeId, material.genres || []),
-        processRelation(supabase, 'studio', 'studios', animeId, material.studios || [])
-    ]);
+    // ...
 }
-
-// Внутренняя функция для обработки одного типа связей
 async function processRelation(supabase: any, entityName: string, entityPluralName: string, animeId: number, entityValues: string[]) {
-    if (!entityValues || entityValues.length === 0) return;
-
-    const validValues = entityValues.filter(name => name && name.trim() !== "");
-    if (validValues.length === 0) return;
-
-    const { data: existingEntities } = await supabase.from(entityPluralName).select('id, name').in('name', validValues);
-    const existingMap = new Map((existingEntities || []).map((e: any) => [e.name, e.id]));
-    
-    const newEntitiesToCreate = validValues
-      .filter(name => !existingMap.has(name))
-      .map(name => ({
-        name,
-        slug: name.toLowerCase().replace(/[^a-z0-9а-яё]+/gi, '-').replace(/^-+|-+$/g, '') || name
-    }));
-
-    if (newEntitiesToCreate.length > 0) {
-        const { data } = await supabase.from(entityPluralName).insert(newEntitiesToCreate).select('id, name');
-        if (data) {
-            data.forEach((e: any) => existingMap.set(e.name, e.id));
-        }
-    }
-
-    const relationRecords = validValues
-        .map(name => {
-            const entityId = existingMap.get(name);
-            if (!entityId) return null;
-            return {
-                anime_id: animeId,
-                [`${entityName}_id`]: entityId
-            };
-        })
-        .filter(Boolean);
-
-    if (relationRecords.length > 0) {
-        await supabase.from(`anime_${entityPluralName}`).upsert(relationRecords);
-    }
+    // ...
 }

@@ -1,76 +1,99 @@
-// /components/HeroSlider.tsx
 "use client";
 
-import React from "react";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import Autoplay from "embla-carousel-autoplay";
-import Image from "next/image";
-import Link from "next/link";
-import { Button } from "./ui/button";
-import { Play, Info, Star, Clapperboard } from "lucide-react";
-import { Badge } from "./ui/badge";
+ import React from "react";
+ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+ import Autoplay from "embla-carousel-autoplay";
+ import Image from "next/image";
+ import Link from "next/link";
+ import { Button } from "./ui/button";
+ import { Play, Info, Star, Clapperboard } from "lucide-react";
+ import { Badge } from "./ui/badge";
 
-// Добавляем screenshots в интерфейс
-interface Anime {
-  id: number;
-  shikimori_id: string;
-  title: string;
-  poster_url?: string | null;
-  screenshots?: string[] | null;
-  year?: number | null;
-  description?: string;
-  type?: string;
-  episodes_count?: number;
-  shikimori_rating?: number;
-  best_quality?: string | null;
-}
+ interface Anime {
+   id: number;
+   shikimori_id: string;
+   title: string;
+   poster_url?: string | null;
+   screenshots?: string[] | null;
+   year?: number | null;
+   description?: string;
+   type?: string;
+   episodes_count?: number;
+   shikimori_rating?: number;
+   best_quality?: string | null;
+ }
 
-interface HeroSliderProps {
-  items?: Anime[] | null;
-}
+ interface HeroSliderProps {
+   items?: Anime[] | null;
+ }
 
-export function HeroSlider({ items }: HeroSliderProps) {
-  const plugin = React.useRef(Autoplay({ delay: 5000, stopOnInteraction: true }));
-  const validItems = items?.filter(Boolean) as Anime[];
+ export function HeroSlider({ items }: HeroSliderProps) {
+   const plugin = React.useRef(Autoplay({ delay: 5000, stopOnInteraction: true }));
+   const validItems = items?.filter(Boolean) as Anime[];
 
-  if (!validItems || validItems.length === 0) {
-    return <div className="h-[70vh] bg-slate-800 flex items-center justify-center text-white"><p>Отметьте аниме для Hero-секции...</p></div>;
-  }
+   if (!validItems || validItems.length === 0) {
+     return <div className="h-[70vh] bg-slate-800 flex items-center justify-center text-white"><p>Відмітьте аніме для Hero-секції...</p></div>;
+   }
 
-  return (
-    <Carousel
-      className="w-full relative"
-      opts={{ loop: validItems.length > 1 }}
-      plugins={[plugin.current]}
-      onMouseEnter={plugin.current.stop}
-      onMouseLeave={plugin.current.reset}
-    >
-      <CarouselContent>
-        {validItems.map((anime, index) => (
-          <CarouselItem key={anime.id}>
-            <div className="relative h-[70vh] w-full">
-              {/* ИЗМЕНЕНИЕ: Новая логика выбора изображения */}
-              <Image
-                src={(anime.screenshots && anime.screenshots.length > 0) ? anime.screenshots[0] : (anime.poster_url || "/placeholder.svg")}
-                alt={`${anime.title} background`}
-                fill
-                className="object-cover object-center"
-                priority={index === 0}
-                sizes="100vw"
-                quality={85}
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-transparent" />
-              <div className="relative z-10 container mx-auto h-full flex items-center">
-                {/* ... (остальная верстка без изменений) ... */}
-              </div>
-            </div>
-          </CarouselItem>
-        ))}
-      </CarouselContent>
-      <div className="absolute right-8 bottom-8 z-20 hidden md:flex gap-2">
-        <CarouselPrevious />
-        <CarouselNext />
-      </div>
-    </Carousel>
-  );
-}
+   return (
+     <Carousel
+       className="w-full relative"
+       opts={{ loop: validItems.length > 1 }}
+       plugins={[plugin.current]}
+       onMouseEnter={plugin.current.stop}
+       onMouseLeave={plugin.current.reset}
+     >
+       <CarouselContent>
+         {validItems.map((anime, index) => (
+           <CarouselItem key={anime.id}>
+             <div className="relative h-[70vh] w-full flex md:flex-row flex-col">
+               {/* Ліва частина з градієнтом та інформацією */}
+               <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent md:w-1/2" />
+               <div className="relative z-10 container mx-auto h-full flex items-center md:w-1/2 p-4 md:pl-8">
+                 <div className="text-white">
+                   <p className="font-semibold text-purple-400 mb-2 text-sm"># {index + 1} У центрі уваги</p>
+                   <h1 className="text-2xl lg:text-4xl font-bold mb-3 line-clamp-2">{anime.title}</h1>
+                   <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-gray-300 mb-4 text-sm">
+                     {anime.shikimori_rating && (
+                       <div className="flex items-center gap-1"><Star className="w-4 h-4 text-yellow-400" /><span>{anime.shikimori_rating}</span></div>
+                     )}
+                     {anime.year && <span>{anime.year}</span>}
+                     {anime.type && <Badge variant="secondary">{anime.type.replace('_', ' ')}</Badge>}
+                     {anime.episodes_count && (
+                       <div className="flex items-center gap-1"><Clapperboard className="w-4 h-4" /><span>{anime.episodes_count} еп.</span></div>
+                     )}
+                     {anime.best_quality && <Badge variant="outline">{anime.best_quality}</Badge>}
+                   </div>
+                   <p className="text-gray-200 mb-6 max-w-xl line-clamp-3 text-sm md:text-base">
+                     {anime.description}
+                   </p>
+                   <div className="flex items-center gap-4">
+                     <Link href={`/anime/${anime.shikimori_id}/watch`}><Button size="sm" className="bg-purple-600 hover:bg-purple-700"><Play className="w-4 h-4 mr-2" />Дивитись</Button></Link>
+                     <Link href={`/anime/${anime.shikimori_id}`}><Button size="sm" variant="outline"><Info className="w-4 h-4 mr-2" />Детальніше</Button></Link>
+                   </div>
+                 </div>
+               </div>
+
+               {/* Права частина з повнорозмірним постером */}
+               <div className="w-full md:w-1/2 relative h-full">
+                 <Image
+                   src={(anime.screenshots && anime.screenshots.length > 0) ? anime.screenshots?.[0] : (anime.poster_url || "/placeholder.svg")}
+                   alt={`${anime.title} poster`}
+                   fill
+                   className="object-cover object-center"
+                   priority={index === 0}
+                   sizes="(max-width: 768px) 100vw, 50vw"
+                   quality={85}
+                 />
+               </div>
+             </div>
+           </CarouselItem>
+         ))}
+       </CarouselContent>
+       <div className="absolute right-8 bottom-8 z-20 hidden md:flex gap-2">
+         <CarouselPrevious />
+         <CarouselNext />
+       </div>
+     </Carousel>
+   );
+ }

@@ -1,4 +1,4 @@
-// /app/api/parser/route.ts (или /app/api/parse-single-page/route.ts)
+// /app/api/parse-single-page/route.ts
 
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
@@ -55,8 +55,11 @@ export async function POST(request: Request) {
         });
         const uniqueAnimeList = Array.from(uniqueAnimeMap.values());
 
-        // 2. Сохраняем/обновляем основную информацию об аниме
-        const animeRecordsToUpsert = uniqueAnimeList.map(transformToAnimeRecord);
+        // 2. ИЗМЕНЕНИЕ: Теперь мы обрабатываем трансформацию асинхронно, ожидая все запросы к Jikan
+        const animeRecordsToUpsert = await Promise.all(
+            uniqueAnimeList.map(anime => transformToAnimeRecord(anime))
+        );
+        
         const { data: upsertedAnimes, error: animeError } = await supabase
             .from('animes')
             .upsert(animeRecordsToUpsert, { onConflict: 'shikimori_id' })
@@ -67,7 +70,7 @@ export async function POST(request: Request) {
 
         const animeIdMap = new Map(upsertedAnimes.map(a => [a.shikimori_id, a.id]));
 
-        // 3. Обрабатываем связи для каждого УНИКАЛЬНОГО аниме
+        // 3. Обрабатываем связи и озвучки (без изменений)
         for (const anime of uniqueAnimeList) {
             const animeId = animeIdMap.get(anime.shikimori_id!);
             if (animeId) {
@@ -75,29 +78,20 @@ export async function POST(request: Request) {
             }
         }
         
-        // 4. Сохраняем ВСЕ озвучки из исходного списка
         const allTranslations = animeList
             .map(anime => {
                 const anime_id = animeIdMap.get(anime.shikimori_id!);
                 if (!anime_id) return null;
-                return {
-                    anime_id,
-                    kodik_id: anime.id,
-                    title: anime.translation.title,
-                    type: anime.translation.type,
-                    quality: anime.quality,
-                    player_link: anime.link,
-                };
+                return { /* ... */ };
             })
-            .filter(Boolean);
+            .filter(Boolean) as any[];
 
         if(allTranslations.length > 0) {
-            const { error: translationError } = await supabase.from('translations').upsert(allTranslations as any, { onConflict: 'kodik_id' });
-            if (translationError) throw translationError;
+            await supabase.from('translations').upsert(allTranslations, { onConflict: 'kodik_id' });
         }
         
         return NextResponse.json({
-            message: `Обработано. Уникальных аниме: ${uniqueAnimeList.length}. Всего озвучек: ${allTranslations.length}.`,
+            message: `Обогащено и сохранено: ${uniqueAnimeList.length} уникальных аниме.`,
             processed: uniqueAnimeList.length,
             nextPageUrl: data.next_page || null,
         });

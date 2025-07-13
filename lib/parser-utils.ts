@@ -6,27 +6,14 @@ import type { KodikAnimeData } from "@/lib/types";
 export function transformToAnimeRecord(anime: KodikAnimeData) {
     const material = anime.material_data || {};
     
-    let finalPosterUrl: string | null = null;
-
-    // --- ФИНАЛЬНАЯ ЛОГИКА ВЫБОРА ПОСТЕРА С БЛОКИРОВКОЙ ЯНДЕКСА ---
-    const materialPoster = material.poster_url;
-    const rootPoster = anime.poster_url;
-
-    // 1. Проверяем постер из material_data
-    if (materialPoster && !materialPoster.includes('yandex')) {
-        finalPosterUrl = materialPoster;
-    } 
-    // 2. Если первый не подошел, проверяем корневой постер
-    else if (rootPoster && !rootPoster.includes('yandex')) {
-        finalPosterUrl = rootPoster;
-    }
-    // Если оба условия не выполнены, finalPosterUrl останется null
+    // --- ПРОСТАЯ И НАДЕЖНАЯ ЛОГИКА ВЫБОРА ПОСТЕРА ---
+    // Берем постер из material_data, если его нет, берем из корневого объекта.
+    const poster = material.poster_url || anime.poster_url;
 
     return {
-        poster_url: finalPosterUrl,
+        poster_url: poster || null, // Если постера нет нигде, сохраняем null
         screenshots: anime.screenshots || [],
         
-        // Остальные поля
         shikimori_id: anime.shikimori_id,
         title: material.anime_title || anime.title,
         title_orig: anime.title_orig,

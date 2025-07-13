@@ -1,66 +1,32 @@
 // /app/page.tsx
+
 import { HeroSlider } from "@/components/HeroSlider";
 import { AnimeCarousel } from "@/components/AnimeCarousel";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { TrendingUp, Star, Zap, CheckCircle } from "lucide-react";
 import { Suspense } from "react";
+import { getHomePageData } from "@/lib/data-fetchers"; // <-- ИМПОРТИРУЕМ НАШУ НОВУЮ ФУНКЦИЮ
 
-interface Anime {
-  id: number;
-  shikimori_id: string;
-  title: string;
-  poster_url?: string | null;
-  year?: number | null;
-  description?: string;
-}
-
-interface HomePageData {
-  hero?: Anime[] | null;
-  trending?: Anime[] | null;
-  popular?: Anime[] | null;
-  recentlyCompleted?: Anime[] | null;
-  latestUpdates?: Anime[] | null;
-}
-
-// Эта функция остается без изменений
-async function getHomePageData(): Promise<HomePageData> {
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/homepage-sections`, {
-      cache: 'no-store', 
-    });
-    
-    if (!response.ok) {
-      console.error("Failed to fetch homepage data:", response.statusText);
-      return {};
-    }
-    
-    return response.json();
-  } catch (error) {
-    console.error("Error in getHomePageData:", error);
-    return {};
-  }
-}
+// Принудительно делаем страницу динамической, чтобы она всегда запрашивала свежие данные
+export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
+  // Вызываем функцию напрямую, вместо fetch
   const data = await getHomePageData();
-
-  // Фильтруем данные для надежности
-  const cleanHeroItems = data.hero?.filter(Boolean) || [];
-  const cleanTrendingItems = data.trending?.filter(Boolean) || [];
-  const cleanPopularItems = data.popular?.filter(Boolean) || [];
-  const cleanLatestUpdates = data.latestUpdates?.filter(Boolean) || [];
-  const cleanRecentlyCompleted = data.recentlyCompleted?.filter(Boolean) || [];
+  
+  // Добавляем лог, чтобы видеть данные на сервере (в логах Vercel)
+  console.log('Hero items fetched on server:', data.hero?.length || 0);
 
   return (
     <div className="min-h-screen bg-slate-900">
-      {/* Передаем ВЕСЬ массив в компонент, он сам разберется с поэтапной загрузкой */}
-      <HeroSlider initialItems={cleanHeroItems} />
+      <HeroSlider items={data.hero} />
 
       <main className="container mx-auto px-4 py-12 space-y-12">
+        {/* ... остальные карусели ... */}
         <Suspense fallback={<LoadingSpinner />}>
           <AnimeCarousel 
             title="Тренды сезона" 
-            items={cleanTrendingItems} 
+            items={data.trending} 
             viewAllLink="/catalog?sort=updated_at"
             icon={<TrendingUp />}
           />
@@ -69,27 +35,9 @@ export default async function HomePage() {
         <Suspense fallback={<LoadingSpinner />}>
           <AnimeCarousel 
             title="Самое популярное" 
-            items={cleanPopularItems} 
+            items={data.popular} 
             viewAllLink="/catalog?sort=shikimori_votes"
             icon={<Star />}
-          />
-        </Suspense>
-        
-        <Suspense fallback={<LoadingSpinner />}>
-          <AnimeCarousel 
-            title="Последние обновления" 
-            items={cleanLatestUpdates} 
-            viewAllLink="/catalog?sort=updated_at_kodik"
-            icon={<Zap />}
-          />
-        </Suspense>
-
-        <Suspense fallback={<LoadingSpinner />}>
-          <AnimeCarousel 
-            title="Недавно завершенные" 
-            items={cleanRecentlyCompleted} 
-            viewAllLink="/catalog?status=released"
-            icon={<CheckCircle />}
           />
         </Suspense>
       </main>

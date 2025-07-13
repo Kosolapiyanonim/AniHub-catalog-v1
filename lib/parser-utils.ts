@@ -6,14 +6,24 @@ import type { KodikAnimeData } from "@/lib/types";
 export function transformToAnimeRecord(anime: KodikAnimeData) {
     const material = anime.material_data || {};
     
-    // --- НОВАЯ, ПРАВИЛЬНАЯ ЛОГИКА ВЫБОРА ПОСТЕРА ---
-    // Сначала ищем 'anime_poster_url', и только если его нет, берем 'poster_url'.
-    const poster = material.anime_poster_url || material.poster_url || anime.poster_url;
+    // Финальная, строгая логика выбора постера
+    let finalPosterUrl: string | null = null;
+    const shikimoriPoster = material.poster_url;
+
+    if (shikimoriPoster && shikimoriPoster.includes('shikimori.one')) {
+        finalPosterUrl = shikimoriPoster;
+    } 
+    else if (anime.screenshots && anime.screenshots.length > 0) {
+        finalPosterUrl = anime.screenshots[0];
+    }
+    else if (anime.poster_url && !anime.poster_url.includes('yandex')) {
+        finalPosterUrl = anime.poster_url;
+    }
 
     return {
-        poster_url: poster,
+        poster_url: finalPosterUrl,
+        screenshots: anime.screenshots || [],
         
-        // Остальные поля остаются как есть
         shikimori_id: anime.shikimori_id,
         title: material.anime_title || anime.title,
         title_orig: anime.title_orig,
@@ -25,14 +35,17 @@ export function transformToAnimeRecord(anime: KodikAnimeData) {
         shikimori_rating: material.shikimori_rating,
         shikimori_votes: material.shikimori_votes,
         updated_at_kodik: anime.updated_at,
+        raw_data: anime,
     };
 }
 
 // Обрабатывает все связи для одного аниме (жанры, студии)
 export async function processAllRelationsForAnime(supabase: any, anime: KodikAnimeData, animeId: number) {
     const material = anime.material_data || {};
-    await processRelation(supabase, 'genre', 'genres', animeId, material.genres || []);
-    await processRelation(supabase, 'studio', 'studios', animeId, material.studios || []);
+    await Promise.all([
+        processRelation(supabase, 'genre', 'genres', animeId, material.genres || []),
+        processRelation(supabase, 'studio', 'studios', animeId, material.studios || [])
+    ]);
 }
 
 // Внутренняя функция для обработки одного типа связей
@@ -61,13 +74,14 @@ async function processRelation(supabase: any, entityName: string, entityPluralNa
 
     const relationRecords = validValues
         .map(name => {
-            if (!name) return null;
+            const entityId = existingMap.get(name);
+            if (!entityId) return null;
             return {
                 anime_id: animeId,
-                [`${entityName}_id`]: existingMap.get(name)
-            }
+                [`${entityName}_id`]: entityId
+            };
         })
-        .filter(r => r && r[`${entityName}_id`]);
+        .filter(Boolean);
 
     if (relationRecords.length > 0) {
         await supabase.from(`anime_${entityPluralName}`).upsert(relationRecords);

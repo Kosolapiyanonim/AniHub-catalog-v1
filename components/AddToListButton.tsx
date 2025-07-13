@@ -86,7 +86,17 @@ export function AddToListButton({ animeId, initialStatus, variant = 'full' }: Ad
              (<><Plus className="w-4 h-4 mr-2" />Добавить в список</>)}
           </Button>
         ) : (
-          <Button variant="secondary" size="icon" className="h-8 w-8" disabled={loading} onClick={(e) => {e.preventDefault(); e.stopPropagation();}}>
+          <Button 
+              variant="secondary" 
+              size="icon" 
+              className="h-8 w-8" 
+              disabled={loading}
+              // ИСПРАВЛЕНИЕ: Останавливаем всплытие клика
+              onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+              }}
+          >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 
              currentStatus ? <Check className="w-4 h-4 text-green-500" /> : 
              <Plus className="w-4 h-4" />}

@@ -12,9 +12,9 @@ const nextConfig = {
       { hostname: 'shikimori.one' },
       { hostname: 'dere.shikimori.one' },
       { hostname: 'nyaa.shikimori.one' },
-      { hostname: 'kodik.biz' }, // Simpler wildcard
-      { hostname: 'st.kodik.biz' }, // Explicit subdomain
-      { hostname: 'kodik.info' },
+      { hostname: '*.kodik.biz' },
+      { hostname: 'st.kodik.biz' },
+      { hostname: '*.kodik.info' },
       { hostname: 'st.kodik.info' },
       { hostname: 'avatars.mds.yandex.net' },
       { hostname: 'kinopoiskapiunofficial.tech' },

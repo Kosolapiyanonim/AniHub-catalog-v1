@@ -1,3 +1,4 @@
+// /components/AnimeListPopover.tsx
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -6,15 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from 'sonner';
 import { useSupabase } from './supabase-provider';
-import { Check, Plus, Loader2 } from 'lucide-react';
+import { Check, Plus, Loader2, Bookmark } from 'lucide-react';
 
 const statuses = [
   { key: "watching", label: "Смотрю" },
   { key: "planned", label: "В планах" },
   { key: "completed", label: "Просмотрено" },
-  { key: "rewatching", label: "Пересматриваю" },
-  { key: "on_hold", label: "Отложено" },
-  { key: "dropped", label: "Брошено" },
 ];
 
 interface AnimeData {
@@ -29,14 +27,19 @@ interface AnimeData {
 
 interface AnimeListPopoverProps {
   anime: AnimeData;
-  children: React.ReactNode; // The button that will trigger the popover
+  children: React.ReactNode;
+  onStatusChange?: (newStatus: string | null) => void;
 }
 
-export function AnimeListPopover({ anime, children }: AnimeListPopoverProps) {
+export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListPopoverProps) {
   const { session } = useSupabase();
   const [isOpen, setIsOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState(anime.user_list_status);
   const [loadingStatus, setLoadingStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCurrentStatus(anime.user_list_status);
+  }, [anime.user_list_status]);
 
   const handleStatusChange = async (newStatus: string) => {
     if (!session) {
@@ -52,34 +55,42 @@ export function AnimeListPopover({ anime, children }: AnimeListPopoverProps) {
       });
       if (!response.ok) throw new Error("Ошибка обновления статуса");
       
-      setCurrentStatus(newStatus);
+      const newResolvedStatus = newStatus === 'remove' ? null : newStatus;
+      setCurrentStatus(newResolvedStatus);
+      if (onStatusChange) {
+        onStatusChange(newResolvedStatus);
+      }
       toast.success("Статус обновлен!");
     } catch (error) {
       toast.error("Не удалось обновить статус.");
     } finally {
       setLoadingStatus(null);
+      setIsOpen(false);
     }
   };
   
   if (!session) {
-      return <>{children}</>; // Guests see the button but can't interact
+      return <>{children}</>;
   }
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>{children}</PopoverTrigger>
-      <PopoverContent className="w-80 bg-slate-800 border-slate-700 text-white p-0">
+      <PopoverTrigger asChild onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsOpen(true); }}>
+        {children}
+      </PopoverTrigger>
+      <PopoverContent className="w-80 bg-slate-800 border-slate-700 text-white p-0" onClick={(e) => { e.preventDefault(); e.stopPropagation();}}>
         <div className="flex space-x-4 p-4">
           <div className="w-20 h-28 relative shrink-0">
             <Image
               src={anime.poster_url || "/placeholder.svg"}
               alt={anime.title}
               fill
+              sizes="80px"
               className="object-cover rounded"
             />
           </div>
           <div className="space-y-1">
-            <h4 className="font-semibold">{anime.title}</h4>
+            <h4 className="font-semibold line-clamp-2">{anime.title}</h4>
             <p className="text-sm text-gray-400 capitalize">
               {anime.type?.replace('_', ' ')} • {anime.year}
             </p>
@@ -88,7 +99,7 @@ export function AnimeListPopover({ anime, children }: AnimeListPopoverProps) {
         </div>
         <div className="p-4 border-t border-slate-700">
             <p className="text-sm font-medium mb-2">Добавить в список</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2">
                 {statuses.map(status => (
                     <Button
                         key={status.key}
@@ -96,9 +107,11 @@ export function AnimeListPopover({ anime, children }: AnimeListPopoverProps) {
                         size="sm"
                         onClick={() => handleStatusChange(status.key)}
                         disabled={loadingStatus === status.key}
+                        className="justify-start"
                     >
-                        {loadingStatus === status.key ? <Loader2 className="h-4 w-4 animate-spin" /> : status.label}
-                        {currentStatus === status.key && <Check className="h-4 w-4 ml-auto" />}
+                        <Bookmark className="h-4 w-4 mr-2" />
+                        {loadingStatus === status.key ? "Сохранение..." : status.label}
+                        {currentStatus === status.key && <Check className="h-4 w-4 ml-auto text-green-500" />}
                     </Button>
                 ))}
             </div>

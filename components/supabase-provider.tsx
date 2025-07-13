@@ -23,6 +23,14 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
     });
 
+    // Первоначальное получение сессии
+    const getInitialSession = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+    }
+    getInitialSession();
+
+
     return () => {
       subscription.unsubscribe();
     };

@@ -10,24 +10,26 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Toaster } from "@/components/ui/sonner";
 import { Suspense } from "react";
-import { SupabaseProvider } from "@/components/supabase-provider"; // <-- Импорт
+import { SupabaseProvider } from "@/components/supabase-provider";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"], display: "swap" });
+
 export const metadata: Metadata = {
   title: "AniHub - Смотреть аниме онлайн",
-  description: "Лучший сайт для просмотра аниме онлайн.",
+  description: "Лучший сайт для просмотра аниме онлайн. Большая коллекция аниме с русской озвучкой и субтитрами.",
     generator: 'v0.dev'
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: { children: React.ReactNode; }) {
   return (
     <html lang="ru" suppressHydrationWarning>
       <body className={`${inter.className} bg-slate-900 text-white`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-          {/* Оборачиваем основной контент в SupabaseProvider */}
           <SupabaseProvider>
             <div className="relative flex min-h-screen flex-col">
-              <Suspense fallback={null}><Header /></Suspense>
+              <Suspense fallback={null}>
+                <Header />
+              </Suspense>
               <main className="flex-1">{children}</main>
               <Footer />
             </div>

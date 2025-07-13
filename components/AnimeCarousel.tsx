@@ -1,12 +1,7 @@
+// /components/AnimeCarousel.tsx
 "use client";
 
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { AnimeCard } from "./anime-card";
 import Link from "next/link";
 import { Button } from "./ui/button";
@@ -18,6 +13,7 @@ interface Anime {
   title: string;
   poster_url?: string | null;
   year?: number | null;
+  type?: string;
 }
 
 interface AnimeCarouselProps {
@@ -29,10 +25,7 @@ interface AnimeCarouselProps {
 
 export function AnimeCarousel({ title, items, viewAllLink, icon }: AnimeCarouselProps) {
   const validItems = items?.filter(Boolean) as Anime[];
-
-  if (!validItems || validItems.length === 0) {
-    return null;
-  }
+  if (!validItems || validItems.length === 0) return null;
 
   return (
     <section>
@@ -43,25 +36,15 @@ export function AnimeCarousel({ title, items, viewAllLink, icon }: AnimeCarousel
         </div>
         {viewAllLink && (
           <Button variant="outline" asChild>
-            <Link href={viewAllLink} className="flex items-center">
-              Смотреть все <ArrowRight className="w-4 h-4 ml-2" />
-            </Link>
+            <Link href={viewAllLink} className="flex items-center">Смотреть все <ArrowRight className="w-4 h-4 ml-2" /></Link>
           </Button>
         )}
       </div>
-      <Carousel
-        opts={{
-          align: "start",
-          dragFree: true,
-        }}
-        className="w-full"
-      >
+      <Carousel opts={{ align: "start", dragFree: true }} className="w-full">
         <CarouselContent>
           {validItems.map((anime, index) => (
             <CarouselItem key={anime.id || index} className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/6">
-              <div className="p-1">
-                <AnimeCard anime={anime} priority={index < 5} />
-              </div>
+              <div className="p-1"><AnimeCard anime={anime} priority={index < 5} /></div>
             </CarouselItem>
           ))}
         </CarouselContent>

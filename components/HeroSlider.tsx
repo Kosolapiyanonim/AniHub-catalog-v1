@@ -7,7 +7,7 @@ import Autoplay from "embla-carousel-autoplay";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { Play, Info, Star, Clapperboard } from "lucide-react";
+import { Play, Info, Star } from "lucide-react";
 import { Badge } from "./ui/badge";
 
 interface Anime {
@@ -18,9 +18,7 @@ interface Anime {
   year?: number | null;
   description?: string;
   type?: string;
-  episodes_count?: number;
   shikimori_rating?: number;
-  best_quality?: string | null;
 }
 
 interface HeroSliderProps {
@@ -46,36 +44,47 @@ export function HeroSlider({ items }: HeroSliderProps) {
       <CarouselContent>
         {validItems.map((anime, index) => (
           <CarouselItem key={anime.id}>
-            <div className="relative h-[70vh] w-full flex md:flex-row flex-col">
-              <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent md:w-1/2" />
-              <div className="relative z-10 container mx-auto h-full flex items-center md:w-1/2 p-4 md:pl-8">
-                <div className="text-white">
+            <div className="relative h-[70vh] w-full flex md:flex-row flex-col bg-slate-900">
+              {/* Левая часть с градиентом и информацией */}
+              <div className="relative z-10 w-full md:w-3/5 lg:w-1/2 flex items-center p-4 sm:p-8">
+                <div className="text-white w-full max-w-lg">
                   <p className="font-semibold text-purple-400 mb-2 text-sm"># {index + 1} В центре внимания</p>
                   <h1 className="text-2xl lg:text-4xl font-bold mb-3 line-clamp-2">{anime.title}</h1>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-gray-300 mb-4 text-sm">
                     {anime.shikimori_rating && (<div className="flex items-center gap-1"><Star className="w-4 h-4 text-yellow-400" /><span>{anime.shikimori_rating}</span></div>)}
                     {anime.year && <span>{anime.year}</span>}
                     {anime.type && <Badge variant="secondary">{anime.type.replace('_', ' ')}</Badge>}
-                    {anime.episodes_count && (<div className="flex items-center gap-1"><Clapperboard className="w-4 h-4" /><span>{anime.episodes_count} эп.</span></div>)}
-                    {anime.best_quality && <Badge variant="outline">{anime.best_quality}</Badge>}
                   </div>
-                  <p className="text-gray-200 mb-6 max-w-xl line-clamp-3 text-sm md:text-base">{anime.description}</p>
+                  <p className="text-gray-300 mb-6 line-clamp-3 text-sm md:text-base">{anime.description}</p>
                   <div className="flex items-center gap-4">
                     <Link href={`/anime/${anime.shikimori_id}/watch`}><Button size="sm" className="bg-purple-600 hover:bg-purple-700"><Play className="w-4 h-4 mr-2" />Смотреть</Button></Link>
                     <Link href={`/anime/${anime.shikimori_id}`}><Button size="sm" variant="outline"><Info className="w-4 h-4 mr-2" />Подробнее</Button></Link>
                   </div>
                 </div>
               </div>
-              <div className="w-full md:w-1/2 relative h-full">
-                <Image
-                  src={anime.poster_url || "/placeholder.svg"}
-                  alt={`${anime.title} poster`}
-                  fill
-                  className="object-cover object-center"
-                  priority={index === 0}
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  quality={85}
-                />
+
+              {/* Правая часть с постером и размытым фоном */}
+              <div className="w-full md:w-2/5 lg:w-1/2 h-full absolute right-0 top-0 md:relative">
+                 <Image
+                    src={anime.poster_url || "/placeholder.svg"}
+                    alt={`${anime.title} background`}
+                    fill
+                    className="object-cover opacity-30 blur-xl"
+                  />
+                 <div className="absolute inset-0 bg-gradient-to-l from-slate-900 via-slate-900/50 to-transparent"></div>
+                 <div className="absolute inset-0 flex items-center justify-center p-8">
+                    <div className="relative w-48 h-72 sm:w-56 sm:h-80 md:w-64 md:h-96 rounded-lg overflow-hidden shadow-2xl">
+                        <Image
+                            src={anime.poster_url || "/placeholder.svg"}
+                            alt={`${anime.title} poster`}
+                            fill
+                            className="object-cover"
+                            priority={index === 0}
+                            sizes="(max-width: 768px) 50vw, 33vw"
+                            quality={90}
+                        />
+                    </div>
+                 </div>
               </div>
             </div>
           </CarouselItem>

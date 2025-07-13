@@ -23,6 +23,7 @@ export function AnimeCard({ anime, priority = false }: AnimeCardProps) {
   }
 
   return (
+    // ИЗМЕНЕНИЕ: Обертка для отслеживания наведения
     <div className="group relative">
       <Link href={`/anime/${anime.shikimori_id}`} className="cursor-pointer block">
         <div className="aspect-[2/3] overflow-hidden rounded-lg bg-slate-800 relative">
@@ -31,10 +32,10 @@ export function AnimeCard({ anime, priority = false }: AnimeCardProps) {
               src={anime.poster_url}
               alt={anime.title}
               fill
-              // ИЗМЕНЕНИЕ: Добавляем атрибут sizes для адаптивности
-              sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 16vw"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
               className="object-cover transition-transform duration-300 group-hover:scale-105"
               priority={priority}
+              quality={75}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-slate-500 text-center text-xs p-2">
@@ -44,6 +45,7 @@ export function AnimeCard({ anime, priority = false }: AnimeCardProps) {
         </div>
       </Link>
       
+      {/* ИЗМЕНЕНИЕ: Кнопка появляется при наведении */}
       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
          <AddToListButtonOnCard animeId={anime.id} initialStatus={anime.user_list_status} />
       </div>

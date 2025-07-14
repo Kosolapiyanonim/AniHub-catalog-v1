@@ -5,8 +5,20 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { AnimeListPopover } from './AnimeListPopover';
 
+// Вспомогательная функция для форматирования типа
+const formatAnimeType = (type: string | null | undefined): string => {
+    if (!type) return '';
+    const typeMap: { [key: string]: string } = {
+        'anime-serial': 'Аниме сериал',
+        'tv_series': 'Аниме сериал',
+        'anime': 'Полнометражное',
+        'movie': 'Полнометражное',
+    };
+    return typeMap[type.toLowerCase()] || type;
+};
+
 interface AnimeCardProps {
-  anime: any;
+  anime: any; 
   priority?: boolean;
   onStatusChange?: (animeId: number, newStatus: string | null) => void;
 }
@@ -35,7 +47,12 @@ export function AnimeCard({ anime, priority = false, onStatusChange }: AnimeCard
             </div>
             <div className="mt-2">
                 <h3 className="text-sm font-medium text-white truncate group-hover:text-purple-400">{anime.title}</h3>
-                {anime.year && <p className="text-xs text-slate-400">{anime.year}</p>}
+                {/* ИЗМЕНЕНИЕ: Отображаем отформатированный тип и год */}
+                <p className="text-xs text-slate-400">
+                    {formatAnimeType(anime.type)}
+                    {anime.year && anime.type ? ' • ' : ''}
+                    {anime.year}
+                </p>
             </div>
         </Link>
     </AnimeListPopover>

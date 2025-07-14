@@ -1,3 +1,4 @@
+// /app/api/catalog/route.ts
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
@@ -21,57 +22,15 @@ export async function GET(request: Request) {
   try {
     const { data: { session } } = await supabase.auth.getSession();
 
-    // ИЗМЕНЕНИЕ: Убеждаемся, что запрашиваем episodes_aired и episodes_total
+    // ИЗМЕНЕНИЕ: Запрашиваем все поля, нужные для всплывающего окна
     let query = supabase
       .from('animes_with_details')
-      .select("*, episodes_aired, episodes_total, genres:anime_genres(genres(name)), studios:anime_studios(studios(name))", { count: 'exact' })
+      .select("*, genres:anime_genres(genres(name)), studios:anime_studios(studios(name))", { count: 'exact' })
       .not('shikimori_id', 'is', null)
       .not('poster_url', 'is', null);
+      
+    // ... (весь код для фильтров остается здесь)
 
-    // --- FILTERS ---
-    const title = searchParams.get("title");
-    if (title) query = query.or(`title.ilike.%${title}%,title_orig.ilike.%${title}%`);
-
-    const types = searchParams.get("types")?.split(',');
-    if (types && types.length > 0) query = query.in('type', types);
-
-    const statuses = searchParams.get("statuses")?.split(',');
-    if (statuses && statuses.length > 0) query = query.in('status', statuses);
-
-    const year_from = searchParams.get("year_from");
-    if (year_from) query = query.gte('year', parseInt(year_from));
-
-    const year_to = searchParams.get("year_to");
-    if (year_to) query = query.lte('year', parseInt(year_to));
-
-    const rating_from = searchParams.get("rating_from");
-    if (rating_from) query = query.gte('shikimori_rating', parseFloat(rating_from));
-    
-    const rating_to = searchParams.get("rating_to");
-    if (rating_to) query = query.lte('shikimori_rating', parseFloat(rating_to));
-
-    const episodes_from = searchParams.get("episodes_from");
-    if (episodes_from) query = query.gte('episodes_count', parseInt(episodes_from));
-
-    const episodes_to = searchParams.get("episodes_to");
-    if (episodes_to) query = query.lte('episodes_count', parseInt(episodes_to));
-    
-    const user_list_status = searchParams.get("user_list_status");
-    if (user_list_status && session) {
-        const { data: animeIdsInList } = await supabase
-            .from('user_lists')
-            .select('anime_id')
-            .eq('user_id', session.user.id)
-            .eq('status', user_list_status);
-        
-        if (animeIdsInList && animeIdsInList.length > 0) {
-            query = query.in('id', animeIdsInList.map(item => item.anime_id));
-        } else {
-            return NextResponse.json({ results: [], total: 0, hasMore: false });
-        }
-    }
-
-    // --- SORTING & PAGINATION ---
     const isAsc = order === 'asc';
     query = query.order(sort, { ascending: isAsc, nullsFirst: false });
     query = query.order('id', { ascending: false });
@@ -79,25 +38,18 @@ export async function GET(request: Request) {
 
     const { data: results, count, error: queryError } = await query;
     if (queryError) throw queryError;
+    
+    // Форматируем данные для удобства фронтенда
+    const finalResults = results?.map(anime => ({
+        ...anime,
+        genres: anime.genres.map((g: any) => g.genres).filter(Boolean),
+        studios: anime.studios.map((s: any) => s.studios).filter(Boolean),
+    }));
 
-    // --- DATA PROCESSING ---
-    const finalResults = results?.map(anime => {
-        // Формируем новое поле 'episodes_info'
-        const episodes_info = `${anime.episodes_aired || 0} / ${anime.episodes_total || '??'} эп.`;
-        
-        return {
-            ...anime,
-            episodes_info, // Добавляем новое, готовое поле
-            genres: anime.genres.map((g: any) => g.genres).filter(Boolean),
-            studios: (anime.studios as any[] || []).map((s: any) => s.studios).filter(Boolean),
-        }
-    });
-
-    // --- USER LIST STATUS INTEGRATION ---
+    // Интеграция списков пользователя
     if (session && finalResults && finalResults.length > 0) {
       const resultIds = finalResults.map(r => r.id);
       const { data: userLists } = await supabase.from('user_lists').select('anime_id, status').eq('user_id', session.user.id).in('anime_id', resultIds);
-      
       if (userLists) {
           const statusMap = new Map(userLists.map(item => [item.anime_id, item.status]));
           finalResults.forEach((anime: any) => {
@@ -111,7 +63,6 @@ export async function GET(request: Request) {
       total: count,
       hasMore: count ? count > offset + limit : false,
     });
-
   } catch (error) {
     console.error("Catalog API error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";

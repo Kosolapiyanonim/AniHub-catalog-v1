@@ -1,3 +1,4 @@
+// /components/AnimeListPopover.tsx
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -29,7 +30,8 @@ interface AnimeData {
   year?: number | null;
   type?: string;
   status?: string;
-  episodes_info: string;
+  episodes_aired: number;
+  episodes_total: number;
   description?: string;
   genres?: { name: string }[];
   shikimori_rating?: number;
@@ -87,9 +89,8 @@ export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListP
         side="right" align="start" sideOffset={10}
       >
         <h4 className="font-bold text-lg">{anime.title}</h4>
-        {anime.title_orig && <p className="text-sm text-gray-400 -mt-2 mb-2">{anime.title_orig}</p>}
         <p className="text-sm text-gray-400 capitalize">{anime.type?.replace('_', ' ')} • {anime.year}</p>
-        <p className="text-sm text-gray-400">{anime.episodes_info} • {anime.status}</p>
+        <p className="text-sm text-gray-400">{anime.episodes_aired} / {anime.episodes_total || '??'} эп. • {anime.status}</p>
         <p 
             className={`text-sm text-gray-300 ${!isDescriptionExpanded && 'line-clamp-3'}`}
             onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}

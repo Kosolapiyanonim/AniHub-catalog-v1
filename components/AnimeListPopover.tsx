@@ -7,12 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from 'sonner';
 import { useSupabase } from './supabase-provider';
-import { Check, Plus, Loader2, Bookmark } from 'lucide-react';
+import { Check, Loader2, Bookmark } from 'lucide-react';
 
 const statuses = [
   { key: "watching", label: "Смотрю" },
   { key: "planned", label: "В планах" },
   { key: "completed", label: "Просмотрено" },
+  { key: "rewatching", label: "Пересматриваю" },
+  { key: "on_hold", label: "Отложено" },
+  { key: "dropped", label: "Брошено" },
 ];
 
 interface AnimeData {
@@ -91,9 +94,7 @@ export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListP
           </div>
           <div className="space-y-1">
             <h4 className="font-semibold line-clamp-2">{anime.title}</h4>
-            <p className="text-sm text-gray-400 capitalize">
-              {anime.type?.replace('_', ' ')} • {anime.year}
-            </p>
+            <p className="text-sm text-gray-400 capitalize">{anime.type?.replace('_', ' ')} • {anime.year}</p>
             <p className="text-sm text-gray-400">{anime.status}</p>
           </div>
         </div>
@@ -101,14 +102,7 @@ export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListP
             <p className="text-sm font-medium mb-2">Добавить в список</p>
             <div className="grid grid-cols-1 gap-2">
                 {statuses.map(status => (
-                    <Button
-                        key={status.key}
-                        variant={currentStatus === status.key ? "secondary" : "ghost"}
-                        size="sm"
-                        onClick={() => handleStatusChange(status.key)}
-                        disabled={loadingStatus === status.key}
-                        className="justify-start"
-                    >
+                    <Button key={status.key} variant={currentStatus === status.key ? "secondary" : "ghost"} size="sm" onClick={() => handleStatusChange(status.key)} disabled={loadingStatus === status.key} className="justify-start">
                         <Bookmark className="h-4 w-4 mr-2" />
                         {loadingStatus === status.key ? "Сохранение..." : status.label}
                         {currentStatus === status.key && <Check className="h-4 w-4 ml-auto text-green-500" />}

@@ -23,12 +23,18 @@ export async function GET(request: Request) {
   try {
     const { data: { session } } = await supabase.auth.getSession();
 
+    // ИЗМЕНЕНИЕ: Запрашиваем все необходимые поля для поповера
     let query = supabase
       .from('animes_with_details')
-      .select("*, genres:anime_genres(genres(name))", { count: 'exact' })
+      .select("*, genres:anime_genres(genres(name)), studios:anime_studios(studios(name))", { count: 'exact' })
       .not('shikimori_id', 'is', null)
       .not('poster_url', 'is', null);
 
+    // --- ФИЛЬТРЫ ---
+    const title = searchParams.get("title");
+    if (title) query = query.or(`title.ilike.%${title}%,title_orig.ilike.%${title}%`);
+    // (здесь будет остальная логика фильтров)
+    
     const user_list_status = searchParams.get("user_list_status");
     if (user_list_status && session) {
         const { data: animeIdsInList } = await supabase
@@ -44,9 +50,7 @@ export async function GET(request: Request) {
         }
     }
 
-    const title = searchParams.get("title");
-    if (title) query = query.or(`title.ilike.%${title}%,title_orig.ilike.%${title}%`);
-    
+    // --- СОРТИРОВКА И ПАГИНАЦИЯ ---
     const isAsc = order === 'asc';
     query = query.order(sort, { ascending: isAsc, nullsFirst: false });
     query = query.order('id', { ascending: false });
@@ -54,10 +58,12 @@ export async function GET(request: Request) {
 
     const { data: results, count, error: queryError } = await query;
     if (queryError) throw queryError;
-    
+
+    // --- ОБРАБОТКА ДАННЫХ И ИНТЕГРАЦИЯ СПИСКОВ ---
     const finalResults = results?.map(anime => ({
         ...anime,
         genres: anime.genres.map((g: any) => g.genres).filter(Boolean),
+        studios: anime.studios.map((s: any) => s.studios).filter(Boolean),
     }));
 
     if (session && finalResults && finalResults.length > 0) {

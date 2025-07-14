@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { toast } from 'sonner';
 import { useSupabase } from './supabase-provider';
 import { Check, Loader2, Bookmark, Info, Star } from 'lucide-react';
@@ -90,27 +91,41 @@ export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListP
         <h4 className="font-bold text-lg">{anime.title}</h4>
         <p className="text-sm text-gray-400 capitalize">{anime.type?.replace('_', ' ')} • {anime.year}</p>
         <p className="text-sm text-gray-400">{anime.episodes_aired} / {anime.episodes_total || '??'} эп. • {anime.status}</p>
-        <p className={`text-sm text-gray-300 ${!isDescriptionExpanded && 'line-clamp-3'}`}>
+        <p 
+            className={`text-sm text-gray-300 ${!isDescriptionExpanded && 'line-clamp-3'}`}
+            onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+        >
             {anime.description}
         </p>
         {(anime.description?.length || 0) > 150 && (
-            <Button variant="link" size="sm" className="p-0 h-auto text-purple-400" onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
+            <button className="text-xs text-purple-400 hover:underline" onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
                 {isDescriptionExpanded ? "Свернуть" : "Развернуть"}
-            </Button>
+            </button>
         )}
         <div className="flex flex-wrap gap-1">
             {anime.genres?.slice(0, 4).map(g => <Badge key={g.name} variant="secondary">{g.name}</Badge>)}
         </div>
-        <div className="pt-2 space-y-2">
-            <p className="text-sm font-medium">Добавить в список</p>
-            {statuses.map(status => (
-                <Button key={status.key} variant={currentStatus === status.key ? "secondary" : "ghost"} size="sm" onClick={() => handleStatusChange(status.key)} disabled={loadingStatus === status.key} className="w-full justify-start">
-                    <Bookmark className="h-4 w-4 mr-2" />
-                    {loadingStatus === status.key ? "Сохранение..." : status.label}
-                    {currentStatus === status.key && <Check className="h-4 w-4 ml-auto text-green-500" />}
-                </Button>
-            ))}
-        </div>
+        
+        {/* ИЗМЕНЕНИЕ: Оборачиваем списки в аккордеон */}
+        <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="item-1" className="border-b-0">
+                <AccordionTrigger className="p-0 hover:no-underline text-sm font-medium">
+                    {currentStatus ? <><Check className="w-4 h-4 mr-2 text-green-500"/>В списке</> : "Добавить в список"}
+                </AccordionTrigger>
+                <AccordionContent className="pt-2">
+                    <div className="grid grid-cols-2 gap-2">
+                        {statuses.map(status => (
+                            <Button key={status.key} variant={currentStatus === status.key ? "secondary" : "ghost"} size="sm" onClick={() => handleStatusChange(status.key)} disabled={loadingStatus === status.key} className="justify-start">
+                                <Bookmark className="h-4 w-4 mr-2" />
+                                {loadingStatus === status.key ? "..." : status.label}
+                                {currentStatus === status.key && <Check className="h-4 w-4 ml-auto text-green-500" />}
+                            </Button>
+                        ))}
+                    </div>
+                </AccordionContent>
+            </AccordionItem>
+        </Accordion>
+
         <Button variant="outline" size="sm" className="w-full" asChild>
             <Link href={`/anime/${anime.shikimori_id}`}><Info className="w-4 h-4 mr-2" />Подробнее</Link>
         </Button>

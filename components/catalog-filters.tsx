@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, SlidersHorizontal, Check, Minus, Plus } from "lucide-react";
+import { X, SlidersHorizontal, Check, Minus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
@@ -99,52 +99,20 @@ export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps)
     </Card>
   );
 }
-
-// --- ВСПОМОГАТЕЛЬНЫЕ КОМПОНЕНТЫ, КОТОРЫЕ ДОЛЖНЫ БЫТЬ В ЭТОМ ЖЕ ФАЙЛЕ ---
-
-const FilterSection = ({ title, children }: { title: string, children: React.ReactNode }) => (
-    <AccordionItem value={title} className="border-slate-700">
-        <AccordionTrigger className="text-white hover:no-underline">{title}</AccordionTrigger>
-        <AccordionContent>{children}</AccordionContent>
-    </AccordionItem>
-);
-
-const RangeInput = ({ from, to, onFromChange, onToChange }: any) => (
-    <div className="flex items-center gap-2">
-        <Input type="number" placeholder="От" value={from} onChange={e => onFromChange(e.target.value)} className="bg-slate-700 border-slate-600" />
-        <span className="text-gray-400">-</span>
-        <Input type="number" placeholder="До" value={to} onChange={e => onToChange(e.target.value)} className="bg-slate-700 border-slate-600" />
-    </div>
-);
-
+// Вспомогательные компоненты
+const FilterSection = ({ title, children }: { title: string, children: React.ReactNode }) => (<AccordionItem value={title} className="border-slate-700"><AccordionTrigger className="text-white hover:no-underline">{title}</AccordionTrigger><AccordionContent>{children}</AccordionContent></AccordionItem>);
+const RangeInput = ({ from, to, onFromChange, onToChange }: any) => (<div className="flex items-center gap-2"><Input type="number" placeholder="От" value={from} onChange={e => onFromChange(e.target.value)} className="bg-slate-700 border-slate-600" /><span className="text-gray-400">-</span><Input type="number" placeholder="До" value={to} onChange={e => onToChange(e.target.value)} className="bg-slate-700 border-slate-600" /></div>);
 const MultiSelectFilter = ({ items, selected, excluded, onChange }: any) => {
     const handleStateChange = (slug: string, currentState: 'none' | 'included' | 'excluded') => {
-        const newSelected = new Set(selected);
-        const newExcluded = new Set(excluded);
+        const newSelected = new Set(selected); const newExcluded = new Set(excluded);
         if (currentState === 'none') { newSelected.add(slug); newExcluded.delete(slug); } 
         else if (currentState === 'included') { newSelected.delete(slug); newExcluded.add(slug); } 
         else { newExcluded.delete(slug); }
         onChange(Array.from(newSelected), Array.from(newExcluded));
     };
-
-    return (
-        <ScrollArea className="h-48">
-            <div className="space-y-1 pr-2">
-                {items.map((item: FilterItem) => {
-                    const isIncluded = selected.includes(`${item.id}-${item.slug}`);
-                    const isExcluded = excluded.includes(`${item.id}-${item.slug}`);
-                    const state = isIncluded ? 'included' : isExcluded ? 'excluded' : 'none';
-                    return (
-                        <Button key={item.id} variant="ghost" className="w-full justify-start gap-2" onClick={() => handleStateChange(`${item.id}-${item.slug}`, state)}>
-                            <div className={`w-4 h-4 rounded-sm border border-primary flex items-center justify-center ${isIncluded ? 'bg-primary' : ''} ${isExcluded ? 'bg-destructive' : ''}`}>
-                                {isIncluded && <Check className="w-3 h-3 text-primary-foreground" />}
-                                {isExcluded && <Minus className="w-3 h-3 text-destructive-foreground" />}
-                            </div>
-                            <span className="text-sm font-medium text-gray-300">{item.name}</span>
-                        </Button>
-                    );
-                })}
-            </div>
-        </ScrollArea>
-    );
+    return (<ScrollArea className="h-48"><div className="space-y-1 pr-2">{items.map((item: FilterItem) => {
+        const isIncluded = selected.includes(`${item.id}-${item.slug}`); const isExcluded = excluded.includes(`${item.id}-${item.slug}`);
+        const state = isIncluded ? 'included' : isExcluded ? 'excluded' : 'none';
+        return (<Button key={item.id} variant="ghost" className="w-full justify-start gap-2" onClick={() => handleStateChange(`${item.id}-${item.slug}`, state)}><div className={`w-4 h-4 rounded-sm border border-primary flex items-center justify-center ${isIncluded ? 'bg-primary' : ''} ${isExcluded ? 'bg-destructive' : ''}`}>{isIncluded && <Check className="w-3 h-3 text-primary-foreground" />}{isExcluded && <Minus className="w-3 h-3 text-destructive-foreground" />}</div><span className="text-sm font-medium text-gray-300">{item.name}</span></Button>);
+    })}</div></ScrollArea>);
 };

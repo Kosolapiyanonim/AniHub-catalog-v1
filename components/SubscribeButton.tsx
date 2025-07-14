@@ -1,90 +1,76 @@
-"use client";
+"use client"
 
-import { useState, useEffect, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { Bell, BellRing, Loader2 } from 'lucide-react';
-import { useSupabase } from './supabase-provider';
-import { toast } from 'sonner';
+import { useState, useTransition } from "react"
+import { Button } from "@/components/ui/button"
+import { useToast } from "@/hooks/use-toast"
+import { useSupabase } from "@/components/supabase-provider"
 
-interface SubscribeButtonProps {
-  animeId: number;
+export type SubscribeButtonProps = {
+  /** ID of the anime to (un)subscribe to */
+  animeId: number | string
+  /** Initial “subscribed” state sent from the server (optional) */
+  initialSubscribed?: boolean
 }
 
-export function SubscribeButton({ animeId }: SubscribeButtonProps) {
-  const { session } = useSupabase();
-  const [isSubscribed, setIsSubscribed] = useState(false);
-  const [loading, setLoading] = useState(true);
+/**
+ * SubscribeButton – allows a logged-in user to subscribe / unsubscribe
+ * to notifications for a given anime.
+ * Exports:
+ *   • named  ➜ SubscribeButton
+ *   • default ➜ SubscribeButton
+ */
+export function SubscribeButton({ animeId, initialSubscribed = false }: SubscribeButtonProps) {
+  const { client } = useSupabase()
+  const { toast } = useToast()
+  const [subscribed, setSubscribed] = useState(initialSubscribed)
+  const [isPending, startTransition] = useTransition()
 
-  const checkSubscription = useCallback(async () => {
-    if (!session) {
-      setLoading(false);
-      return;
+  async function toggleSubscribe() {
+    // Check auth session first
+    const {
+      data: { session },
+    } = await client.auth.getSession()
+
+    if (!session?.user) {
+      toast({
+        title: "Требуется авторизация",
+        description: "Войдите, чтобы подписаться на обновления.",
+      })
+      return
     }
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/subscriptions?anime_id=${animeId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setIsSubscribed(data.subscribed);
-      }
-    } catch (error) {
-      console.error("Failed to check subscription status:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [animeId, session]);
 
-  useEffect(() => {
-    checkSubscription();
-  }, [checkSubscription]);
-
-  const handleSubscribe = async () => {
-    if (!session) {
-      toast.error("Нужно войти в аккаунт для подписки");
-      return;
-    }
-    setLoading(true);
-    const newSubscribedState = !isSubscribed;
-    try {
-      const response = await fetch('/api/subscriptions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ anime_id: animeId, subscribed: newSubscribedState }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Ошибка подписки");
-      }
-
-      setIsSubscribed(newSubscribedState);
-      toast.success(newSubscribedState ? "Вы подписались на обновления" : "Вы отписались от обновлений");
-    } catch (error) {
-      toast.error("Не удалось изменить статус подписки");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (!session) {
-    return null; // Don't show the button for guests
+    // Optimistic UI update
+    startTransition(() => {
+      setSubscribed((prev) => !prev)
+      client
+        .from("subscriptions")
+        .upsert({
+          user_id: session.user.id,
+          anime_id: animeId,
+          is_subscribed: !subscribed,
+        })
+        .then(({ error }) => {
+          if (error) {
+            // Roll back on error
+            setSubscribed((prev) => !prev)
+            toast({
+              title: "Ошибка",
+              description: "Не удалось обновить подписку.",
+            })
+          } else {
+            toast({
+              title: !subscribed ? "Вы успешно подписались!" : "Подписка отменена",
+            })
+          }
+        })
+    })
   }
 
   return (
-    <Button
-      onClick={handleSubscribe}
-      variant="ghost"
-      size="icon"
-      disabled={loading}
-      className="text-gray-400 hover:text-white"
-      title={isSubscribed ? "Отписаться от обновлений" : "Подписаться на обновления"}
-    >
-      {loading ? (
-        <Loader2 className="w-5 h-5 animate-spin" />
-      ) : isSubscribed ? (
-        <BellRing className="w-5 h-5 text-purple-400" />
-      ) : (
-        <Bell className="w-5 h-5" />
-      )}
+    <Button variant={subscribed ? "secondary" : "default"} size="sm" onClick={toggleSubscribe} disabled={isPending}>
+      {subscribed ? "Отписаться" : "Подписаться"}
     </Button>
-  );
+  )
 }
+
+export default SubscribeButton

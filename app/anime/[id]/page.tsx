@@ -7,13 +7,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Star, Play } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { ArrowLeft, Star, Calendar, Play, Tv, Users } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { AnimeListPopover } from "@/components/AnimeListPopover";
 import { AnimeCard } from "@/components/anime-card";
 import { SubscribeButton } from "@/components/SubscribeButton";
 
-// Интерфейсы данных
+// Обновленный интерфейс для данных, которые приходят от нашего API
 interface RelatedAnime {
   id: number;
   shikimori_id: string;
@@ -25,14 +26,29 @@ interface AnimeData {
   id: number;
   shikimori_id: string;
   title: string;
-  poster_url?: string;
   description?: string;
+  poster_url?: string;
+  year?: number;
+  status?: string;
+  type?: string;
+  episodes_aired: number;
+  episodes_total: number;
   shikimori_rating?: number;
   genres: { id: number; name: string; slug: string }[];
+  studios: { id: number; name: string; slug: string }[];
   tags: { id: number; name: string; slug: string }[];
   related: RelatedAnime[];
   user_list_status?: string | null;
 }
+
+const statuses = [
+    { key: "watching", label: "Смотрю" },
+    { key: "planned", label: "В планах" },
+    { key: "completed", label: "Просмотрено" },
+    { key: "rewatching", label: "Пересматриваю" },
+    { key: "on_hold", label: "Отложено" },
+    { key: "dropped", label: "Брошено" },
+];
 
 export default function AnimePage() {
   const params = useParams();
@@ -80,7 +96,7 @@ export default function AnimePage() {
     return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-center p-4"><div><h1 className="text-2xl font-bold text-white mb-4">Аниме не найдено</h1><Button onClick={() => router.back()} variant="outline"><ArrowLeft className="w-4 h-4 mr-2" />Назад</Button></div></div>;
   }
 
-  const currentStatusLabel = "Изменить в списке"; // Пример текста для кнопки
+  const currentStatusLabel = statuses.find(s => s.key === anime.user_list_status)?.label || "Добавить в список";
 
   return (
     <div className="min-h-screen bg-slate-900 pt-20">
@@ -104,7 +120,7 @@ export default function AnimePage() {
               <AnimeListPopover anime={anime} onStatusChange={handleStatusUpdate}>
                 <Button variant="outline" className="w-full">
                   {anime.user_list_status ? <Check className="w-4 h-4 mr-2 text-green-500" /> : <Plus className="w-4 h-4 mr-2" />}
-                  {anime.user_list_status ? currentStatusLabel : 'Добавить в список'}
+                  {currentStatusLabel}
                 </Button>
               </AnimeListPopover>
             </div>

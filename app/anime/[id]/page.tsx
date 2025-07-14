@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Star, Play } from "lucide-react";
+import { ArrowLeft, Star, Play, Check, Plus } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { AnimeListPopover } from "@/components/AnimeListPopover";
 import { AnimeCard } from "@/components/anime-card";

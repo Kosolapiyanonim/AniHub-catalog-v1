@@ -1,10 +1,10 @@
-// /components/AddToListButton.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { useSupabase } from './supabase-provider';
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+// ИСПРАВЛЕНИЕ: Добавлена иконка "Plus" в импорт
 import { Loader2, Check, Plus, Bookmark, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -21,8 +21,7 @@ const statuses = [
 interface AddToListButtonProps {
   animeId: number;
   initialStatus?: string | null;
-  // Добавляем вариант для компактного отображения
-  variant?: 'full' | 'icon'; 
+  variant?: 'full' | 'icon';
 }
 
 export function AddToListButton({ animeId, initialStatus, variant = 'full' }: AddToListButtonProps) {
@@ -53,7 +52,7 @@ export function AddToListButton({ animeId, initialStatus, variant = 'full' }: Ad
   };
 
   if (!session) {
-    if (variant === 'icon') return null; // Не показываем иконку гостям
+    if (variant === 'icon') return null;
     return (
         <Link href="/login" className="w-full">
             <Button variant="outline" className="w-full"><Plus className="w-4 h-4 mr-2" /> Добавить в список</Button>
@@ -66,7 +65,6 @@ export function AddToListButton({ animeId, initialStatus, variant = 'full' }: Ad
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        {/* Разные стили для кнопки в зависимости от варианта */}
         {variant === 'full' ? (
           <Button variant="outline" className="w-full" disabled={loading}>
             {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : 
@@ -79,7 +77,6 @@ export function AddToListButton({ animeId, initialStatus, variant = 'full' }: Ad
               size="icon" 
               className="h-8 w-8" 
               disabled={loading}
-              // ИСПРАВЛЕНИЕ: Останавливаем всплытие клика
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 

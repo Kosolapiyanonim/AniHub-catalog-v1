@@ -16,7 +16,7 @@ const inter = Inter({ subsets: ["latin", "cyrillic"], display: "swap" });
 
 export const metadata: Metadata = {
   title: "AniHub - Смотреть аниме онлайн",
-  description: "Лучший сайт для просмотра аниме онлайн. Большая коллекция аниме с русской озвучкой и субтитрами.",
+  description: "Лучший сайт для просмотра аниме онлайн.",
     generator: 'v0.dev'
 };
 
@@ -27,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode; })
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <SupabaseProvider>
             <div className="relative flex min-h-screen flex-col">
-              <Suspense fallback={null}>
+              <Suspense>
                 <Header />
               </Suspense>
               <main className="flex-1">{children}</main>

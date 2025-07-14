@@ -1,4 +1,3 @@
-// /components/AnimeListPopover.tsx
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -30,8 +29,7 @@ interface AnimeData {
   year?: number | null;
   type?: string;
   status?: string;
-  episodes_aired: number;
-  episodes_total: number;
+  episodes_info: string; // <-- Используем новое поле
   description?: string;
   genres?: { name: string }[];
   shikimori_rating?: number;
@@ -90,7 +88,7 @@ export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListP
       >
         <h4 className="font-bold text-lg">{anime.title}</h4>
         <p className="text-sm text-gray-400 capitalize">{anime.type?.replace('_', ' ')} • {anime.year}</p>
-        <p className="text-sm text-gray-400">{anime.episodes_aired} / {anime.episodes_total || '??'} эп. • {anime.status}</p>
+        <p className="text-sm text-gray-400">{anime.episodes_info} • {anime.status}</p>
         <p 
             className={`text-sm text-gray-300 ${!isDescriptionExpanded && 'line-clamp-3'}`}
             onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
@@ -106,7 +104,6 @@ export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListP
             {anime.genres?.slice(0, 4).map(g => <Badge key={g.name} variant="secondary">{g.name}</Badge>)}
         </div>
         
-        {/* ИЗМЕНЕНИЕ: Оборачиваем списки в аккордеон */}
         <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="item-1" className="border-b-0">
                 <AccordionTrigger className="p-0 hover:no-underline text-sm font-medium">

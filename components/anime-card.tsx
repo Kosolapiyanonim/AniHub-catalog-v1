@@ -1,18 +1,33 @@
-// /components/anime-card.tsx
 'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
 import { AnimeListPopover } from './AnimeListPopover';
 
+// Убеждаемся, что интерфейс соответствует данным, которые приходят от API
 interface AnimeCardProps {
-  anime: any;
+  anime: {
+    id: number;
+    shikimori_id: string;
+    title: string;
+    poster_url?: string | null;
+    year?: number | null;
+    user_list_status?: string | null;
+    description?: string;
+    type?: string;
+    status?: string;
+    episodes_info: string;
+    genres?: { name: string }[];
+    shikimori_rating?: number;
+  };
   priority?: boolean;
   onStatusChange?: (animeId: number, newStatus: string | null) => void;
 }
 
 export function AnimeCard({ anime, priority = false, onStatusChange }: AnimeCardProps) {
-  if (!anime || !anime.shikimori_id) return null;
+  if (!anime || !anime.shikimori_id) {
+    return null;
+  }
 
   return (
     <AnimeListPopover anime={anime} onStatusChange={onStatusChange}>

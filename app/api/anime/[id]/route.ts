@@ -19,16 +19,21 @@ export async function GET(
   const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
 
   try {
-    // --- ШАГ 1: Получаем основную информацию об аниме ---
+    // --- ШАГ 1: Получаем основную информацию, включая жанры, студии и теги ---
     const { data: anime, error: animeError } = await supabase
       .from('animes')
-      .select('*, genres:anime_genres(genres(id, name, slug)), studios:anime_studios(studios(id, name, slug))')
+      .select(`
+        *, 
+        genres:anime_genres(genres(id, name, slug)), 
+        studios:anime_studios(studios(id, name, slug)),
+        tags:anime_tags(tags(id, name, slug))
+      `)
       .eq('shikimori_id', shikimoriId)
       .single();
 
     if (animeError) {
       if (animeError.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Anime not found' }, { status: 404 });
+        return NextResponse.json({ error: 'Аниме не найдено' }, { status: 404 });
       }
       throw animeError;
     }
@@ -36,7 +41,7 @@ export async function GET(
     // --- ШАГ 2: Получаем озвучки и связанные произведения параллельно ---
     const [translationsResponse, relatedResponse] = await Promise.all([
       supabase.from('translations').select('*').eq('anime_id', anime.id),
-      supabase.from('anime_relations').select('relation_type, related_id').eq('anime_id', anime.id)
+      supabase.from('anime_relations').select('relation_type_formatted, related_id').eq('anime_id', anime.id)
     ]);
 
     const translations = translationsResponse.data || [];
@@ -59,7 +64,7 @@ export async function GET(
           if (!animeInfo) return null;
           return {
             ...animeInfo,
-            relation_type: relation.relation_type,
+            relation_type_formatted: relation.relation_type_formatted,
           };
         })
         .filter(Boolean); // Убираем все null из массива
@@ -70,6 +75,7 @@ export async function GET(
       ...anime,
       genres: (anime.genres || []).map((g: any) => g.genres).filter(Boolean),
       studios: (anime.studios || []).map((s: any) => s.studios).filter(Boolean),
+      tags: (anime.tags || []).map((t: any) => t.tags).filter(Boolean),
       translations: translations,
       related: relatedAnimesWithInfo,
     };

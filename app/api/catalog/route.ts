@@ -22,15 +22,44 @@ export async function GET(request: Request) {
   try {
     const { data: { session } } = await supabase.auth.getSession();
 
-    // ИЗМЕНЕНИЕ: Запрашиваем все поля, нужные для всплывающего окна
     let query = supabase
       .from('animes_with_details')
       .select("*, genres:anime_genres(genres(name)), studios:anime_studios(studios(name))", { count: 'exact' })
       .not('shikimori_id', 'is', null)
       .not('poster_url', 'is', null);
-      
-    // ... (весь код для фильтров остается здесь)
 
+    // --- ВОССТАНАВЛИВАЕМ ВСЮ ЛОГИКУ ФИЛЬТРОВ ---
+    const title = searchParams.get("title");
+    if (title) query = query.or(`title.ilike.%${title}%,title_orig.ilike.%${title}%`);
+
+    const types = searchParams.get("types")?.split(',');
+    if (types && types.length > 0) query = query.in('type', types);
+    
+    const statuses = searchParams.get("statuses")?.split(',');
+    if (statuses && statuses.length > 0) query = query.in('status', statuses);
+
+    const year_from = searchParams.get("year_from");
+    if (year_from) query = query.gte('year', parseInt(year_from));
+
+    const year_to = searchParams.get("year_to");
+    if (year_to) query = query.lte('year', parseInt(year_to));
+
+    const user_list_status = searchParams.get("user_list_status");
+    if (user_list_status && session) {
+        const { data: animeIdsInList } = await supabase
+            .from('user_lists')
+            .select('anime_id')
+            .eq('user_id', session.user.id)
+            .eq('status', user_list_status);
+        
+        if (animeIdsInList && animeIdsInList.length > 0) {
+            query = query.in('id', animeIdsInList.map(item => item.anime_id));
+        } else {
+            return NextResponse.json({ results: [], total: 0, hasMore: false });
+        }
+    }
+
+    // --- СОРТИРОВКА И ПАГИНАЦИЯ ---
     const isAsc = order === 'asc';
     query = query.order(sort, { ascending: isAsc, nullsFirst: false });
     query = query.order('id', { ascending: false });
@@ -39,14 +68,13 @@ export async function GET(request: Request) {
     const { data: results, count, error: queryError } = await query;
     if (queryError) throw queryError;
     
-    // Форматируем данные для удобства фронтенда
+    // --- ОБРАБОТКА ДАННЫХ И ИНТЕГРАЦИЯ СПИСКОВ ---
     const finalResults = results?.map(anime => ({
         ...anime,
         genres: anime.genres.map((g: any) => g.genres).filter(Boolean),
         studios: anime.studios.map((s: any) => s.studios).filter(Boolean),
     }));
 
-    // Интеграция списков пользователя
     if (session && finalResults && finalResults.length > 0) {
       const resultIds = finalResults.map(r => r.id);
       const { data: userLists } = await supabase.from('user_lists').select('anime_id, status').eq('user_id', session.user.id).in('anime_id', resultIds);

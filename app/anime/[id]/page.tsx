@@ -1,4 +1,3 @@
-// /app/anime/[id]/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -7,14 +6,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Star, Calendar, Play, Tv, Users } from "lucide-react";
+import { ArrowLeft, Star, Play } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { AnimeListPopover } from "@/components/AnimeListPopover";
 import { AnimeCard } from "@/components/anime-card";
 import { SubscribeButton } from "@/components/SubscribeButton";
 
-// Обновленный интерфейс для данных, которые приходят от нашего API
+// Интерфейсы данных
 interface RelatedAnime {
   id: number;
   shikimori_id: string;
@@ -26,16 +24,10 @@ interface AnimeData {
   id: number;
   shikimori_id: string;
   title: string;
-  description?: string;
   poster_url?: string;
-  year?: number;
-  status?: string;
-  type?: string;
-  episodes_aired: number;
-  episodes_total: number;
+  description?: string;
   shikimori_rating?: number;
   genres: { id: number; name: string; slug: string }[];
-  studios: { id: number; name: string; slug: string }[];
   tags: { id: number; name: string; slug: string }[];
   related: RelatedAnime[];
   user_list_status?: string | null;
@@ -45,9 +37,6 @@ const statuses = [
     { key: "watching", label: "Смотрю" },
     { key: "planned", label: "В планах" },
     { key: "completed", label: "Просмотрено" },
-    { key: "rewatching", label: "Пересматриваю" },
-    { key: "on_hold", label: "Отложено" },
-    { key: "dropped", label: "Брошено" },
 ];
 
 export default function AnimePage() {
@@ -145,7 +134,7 @@ export default function AnimePage() {
                 <h2 className="text-xl font-bold text-white mb-3">О тайтле</h2>
                 <div className="prose prose-invert max-w-none text-gray-300" dangerouslySetInnerHTML={{ __html: anime.description || "Описание отсутствует." }} />
                 <div className="flex flex-wrap gap-2 mt-4">
-                    {anime.genres.map(g => (<Link href={`/catalog?genres=${g.id}-${g.slug}`} key={g.id}><Badge variant="outline">{g.name}</Badge></Link>))}
+                    {anime.genres.map(g => (<Link href={`/catalog?genres=${g.id}-${g.slug}`} key={g.id}><Badge variant="outline" className="border-purple-500 text-purple-300 hover:bg-purple-500/10 cursor-pointer">{g.name}</Badge></Link>))}
                     {anime.tags.map(t => (<Link href={`/catalog?tags=${t.id}-${t.slug}`} key={t.id}><Badge variant="secondary">{t.name}</Badge></Link>))}
                 </div>
             </section>

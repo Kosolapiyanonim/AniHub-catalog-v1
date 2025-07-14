@@ -1,88 +1,104 @@
 // /app/api/catalog/route.ts
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from "next/headers"
+import { NextResponse } from "next/server"
 
 const parseIds = (param: string | null): number[] | null => {
-  if (!param) return null;
-  return param.split(',').map(item => parseInt(item.split('-')[0], 10)).filter(id => !isNaN(id));
-};
+  if (!param) return null
+  return param
+    .split(",")
+    .map((item) => Number.parseInt(item.split("-")[0], 10))
+    .filter((id) => !isNaN(id))
+}
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+  const { searchParams } = new URL(request.url)
+  const cookieStore = cookies()
+  const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
 
-  const page = parseInt(searchParams.get("page") || "1", 10);
-  const limit = parseInt(searchParams.get("limit") || "25", 10);
-  const offset = (page - 1) * limit;
-  const sort = searchParams.get("sort") || "shikimori_votes";
-  const order = searchParams.get("order") || "desc";
+  const page = Number.parseInt(searchParams.get("page") || "1", 10)
+  const limit = Number.parseInt(searchParams.get("limit") || "25", 10)
+  const offset = (page - 1) * limit
+  const sort = searchParams.get("sort") || "shikimori_votes"
+  const order = searchParams.get("order") || "desc"
 
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
 
     let query = supabase
-      .from('animes_with_details')
-      .select("*, genres:anime_genres(genres(name)), studios:anime_studios(studios(name))", { count: 'exact' })
-      .not('shikimori_id', 'is', null)
-      .not('poster_url', 'is', null);
-      
+      .from("animes_with_details")
+      .select(
+        "*, episodes_aired, episodes_total, anime_kind, genres:anime_genres(genres(name)), studios:anime_studios(studios(name))",
+        { count: "exact" },
+      )
+      .not("shikimori_id", "is", null)
+      .not("poster_url", "is", null)
+
     // --- ПРИМЕНЯЕМ ВСЕ ФИЛЬТРЫ ---
-    const title = searchParams.get("title");
-    if (title) query = query.or(`title.ilike.%${title}%,title_orig.ilike.%${title}%`);
+    const title = searchParams.get("title")
+    if (title) query = query.or(`title.ilike.%${title}%,title_orig.ilike.%${title}%`)
 
-    const types = searchParams.get("types")?.split(',');
-    if (types && types.length > 0) query = query.in('type', types);
-    
-    const statuses = searchParams.get("statuses")?.split(',');
-    if (statuses && statuses.length > 0) query = query.in('status', statuses);
+    // ИЗМЕНЕНИЕ: Фильтруем по anime_kind
+    const kinds = searchParams.get("kinds")?.split(",")
+    if (kinds && kinds.length > 0) query = query.in("anime_kind", kinds)
 
-    const year_from = searchParams.get("year_from");
-    if (year_from) query = query.gte('year', parseInt(year_from));
+    const statuses = searchParams.get("statuses")?.split(",")
+    if (statuses && statuses.length > 0) query = query.in("status", statuses)
 
-    const year_to = searchParams.get("year_to");
-    if (year_to) query = query.lte('year', parseInt(year_to));
-    
-    const user_list_status = searchParams.get("user_list_status");
+    const year_from = searchParams.get("year_from")
+    if (year_from) query = query.gte("year", Number.parseInt(year_from))
+
+    const year_to = searchParams.get("year_to")
+    if (year_to) query = query.lte("year", Number.parseInt(year_to))
+
+    const user_list_status = searchParams.get("user_list_status")
     if (user_list_status && session) {
-        const { data: animeIdsInList } = await supabase
-            .from('user_lists')
-            .select('anime_id')
-            .eq('user_id', session.user.id)
-            .eq('status', user_list_status);
-        
-        if (animeIdsInList && animeIdsInList.length > 0) {
-            query = query.in('id', animeIdsInList.map(item => item.anime_id));
-        } else {
-            return NextResponse.json({ results: [], total: 0, hasMore: false });
-        }
+      const { data: animeIdsInList } = await supabase
+        .from("user_lists")
+        .select("anime_id")
+        .eq("user_id", session.user.id)
+        .eq("status", user_list_status)
+
+      if (animeIdsInList && animeIdsInList.length > 0) {
+        query = query.in(
+          "id",
+          animeIdsInList.map((item) => item.anime_id),
+        )
+      } else {
+        return NextResponse.json({ results: [], total: 0, hasMore: false })
+      }
     }
 
     // --- СОРТИРОВКА И ПАГИНАЦИЯ ---
-    const isAsc = order === 'asc';
-    query = query.order(sort, { ascending: isAsc, nullsFirst: false });
-    query = query.order('id', { ascending: false });
-    query = query.range(offset, offset + limit - 1);
+    const isAsc = order === "asc"
+    query = query.order(sort, { ascending: isAsc, nullsFirst: false })
+    query = query.order("id", { ascending: false })
+    query = query.range(offset, offset + limit - 1)
 
-    const { data: results, count, error: queryError } = await query;
-    if (queryError) throw queryError;
-    
+    const { data: results, count, error: queryError } = await query
+    if (queryError) throw queryError
+
     // --- ОБРАБОТКА ДАННЫХ И ИНТЕГРАЦИЯ СПИСКОВ ---
-    const finalResults = results?.map(anime => ({
-        ...anime,
-        genres: anime.genres.map((g: any) => g.genres).filter(Boolean),
-        studios: anime.studios.map((s: any) => s.studios).filter(Boolean),
-    }));
+    const finalResults = results?.map((anime) => ({
+      ...anime,
+      genres: anime.genres.map((g: any) => g.genres).filter(Boolean),
+      studios: anime.studios.map((s: any) => s.studios).filter(Boolean),
+    }))
 
     if (session && finalResults && finalResults.length > 0) {
-      const resultIds = finalResults.map(r => r.id);
-      const { data: userLists } = await supabase.from('user_lists').select('anime_id, status').eq('user_id', session.user.id).in('anime_id', resultIds);
+      const resultIds = finalResults.map((r) => r.id)
+      const { data: userLists } = await supabase
+        .from("user_lists")
+        .select("anime_id, status")
+        .eq("user_id", session.user.id)
+        .in("anime_id", resultIds)
       if (userLists) {
-          const statusMap = new Map(userLists.map(item => [item.anime_id, item.status]));
-          finalResults.forEach((anime: any) => {
-            anime.user_list_status = statusMap.get(anime.id) || null;
-          });
+        const statusMap = new Map(userLists.map((item) => [item.anime_id, item.status]))
+        finalResults.forEach((anime: any) => {
+          anime.user_list_status = statusMap.get(anime.id) || null
+        })
       }
     }
 
@@ -90,11 +106,10 @@ export async function GET(request: Request) {
       results: finalResults || [],
       total: count,
       hasMore: count ? count > offset + limit : false,
-    });
-
+    })
   } catch (error) {
-    console.error("Catalog API error:", error);
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("Catalog API error:", error)
+    const message = error instanceof Error ? error.message : "Unknown error"
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

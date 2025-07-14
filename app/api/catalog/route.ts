@@ -1,3 +1,5 @@
+// /app/api/catalog/route.ts
+
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
@@ -21,32 +23,30 @@ export async function GET(request: Request) {
   try {
     const { data: { session } } = await supabase.auth.getSession();
 
-    // UPDATE: Added 'description' and 'genres' to the main select query
     let query = supabase
       .from('animes_with_details')
-      .select("id, shikimori_id, title, poster_url, year, type, status, shikimori_rating, episodes_count, weighted_rating, description, genres:anime_genres(genres(name))", { count: 'exact' })
+      .select("*, genres:anime_genres(genres(name))", { count: 'exact' })
       .not('shikimori_id', 'is', null)
       .not('poster_url', 'is', null);
 
-    // --- FILTERS ---
+    const user_list_status = searchParams.get("user_list_status");
+    if (user_list_status && session) {
+        const { data: animeIdsInList } = await supabase
+            .from('user_lists')
+            .select('anime_id')
+            .eq('user_id', session.user.id)
+            .eq('status', user_list_status);
+        
+        if (animeIdsInList && animeIdsInList.length > 0) {
+            query = query.in('id', animeIdsInList.map(item => item.anime_id));
+        } else {
+            return NextResponse.json({ results: [], total: 0, hasMore: false });
+        }
+    }
+
     const title = searchParams.get("title");
     if (title) query = query.or(`title.ilike.%${title}%,title_orig.ilike.%${title}%`);
-
-    const types = searchParams.get("types")?.split(',');
-    if (types && types.length > 0) query = query.in('type', types);
-
-    const statuses = searchParams.get("statuses")?.split(',');
-    if (statuses && statuses.length > 0) query = query.in('status', statuses);
-
-    const year_from = searchParams.get("year_from");
-    if (year_from) query = query.gte('year', parseInt(year_from));
-
-    const year_to = searchParams.get("year_to");
-    if (year_to) query = query.lte('year', parseInt(year_to));
-
-    // ... (Your other filters for rating and episodes)
-
-    // --- SORTING & PAGINATION ---
+    
     const isAsc = order === 'asc';
     query = query.order(sort, { ascending: isAsc, nullsFirst: false });
     query = query.order('id', { ascending: false });
@@ -54,19 +54,15 @@ export async function GET(request: Request) {
 
     const { data: results, count, error: queryError } = await query;
     if (queryError) throw queryError;
-
-    // --- DATA PROCESSING ---
+    
     const finalResults = results?.map(anime => ({
         ...anime,
-        // Clean up the genres array to be simpler for the frontend
         genres: anime.genres.map((g: any) => g.genres).filter(Boolean),
     }));
 
-    // --- USER LIST STATUS INTEGRATION ---
     if (session && finalResults && finalResults.length > 0) {
       const resultIds = finalResults.map(r => r.id);
       const { data: userLists } = await supabase.from('user_lists').select('anime_id, status').eq('user_id', session.user.id).in('anime_id', resultIds);
-      
       if (userLists) {
           const statusMap = new Map(userLists.map(item => [item.anime_id, item.status]));
           finalResults.forEach((anime: any) => {

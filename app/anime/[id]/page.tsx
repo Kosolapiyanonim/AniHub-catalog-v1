@@ -1,3 +1,4 @@
+// /app/anime/[id]/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -6,13 +7,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Star, Play, Calendar, Tv, Users } from "lucide-react";
+import { ArrowLeft, Star, Play } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { AnimeListPopover } from "@/components/AnimeListPopover";
 import { AnimeCard } from "@/components/anime-card";
 import { SubscribeButton } from "@/components/SubscribeButton";
 
-// Updated interface to match the full data from the API
+// Интерфейсы данных
 interface RelatedAnime {
   id: number;
   shikimori_id: string;
@@ -24,26 +25,14 @@ interface AnimeData {
   id: number;
   shikimori_id: string;
   title: string;
-  description?: string;
   poster_url?: string;
-  year?: number;
-  status?: string;
-  type?: string;
-  episodes_aired: number;
-  episodes_total: number;
+  description?: string;
   shikimori_rating?: number;
   genres: { id: number; name: string; slug: string }[];
-  studios: { id: number; name: string; slug: string }[];
   tags: { id: number; name: string; slug: string }[];
   related: RelatedAnime[];
   user_list_status?: string | null;
 }
-
-const statuses = [
-  { key: "watching", label: "Смотрю" },
-  { key: "planned", label: "В планах" },
-  { key: "completed", label: "Просмотрено" },
-];
 
 export default function AnimePage() {
   const params = useParams();
@@ -91,13 +80,13 @@ export default function AnimePage() {
     return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-center p-4"><div><h1 className="text-2xl font-bold text-white mb-4">Аниме не найдено</h1><Button onClick={() => router.back()} variant="outline"><ArrowLeft className="w-4 h-4 mr-2" />Назад</Button></div></div>;
   }
 
-  const currentStatusLabel = statuses.find(s => s.key === anime.user_list_status)?.label;
+  const currentStatusLabel = "Изменить в списке"; // Пример текста для кнопки
 
   return (
     <div className="min-h-screen bg-slate-900 pt-20">
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Left Column */}
+          {/* Левая колонка */}
           <aside className="lg:col-span-1">
             <div className="sticky top-24 space-y-4">
               <div className="aspect-[3/4] relative rounded-lg overflow-hidden bg-slate-800">
@@ -115,13 +104,13 @@ export default function AnimePage() {
               <AnimeListPopover anime={anime} onStatusChange={handleStatusUpdate}>
                 <Button variant="outline" className="w-full">
                   {anime.user_list_status ? <Check className="w-4 h-4 mr-2 text-green-500" /> : <Plus className="w-4 h-4 mr-2" />}
-                  {currentStatusLabel || 'Добавить в список'}
+                  {anime.user_list_status ? currentStatusLabel : 'Добавить в список'}
                 </Button>
               </AnimeListPopover>
             </div>
           </aside>
 
-          {/* Right Column */}
+          {/* Правая колонка */}
           <main className="lg:col-span-3 space-y-12">
             <section>
               <div className="flex items-start justify-between">
@@ -140,7 +129,7 @@ export default function AnimePage() {
                 <h2 className="text-xl font-bold text-white mb-3">О тайтле</h2>
                 <div className="prose prose-invert max-w-none text-gray-300" dangerouslySetInnerHTML={{ __html: anime.description || "Описание отсутствует." }} />
                 <div className="flex flex-wrap gap-2 mt-4">
-                    {anime.genres.map(g => (<Link href={`/catalog?genres=${g.id}-${g.slug}`} key={g.id}><Badge variant="outline" className="border-purple-500 text-purple-300 hover:bg-purple-500/10 cursor-pointer">{g.name}</Badge></Link>))}
+                    {anime.genres.map(g => (<Link href={`/catalog?genres=${g.id}-${g.slug}`} key={g.id}><Badge variant="outline">{g.name}</Badge></Link>))}
                     {anime.tags.map(t => (<Link href={`/catalog?tags=${t.id}-${t.slug}`} key={t.id}><Badge variant="secondary">{t.name}</Badge></Link>))}
                 </div>
             </section>
@@ -148,14 +137,7 @@ export default function AnimePage() {
             {anime.related && anime.related.length > 0 && (
               <section>
                 <h2 className="text-xl font-bold text-white mb-4">Связанное</h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  {anime.related.map((relatedAnime, index) => (
-                      <div key={relatedAnime.id || index}>
-                          <AnimeCard anime={relatedAnime} />
-                          <p className="text-xs text-center mt-1 text-gray-400 capitalize">{relatedAnime.relation_type_formatted?.replace('_', ' ')}</p>
-                      </div>
-                  ))}
-                </div>
+                <AnimeCarousel items={anime.related} />
               </section>
             )}
             

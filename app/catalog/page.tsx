@@ -15,6 +15,11 @@ interface Anime {
   poster_url?: string | null;
   year?: number | null;
   user_list_status?: string | null;
+  // Добавляем поля для HoverCard
+  description?: string;
+  type?: string;
+  genres?: { name: string }[];
+  shikimori_rating?: number;
 }
 
 const parseUrlToFilters = (params: URLSearchParams): FiltersState => ({
@@ -59,9 +64,13 @@ function CatalogView() {
     try {
       const response = await fetch(`/api/catalog?${params.toString()}`);
       if (!response.ok) throw new Error("Ошибка сети");
+      
       const data = await response.json();
       
-      setAnimes(prev => (isNewSearch ? data.results : [...prev, ...data.results]));
+      // ИСПРАВЛЕНИЕ: Очищаем результаты от "пустых" записей
+      const cleanResults = data.results?.filter(Boolean) || [];
+
+      setAnimes(prev => (isNewSearch ? cleanResults : [...prev, ...cleanResults]));
       setHasMore(data.hasMore);
       setTotal(data.total);
     } catch (err) { console.error(err); } 
@@ -149,6 +158,7 @@ function CatalogView() {
   );
 }
 
+// Обертка для Suspense
 export default function CatalogPageWrapper() {
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><LoadingSpinner size="lg" /></div>}>

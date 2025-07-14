@@ -1,3 +1,4 @@
+// /components/anime-card.tsx
 'use client';
 
 import Link from 'next/link';
@@ -7,6 +8,7 @@ import { Badge } from './ui/badge';
 import { AddToListButton } from './AddToListButton';
 import { Star } from 'lucide-react';
 
+// Уточняем тип, чтобы он включал все нужные поля
 interface Anime {
   id: number;
   shikimori_id: string;
@@ -26,7 +28,10 @@ interface AnimeCardProps {
 }
 
 export function AnimeCard({ anime, priority = false }: AnimeCardProps) {
-  if (!anime || !anime.shikimori_id) return null;
+  // ИСПРАВЛЕНИЕ: Более надежная проверка
+  if (!anime || !anime.shikimori_id) {
+    return null;
+  }
 
   return (
     <HoverCard openDelay={200} closeDelay={100}>
@@ -36,17 +41,23 @@ export function AnimeCard({ anime, priority = false }: AnimeCardProps) {
             <div className="aspect-[2/3] overflow-hidden rounded-lg bg-slate-800 relative">
               {anime.poster_url ? (
                 <Image
-                  src={anime.poster_url} alt={anime.title} fill
-                  sizes="(max-width: 640px) 50vw, 33vw"
+                  src={anime.poster_url}
+                  alt={anime.title}
+                  fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
                   className="object-cover transition-transform duration-300 group-hover:scale-105"
                   priority={priority}
                 />
               ) : (
-                <div className="flex items-center justify-center h-full text-slate-500 text-xs p-2">Постер отсутствует</div>
+                <div className="flex items-center justify-center h-full text-slate-500 text-center text-xs p-2">
+                  Постер отсутствует
+                </div>
               )}
             </div>
             <div className="mt-2">
-              <h3 className="text-sm font-medium text-white truncate group-hover:text-purple-400">{anime.title}</h3>
+              <h3 className="text-sm font-medium text-white truncate group-hover:text-purple-400">
+                {anime.title}
+              </h3>
               {anime.year && <p className="text-xs text-slate-400">{anime.year}</p>}
             </div>
           </div>
@@ -60,7 +71,9 @@ export function AnimeCard({ anime, priority = false }: AnimeCardProps) {
             {anime.year && <span>• {anime.year}</span>}
             {anime.type && <span>• {anime.type.replace(/_/g, ' ')}</span>}
           </div>
-          <p className="text-sm text-gray-300 line-clamp-4">{anime.description}</p>
+          <p className="text-sm text-gray-300 line-clamp-4">
+            {anime.description}
+          </p>
           <div className="flex flex-wrap gap-1">
             {anime.genres?.slice(0, 3).map(g => <Badge key={g.name} variant="secondary">{g.name}</Badge>)}
           </div>

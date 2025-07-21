@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Button } from "./ui/button";
 import { ArrowRight } from "lucide-react";
 
-// ... (интерфейсы остаются без изменений)
+// ... (интерфейсы остаются без изменен��й)
 interface Anime {
   id: number;
   shikimori_id: string;

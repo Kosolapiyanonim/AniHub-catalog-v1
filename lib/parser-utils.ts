@@ -1,5 +1,4 @@
 // /lib/parser-utils.ts
-
 import type { KodikAnimeData } from "@/lib/types"
 
 // Трансформирует данные из Kodik в формат таблицы 'animes'
@@ -7,11 +6,9 @@ export function transformToAnimeRecord(anime: KodikAnimeData) {
   const material = anime.material_data || {}
 
   const poster = material.poster_url || anime.poster_url
-
   return {
     poster_url: poster || null,
     screenshots: anime.screenshots || [],
-
     shikimori_id: anime.shikimori_id,
     title: material.anime_title || anime.title,
     title_orig: anime.title_orig,

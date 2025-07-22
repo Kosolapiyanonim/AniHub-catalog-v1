@@ -1,35 +1,50 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
-import { NextResponse } from "next/server"
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const query = searchParams.get("query")
-  const limit = Number.parseInt(searchParams.get("limit") || "10", 10)
+  const { searchParams } = new URL(request.url);
+  const title = searchParams.get("title");
 
-  if (!query || query.length < 2) {
-    return NextResponse.json({ results: [] }, { status: 200 })
+  // Не ищем, если запрос слишком короткий
+  if (!title || title.length < 3) {
+    return NextResponse.json([]);
   }
 
-  const cookieStore = cookies()
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+  const cookieStore = cookies();
+  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
 
   try {
+    // Запрашиваем raw_data, где лежит вся нужная нам информация
     const { data, error } = await supabase
-      .from("animes")
-      .select("id, shikimori_id, title, title_orig, poster_url, year, type")
-      .or(`title.ilike.%${query}%,title_orig.ilike.%${query}%`)
-      .limit(limit)
+      .from('animes')
+      .select('shikimori_id, title, poster_url, raw_data')
+      .or(`title.ilike.%${title}%,title_orig.ilike.%${title}%`)
+      .limit(8);
 
-    if (error) {
-      console.error("Search API error:", error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
+    if (error) throw error;
 
-    return NextResponse.json({ results: data || [] })
+    // Сразу извлекаем нужные поля из raw_data на сервере
+    const results = data?.map(anime => {
+        const material = anime.raw_data?.material_data || {};
+        const raw = anime.raw_data || {};
+        return {
+            shikimori_id: anime.shikimori_id,
+            title: anime.title,
+            poster_url: anime.poster_url,
+            // Извлекаем нужные поля прямо здесь
+            type: raw.type,
+            status: material.anime_status,
+            aired_at: material.aired_at
+        }
+    }) || [];
+
+    return NextResponse.json(results);
   } catch (error) {
-    console.error("Unexpected search API error:", error)
-    const message = error instanceof Error ? error.message : "Unknown error"
-    return NextResponse.json({ error: message }, { status: 500 })
+    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error("Search API error:", message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

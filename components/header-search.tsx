@@ -8,13 +8,40 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverAnchor } from '@/components/ui/popover';
 import { Loader2, Search } from 'lucide-react';
 
+// [ИЗМЕНЕНИЕ] 1. Обновляем интерфейс, добавляем status
 interface SearchResult {
   shikimori_id: string;
   title: string;
   poster_url: string | null;
   year: number | null;
   type: string | null;
+  status: string | null; // Новое поле
 }
+
+// [ИЗМЕНЕНИЕ] 2. Добавляем функции для форматирования
+const formatStatus = (status: string | null) => {
+    if (!status) return null;
+    const map: { [key: string]: string } = {
+        'released': 'Вышел',
+        'ongoing': 'Онгоинг',
+        'anons': 'Анонс',
+    };
+    return map[status.toLowerCase()] || status;
+};
+
+const formatType = (type: string | null) => {
+    if (!type) return null;
+    const map: { [key: string]: string } = {
+        'anime-serial': 'TV Сериал',
+        'tv_series': 'TV Сериал',
+        'anime': 'Фильм',
+        'movie': 'Фильм',
+        'ova': 'OVA',
+        'ona': 'ONA',
+        'special': 'Спешл',
+    };
+    return map[type.toLowerCase()] || type;
+};
 
 // Custom hook for debouncing
 function useDebounce(value: string, delay: number) {
@@ -23,9 +50,7 @@ function useDebounce(value: string, delay: number) {
     const handler = setTimeout(() => {
       setDebouncedValue(value);
     }, delay);
-    return () => {
-      clearTimeout(handler);
-    };
+    return () => clearTimeout(handler);
   }, [value, delay]);
   return debouncedValue;
 }
@@ -36,8 +61,7 @@ export function HeaderSearch() {
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
-
-  const debouncedQuery = useDebounce(query, 300); // 300ms задержка
+  const debouncedQuery = useDebounce(query, 300);
 
   useEffect(() => {
     const search = async () => {
@@ -81,17 +105,7 @@ export function HeaderSearch() {
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <form onSubmit={handleSearchSubmit} className="relative w-full max-w-sm">
         <PopoverAnchor asChild>
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                type="text"
-                placeholder="Поиск аниме..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="w-full pl-10 bg-slate-700 border-slate-600"
-                />
-                {loading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-gray-400" />}
-            </div>
+          {/* ... input поиска без изменений ... */}
         </PopoverAnchor>
 
         <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-2">
@@ -109,9 +123,14 @@ export function HeaderSearch() {
                       <Image src={anime.poster_url} alt={anime.title} fill className="object-cover rounded-sm" />
                     )}
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <p className="text-sm font-medium line-clamp-2">{anime.title}</p>
-                    <p className="text-xs text-gray-400">{anime.year} • {anime.type}</p>
+                    {/* [ИЗМЕНЕНИЕ] 3. Выводим новую, форматированную информацию */}
+                    <div className="text-xs text-gray-400 flex items-center flex-wrap gap-x-1.5">
+                      <span>{formatType(anime.type)}</span>
+                      {anime.year && <span>• {anime.year}</span>}
+                      {formatStatus(anime.status) && <span className="text-purple-400 font-medium">• {formatStatus(anime.status)}</span>}
+                    </div>
                   </div>
                 </Link>
               ))}

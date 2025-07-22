@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     // Ищем по русскому И оригинальному названию
     const { data, error } = await supabase
       .from('animes')
-      .select('shikimori_id, title, poster_url, year, type')
+       .select('shikimori_id, title, poster_url, year, type, status')
       .or(`title.ilike.%${title}%,title_orig.ilike.%${title}%`)
       .limit(8); // Ограничиваем количество результатов для скорости
 

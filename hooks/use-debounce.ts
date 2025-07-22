@@ -1,13 +1,22 @@
-import { useState, useEffect } from 'react';
+"use client"
 
-// [ИСПРАВЛЕНИЕ] Добавлена запятая после <T>, чтобы помочь парсеру TypeScript
-export function useDebounce<T,>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+import { useEffect, useState } from "react"
+
+/**
+ * useDebounce
+ * -----------
+ * Keeps the given `value` unchanged until the user stops
+ * changing it for `delay` ms.  Handy for search boxes, etc.
+ */
+export function useDebounce<T>(value: T, delay = 300): T {
+  const [debounced, setDebounced] = useState(value)
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
+    const id = setTimeout(() => setDebounced(value), delay)
+    return () => clearTimeout(id)
+  }, [value, delay])
 
-  return debouncedValue;
+  return debounced
 }
+
+export default useDebounce

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LoadingSpinner } from "@/components/loading-spinner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { TrendingUp, Star, Calendar, Users, FlameIcon as Fire } from "lucide-react"
+import { TrendingUp, Star, Calendar, Users, Flame } from "lucide-react"
 import { AnimeCard } from "@/components/anime-card"
 
 interface Translation {
@@ -119,7 +119,7 @@ export default function PopularPage() {
               Новинки
             </TabsTrigger>
             <TabsTrigger value="trending" className="flex items-center gap-2">
-              <Fire className="w-4 h-4" />
+              <Flame className="w-4 h-4" />
               Популярные
             </TabsTrigger>
           </TabsList>
@@ -162,7 +162,7 @@ export default function PopularPage() {
             <Card className="mb-6">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Fire className="w-5 h-5 text-red-400" />
+                  <Flame className="w-5 h-5 text-red-400" />
                   Самые популярные
                 </CardTitle>
               </CardHeader>

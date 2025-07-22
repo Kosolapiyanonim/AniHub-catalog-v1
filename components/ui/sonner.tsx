@@ -1,28 +1,14 @@
 "use client"
 
-import { Toaster as Sonner } from "sonner"
+import type * as React from "react"
+import { Toaster as SonnerToaster } from "sonner"
 
-type ToasterProps = React.ComponentProps<typeof Sonner>
-
-const Toaster = ({ ...props }: ToasterProps) => {
-  return (
-    <Sonner
-      theme="dark"
-      className="toaster group"
-      toastOptions={{
-        classNames: {
-          toast:
-            "group toast group-[.toaster]:bg-slate-800 group-[.toaster]:text-white group-[.toaster]:border-slate-700 group-[.toaster]:shadow-lg",
-          description: "group-[.toast]:text-slate-400",
-          actionButton:
-            "group-[.toast]:bg-purple-600 group-[.toast]:text-white",
-          cancelButton:
-            "group-[.toast]:bg-slate-700 group-[.toast]:text-slate-300",
-        },
-      }}
-      {...props}
-    />
-  )
+/**
+ * Re-export of the `sonner` toaster so pages can simply
+ * import it from "@/components/ui/sonner".
+ */
+export function Toaster(props: React.ComponentProps<typeof SonnerToaster>) {
+  return <SonnerToaster {...props} />
 }
 
-export { Toaster }
+export default Toaster

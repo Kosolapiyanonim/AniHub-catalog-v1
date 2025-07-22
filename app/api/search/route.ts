@@ -1,48 +1,35 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
-
-export const dynamic = 'force-dynamic';
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from "next/headers"
+import { NextResponse } from "next/server"
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const title = searchParams.get("title");
+  const { searchParams } = new URL(request.url)
+  const query = searchParams.get("query")
+  const limit = Number.parseInt(searchParams.get("limit") || "10", 10)
 
-  if (!title || title.length < 3) {
-    return NextResponse.json([]);
+  if (!query || query.length < 2) {
+    return NextResponse.json({ results: [] }, { status: 200 })
   }
 
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+  const cookieStore = cookies()
+  const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
 
   try {
-    // [ИЗМЕНЕНИЕ] Запрашиваем raw_data, где лежит вся нужная нам информация
     const { data, error } = await supabase
-      .from('animes')
-      .select('shikimori_id, title, poster_url, raw_data') // Запрашиваем raw_data
-      .or(`title.ilike.%${title}%,title_orig.ilike.%${title}%`)
-      .limit(8);
+      .from("animes")
+      .select("id, shikimori_id, title, title_orig, poster_url, year, type")
+      .or(`title.ilike.%${query}%,title_orig.ilike.%${query}%`)
+      .limit(limit)
 
-    if (error) throw error;
+    if (error) {
+      console.error("Search API error:", error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 
-    // [ИЗМЕНЕНИЕ] Сразу извлекаем нужные поля из raw_data на сервере
-    const results = data?.map(anime => {
-        const material = anime.raw_data?.material_data || {};
-        return {
-            shikimori_id: anime.shikimori_id,
-            title: anime.title,
-            poster_url: anime.poster_url,
-            // Извлекаем нужные поля прямо здесь
-            type: anime.raw_data?.type,
-            status: material.anime_status,
-            aired_at: material.aired_at
-        }
-    }) || [];
-
-    return NextResponse.json(results);
+    return NextResponse.json({ results: data || [] })
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("Search API error:", message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("Unexpected search API error:", error)
+    const message = error instanceof Error ? error.message : "Unknown error"
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

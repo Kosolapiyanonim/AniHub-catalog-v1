@@ -12,12 +12,12 @@
     --popover-foreground: 222.2 84% 4.9%;
     --primary: 221.2 83.2% 53.3%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
+    --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 84% 4.9%;
-    --muted: 210 40% 96%;
+    --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 84% 4.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
@@ -47,27 +47,24 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 94.1%;
   }
-}
 
-@layer base {
- /* [ДОБАВЛЯЕМ ЭТОТ БЛОК] */
   html {
-    /* Стандартный размер 16px. 112.5% = 18px. Можете поиграть с этим значением. */
-    font-size: 120%; 
+    /* Ваше увеличение базового размера шрифта */
+    font-size: 120%;
+  }
+  
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
   }
 
   * {
     @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-}
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
+    box-sizing: border-box;
   }
 }
 
@@ -78,28 +75,16 @@
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 1;
   }
-
   .line-clamp-2 {
     overflow: hidden;
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
   }
-
   .line-clamp-3 {
     overflow: hidden;
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
   }
-}
-
-html,
-body {
-  overflow-x: hidden;
-  max-width: 100vw;
-}
-
-* {
-  box-sizing: border-box;
 }

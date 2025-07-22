@@ -8,7 +8,6 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const title = searchParams.get("title");
 
-  // Не ищем, если запрос слишком короткий (меньше 3 символов)
   if (!title || title.length < 3) {
     return NextResponse.json([]);
   }
@@ -17,16 +16,30 @@ export async function GET(request: Request) {
   const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
 
   try {
-    // Ищем по русскому И оригинальному названию
+    // [ИЗМЕНЕНИЕ] Запрашиваем raw_data, где лежит вся нужная нам информация
     const { data, error } = await supabase
       .from('animes')
-       .select('shikimori_id, title, poster_url, year, type, status')
+      .select('shikimori_id, title, poster_url, raw_data') // Запрашиваем raw_data
       .or(`title.ilike.%${title}%,title_orig.ilike.%${title}%`)
-      .limit(8); // Ограничиваем количество результатов для скорости
+      .limit(8);
 
     if (error) throw error;
 
-    return NextResponse.json(data);
+    // [ИЗМЕНЕНИЕ] Сразу извлекаем нужные поля из raw_data на сервере
+    const results = data?.map(anime => {
+        const material = anime.raw_data?.material_data || {};
+        return {
+            shikimori_id: anime.shikimori_id,
+            title: anime.title,
+            poster_url: anime.poster_url,
+            // Извлекаем нужные поля прямо здесь
+            type: anime.raw_data?.type,
+            status: material.anime_status,
+            aired_at: material.aired_at
+        }
+    }) || [];
+
+    return NextResponse.json(results);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("Search API error:", message);

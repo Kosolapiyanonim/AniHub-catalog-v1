@@ -12,7 +12,7 @@ import { SlidersHorizontal } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "./ui/checkbox"
 import { Label } from "./ui/label"
-import { useSupabase } from "./supabase-provider"
+import { useSupabase } from "@/components/supabase-provider"
 
 type FilterItem = { id: number; name: string; slug: string }
 export interface FiltersState {

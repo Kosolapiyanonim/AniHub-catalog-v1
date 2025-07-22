@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-// [ИЗМЕНЕНИЕ] Добавляем DialogTitle
-import { Dialog, DialogTitle } from '@/components/ui/dialog';
+// [ИСПРАВЛЕНИЕ] Импортируем DialogContent и DialogTitle отдельно
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { useDebounce } from '@/hooks/use-debounce';
-import { VisuallyHidden } from '@/components/ui/visually-hidden'; // Наш новый компонент
+import { VisuallyHidden } from '@/components/ui/visually-hidden';
 
 interface SearchResult {
   shikimori_id: string;
@@ -59,8 +59,8 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <Dialog.Content className="overflow-hidden p-0 shadow-lg">
-        {/* [ИЗМЕНЕНИЕ] Добавляем скрытый заголовок для доступности */}
+      {/* [ИСПРАВЛЕНИЕ] Используем <DialogContent> вместо <Dialog.Content> */}
+      <DialogContent className="overflow-hidden p-0 shadow-lg">
         <VisuallyHidden>
           <DialogTitle>Поиск по сайту</DialogTitle>
         </VisuallyHidden>
@@ -100,7 +100,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
             )}
           </CommandList>
         </Command>
-      </Dialog.Content>
+      </DialogContent>
     </Dialog>
   );
 }

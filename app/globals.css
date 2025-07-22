@@ -50,6 +50,19 @@
 }
 
 @layer base {
+ /* [ДОБАВЛЯЕМ ЭТОТ БЛОК] */
+  html {
+    /* Стандартный размер 16px. 112.5% = 18px. Можете поиграть с этим значением. */
+    font-size: 120%; 
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
   * {
     @apply border-border;
   }

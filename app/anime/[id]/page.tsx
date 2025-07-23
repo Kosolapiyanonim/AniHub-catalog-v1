@@ -1,18 +1,21 @@
+// app/anime/[id]/page.tsx
+
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Star, Play, Check, Plus } from "lucide-react";
+import { ArrowLeft, Star, Play } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
-import { AnimeListPopover } from "@/components/AnimeListPopover";
-import { AnimeCard } from "@/components/anime-card";
+import { AnimeCarousel } from "@/components/AnimeCarousel";
 import { SubscribeButton } from "@/components/SubscribeButton";
+import { AddToListButton } from "@/components/AddToListButton"; // <-- [ИЗМЕНЕНИЕ] Импортируем нашу универсальную кнопку
 
-// Интерфейсы данных
+// Интерфейсы данных (без изменений)
+// ...
 interface RelatedAnime {
   id: number;
   shikimori_id: string;
@@ -33,12 +36,6 @@ interface AnimeData {
   user_list_status?: string | null;
 }
 
-const statuses = [
-    { key: "watching", label: "Смотрю" },
-    { key: "planned", label: "В планах" },
-    { key: "completed", label: "Просмотрено" },
-];
-
 export default function AnimePage() {
   const params = useParams();
   const router = useRouter();
@@ -50,7 +47,8 @@ export default function AnimePage() {
 
   useEffect(() => {
     const fetchAnime = async () => {
-      if (!animeId) return;
+      // ... (логика загрузки данных остается без изменений)
+       if (!animeId) return;
       setLoading(true);
       try {
         const response = await fetch(`/api/anime/${animeId}`);
@@ -69,13 +67,14 @@ export default function AnimePage() {
     fetchAnime();
   }, [animeId]);
 
-  const handleStatusUpdate = (newStatus: string | null) => {
-      if (anime) {
+  // --- [ИЗМЕНЕНИЕ] Эта функция будет обновлять состояние страницы при смене статуса ---
+  const handleStatusUpdate = useCallback((updatedAnimeId: number, newStatus: string | null) => {
+      if (anime && anime.id === updatedAnimeId) {
           setAnime({ ...anime, user_list_status: newStatus });
       }
-  };
+  }, [anime]);
 
-  if (loading) {
+  if (loading) { /* ... (состояния загрузки/ошибки без изменений) ... */ 
     return <div className="min-h-screen bg-slate-900 flex items-center justify-center"><LoadingSpinner size="lg" /></div>;
   }
   if (error) {
@@ -85,20 +84,14 @@ export default function AnimePage() {
     return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-center p-4"><div><h1 className="text-2xl font-bold text-white mb-4">Аниме не найдено</h1><Button onClick={() => router.back()} variant="outline"><ArrowLeft className="w-4 h-4 mr-2" />Назад</Button></div></div>;
   }
 
-  const currentStatusLabel = statuses.find(s => s.key === anime.user_list_status)?.label || "Добавить в список";
-
   return (
     <div className="min-h-screen bg-slate-900 pt-20">
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Левая колонка */}
           <aside className="lg:col-span-1">
             <div className="sticky top-24 space-y-4">
               <div className="aspect-[3/4] relative rounded-lg overflow-hidden bg-slate-800">
                 <Image src={anime.poster_url || "/placeholder.svg"} alt={anime.title} fill className="object-cover" priority />
-                <Button variant="secondary" size="sm" className="absolute top-2 right-2 flex items-center gap-1 opacity-80 hover:opacity-100">
-                    <Star className="w-4 h-4" /> Оценить
-                </Button>
               </div>
               <div className="flex items-center gap-2">
                 <Link href={`/anime/${animeId}/watch`} className="w-full">
@@ -106,17 +99,18 @@ export default function AnimePage() {
                 </Link>
                 <SubscribeButton animeId={anime.id} />
               </div>
-              <AnimeListPopover anime={anime} onStatusChange={handleStatusUpdate}>
-                <Button variant="outline" className="w-full">
-                  {anime.user_list_status ? <Check className="w-4 h-4 mr-2 text-green-500" /> : <Plus className="w-4 h-4 mr-2" />}
-                  {currentStatusLabel}
-                </Button>
-              </AnimeListPopover>
+              {/* --- [ИЗМЕНЕНИЕ] Используем нашу новую универсальную кнопку --- */}
+              <AddToListButton
+                  animeId={anime.id}
+                  initialStatus={anime.user_list_status}
+                  onStatusChange={handleStatusUpdate}
+                  variant="full"
+              />
             </div>
           </aside>
 
-          {/* Правая колонка */}
           <main className="lg:col-span-3 space-y-12">
+            {/* ... (остальная часть страницы без изменений) ... */}
             <section>
               <div className="flex items-start justify-between">
                   <h1 className="text-3xl md:text-4xl font-bold text-white pr-4">{anime.title}</h1>
@@ -124,9 +118,6 @@ export default function AnimePage() {
                       <span className="font-bold text-lg">{anime.shikimori_rating}</span>
                       <Image src="/shikimori-logo.svg" alt="Shikimori" width={20} height={20} />
                   </a>
-              </div>
-              <div className="flex items-center gap-2 mt-4">
-                <Button variant="outline" disabled>Смотреть вместе (скоро)</Button>
               </div>
             </section>
 
@@ -150,12 +141,6 @@ export default function AnimePage() {
                 <h2 className="text-xl font-bold text-white mb-4">Отзывы</h2>
                 <div className="bg-slate-800 border border-slate-700 rounded-lg p-8 text-center text-gray-500">
                     <p>Раздел в разработке.</p>
-                </div>
-            </section>
-            <section>
-                <h2 className="text-xl font-bold text-white mb-4">Обсуждение</h2>
-                <div className="bg-slate-800 border border-slate-700 rounded-lg p-8 text-center text-gray-500">
-                    <p>Комментарии к аниме скоро появятся!</p>
                 </div>
             </section>
           </main>

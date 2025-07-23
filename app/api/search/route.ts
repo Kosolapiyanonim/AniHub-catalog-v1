@@ -28,21 +28,20 @@ export async function GET(req: NextRequest) {
   const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
   const ftsQuery = validatedQuery.trim().split(' ').join(' & ')
 
-  // --- [ИЗМЕНЕНИЕ] Выполняем два запроса параллельно ---
+  // --- [ИЗМЕНЕНИЕ] Добавляем вторичную сортировку по популярности ---
   const [dataResponse, countResponse] = await Promise.all([
-    // Запрос №1: получаем 8 записей с детальной информацией
     supabase
       .from('animes')
       .select('title, poster_url, year, shikimori_id, type, status, raw_data')
       .textSearch('ts_document', ftsQuery, { type: 'websearch', config: 'russian' })
+      .order('shikimori_votes', { ascending: false }) // <--- СОРТИРОВКА ПО ПОПУЛЯРНОСТИ
       .limit(8),
-    // Запрос №2: получаем только общее количество
     supabase
       .from('animes')
       .select('*', { count: 'exact', head: true })
       .textSearch('ts_document', ftsQuery, { type: 'websearch', config: 'russian' }),
   ])
-  
+
   const { data, error: dataError } = dataResponse
   const { count, error: countError } = countResponse
 
@@ -51,6 +50,5 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 
-  // --- [ИЗМЕНЕНИЕ] Возвращаем и данные, и общее количество ---
   return NextResponse.json({ data, total: count ?? 0 })
 }

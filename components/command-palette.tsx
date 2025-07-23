@@ -6,19 +6,11 @@ import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useDebounce } from '@/hooks/use-debounce'
-import {
-  Command,
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command'
-import { DialogTitle } from '@/components/ui/dialog'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog' // <--- [ИЗМЕНЕНИЕ] Используем Dialog напрямую
 import { VisuallyHidden } from '@/components/ui/visually-hidden'
 
-// --- [ИЗМЕНЕНИЕ] Обновляем тип для новых полей ---
+// Типы и функции форматирования остаются теми же
 interface AnimeSearchResult {
   shikimori_id: string
   title: string
@@ -26,11 +18,7 @@ interface AnimeSearchResult {
   year: number | null
   type: string | null
   status: string | null
-  raw_data: {
-    material_data?: {
-      aired_at?: string
-    }
-  }
+  raw_data: { material_data?: { aired_at?: string } }
 }
 
 interface CommandPaletteProps {
@@ -38,7 +26,6 @@ interface CommandPaletteProps {
   onOpenChange: (open: boolean) => void
 }
 
-// --- [ИЗМЕНЕНИЕ] Вспомогательные функции для форматирования данных ---
 const formatType = (type: string | null) => {
   if (!type) return null
   if (type.includes('serial')) return 'Аниме сериал'
@@ -55,14 +42,8 @@ const formatStatus = (status: string | null) => {
 const formatDate = (dateString?: string) => {
   if (!dateString) return null
   try {
-    return new Date(dateString).toLocaleDateString('ru-RU', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    })
-  } catch {
-    return null
-  }
+    return new Date(dateString).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long' })
+  } catch { return null }
 }
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
@@ -70,10 +51,18 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [searchResults, setSearchResults] = useState<AnimeSearchResult[]>([])
-  const [total, setTotal] = useState(0) // <--- [ИЗМЕНЕНИЕ] Состояние для общего количества
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
 
-  // Получение данных с новым ответом от API
+  useEffect(() => {
+    // Сбрасываем поиск при закрытии окна
+    if (!open) {
+      setSearchTerm('')
+      setSearchResults([])
+      setTotal(0)
+    }
+  }, [open])
+
   useEffect(() => {
     const fetchResults = async () => {
       if (debouncedSearchTerm.length < 2) {
@@ -85,7 +74,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       setLoading(true)
       try {
         const response = await fetch(`/api/search?query=${encodeURIComponent(debouncedSearchTerm)}`)
-        const { data, total } = await response.json() // <--- [ИЗМЕНЕНИЕ] Получаем и data, и total
+        const { data, total } = await response.json()
         setSearchResults(data || [])
         setTotal(total || 0)
       } catch (error) {
@@ -105,80 +94,80 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     onOpenChange(false)
   }
 
-  // --- [ИЗМЕНЕНИЕ] Новая логика для Enter ---
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      // Предотвращаем стандартное поведение cmdk (выбор первого элемента)
-      e.preventDefault() 
-      navigateToCatalog()
-    }
-  }
-
   const handleSelect = (shikimori_id: string) => {
     router.push(`/anime/${shikimori_id}`)
     onOpenChange(false)
   }
 
-  return (
-    // --- [ИЗМЕНЕНИЕ] Увеличиваем ширину диалогового окна ---
-    <CommandDialog open={open} onOpenChange={onOpenChange} dialogProps={{ contentClassName: 'max-w-2xl' }}>
-      <VisuallyHidden>
-        <DialogTitle>Поиск по сайту</DialogTitle>
-      </VisuallyHidden>
-      <CommandInput
-        placeholder='Начните вводить название аниме...'
-        value={searchTerm}
-        onValueChange={setSearchTerm}
-        onKeyDown={handleKeyDown} // <--- [ИЗМЕНЕНИЕ] Добавляем обработчик нажатий
-      />
-      <CommandList>
-        {loading && <CommandEmpty>Загрузка...</CommandEmpty>}
-        {!loading && searchResults.length === 0 && searchTerm.length > 1 && <CommandEmpty>Ничего не найдено.</CommandEmpty>}
-        <CommandGroup heading='Результаты поиска'>
-          {searchResults.map(anime => {
-            const typeText = formatType(anime.type)
-            const statusText = formatStatus(anime.status)
-            const airedText = formatDate(anime.raw_data?.material_data?.aired_at)
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      navigateToCatalog()
+    }
+  }
 
-            return (
-              <CommandItem
-                key={anime.shikimori_id}
-                value={anime.title}
-                onSelect={() => handleSelect(anime.shikimori_id)}
-                className='flex items-center gap-4 cursor-pointer p-3'
-              >
-                <div className='relative h-[72px] w-12 flex-shrink-0'>
-                  <Image
-                    src={anime.poster_url || '/placeholder.png'}
-                    alt={anime.title}
-                    fill
-                    className='rounded-md object-cover'
-                  />
-                </div>
-                <div className='flex-1'>
-                  <p className='font-medium line-clamp-1'>{anime.title}</p>
-                  {/* --- [ИЗМЕНЕНИЕ] Вывод дополнительной информации --- */}
-                  <div className='text-xs text-muted-foreground flex items-center flex-wrap gap-x-2.5 mt-1'>
-                    {typeText && <span>{typeText}</span>}
-                    {statusText && <span className='text-purple-400 font-medium'>• {statusText}</span>}
-                    {airedText && <span>• {airedText}</span>}
-                  </div>
-                </div>
-              </CommandItem>
-            )
-          })}
-        </CommandGroup>
-        
-        {/* --- [ИЗМЕНЕНИЕ] Кнопка "Показать еще" --- */}
-        {!loading && total > 8 && searchResults.length > 0 && (
-            <CommandItem 
-              onSelect={navigateToCatalog}
-              className='justify-center text-sm text-purple-400 cursor-pointer'
-            >
-              Показать все {total} результатов
-            </CommandItem>
-        )}
-      </CommandList>
-    </CommandDialog>
+  return (
+    // --- [ИЗМЕНЕНИЕ] Используем Dialog и DialogContent для контроля размера ---
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className='w-[60vw] max-w-4xl h-[70vh] max-h-[800px] p-0'>
+        <VisuallyHidden>
+          <DialogTitle>Поиск по сайту</DialogTitle>
+        </VisuallyHidden>
+        <Command className='flex h-full flex-col'>
+          <CommandInput
+            placeholder='Название аниме...'
+            value={searchTerm}
+            onValueChange={setSearchTerm}
+            onKeyDown={handleKeyDown}
+          />
+          <CommandList className='flex-1'>
+            {loading && <CommandEmpty>Загрузка...</CommandEmpty>}
+            {!loading && searchResults.length === 0 && searchTerm.length > 1 && <CommandEmpty>Ничего не найдено.</CommandEmpty>}
+            <CommandGroup heading='Результаты поиска'>
+              {searchResults.map(anime => {
+                const typeText = formatType(anime.type)
+                const statusText = formatStatus(anime.status)
+                const airedText = formatDate(anime.raw_data?.material_data?.aired_at)
+
+                return (
+                  <CommandItem
+                    key={anime.shikimori_id}
+                    value={anime.title}
+                    onSelect={() => handleSelect(anime.shikimori_id)}
+                    className='flex items-center gap-4 cursor-pointer p-3'
+                  >
+                    <div className='relative h-16 w-12 flex-shrink-0'>
+                      <Image
+                        src={anime.poster_url || '/placeholder.png'}
+                        alt={anime.title}
+                        fill
+                        className='rounded-md object-cover'
+                      />
+                    </div>
+                    <div className='flex-1'>
+                      <p className='font-medium line-clamp-1'>{anime.title}</p>
+                      <div className='text-sm text-muted-foreground flex items-center flex-wrap gap-x-2.5 mt-1'>
+                        {typeText && <span>{typeText}</span>}
+                        {statusText && <span className='text-purple-400 font-medium'>• {statusText}</span>}
+                        {airedText && <span>• {airedText}</span>}
+                      </div>
+                    </div>
+                  </CommandItem>
+                )
+              })}
+            </CommandGroup>
+            
+            {!loading && total > 8 && searchResults.length > 0 && (
+                <CommandItem 
+                  onSelect={navigateToCatalog}
+                  className='justify-center text-sm text-purple-400 cursor-pointer sticky bottom-0 bg-popover'
+                >
+                  Показать все {total} результатов в каталоге
+                </CommandItem>
+            )}
+          </CommandList>
+        </Command>
+      </DialogContent>
+    </Dialog>
   )
 }

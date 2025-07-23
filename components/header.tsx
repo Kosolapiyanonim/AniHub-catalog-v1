@@ -2,7 +2,7 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react' // Добавили useCallback
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -18,22 +18,15 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import {
-  Menu,
-  Bell,
-  User,
-  LogOut,
-  Settings,
-  Heart,
-  Search,
-  CheckCheck,
+  Menu, Bell, User, LogOut, Settings, Heart, Search, CheckCheck,
 } from 'lucide-react'
 import { CommandPalette } from './command-palette'
 import { toast } from 'sonner'
 import type { User as SupabaseUser } from '@supabase/auth-helpers-nextjs'
 
-// Компонент-заглушка для уведомлений
+// Компонент-заглушка для уведомлений (без изменений)
 function NotificationsDropdown() {
-  const [hasNotifications, setHasNotifications] = useState(true) // Временно true для демонстрации
+  const [hasNotifications, setHasNotifications] = useState(true)
 
   return (
     <DropdownMenu>
@@ -57,7 +50,6 @@ function NotificationsDropdown() {
           </Button>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {/* Здесь будет логика отображения вкладок и списка уведомлений */}
         <div className='p-4 text-center text-sm text-muted-foreground'>
           Пока нет новых уведомлений.
         </div>
@@ -68,7 +60,6 @@ function NotificationsDropdown() {
 
 // Основной компонент хедера
 export function Header() {
-  // ИСПРАВЛЕНИЕ: Убран лишний знак равенства
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
@@ -76,19 +67,24 @@ export function Header() {
   const router = useRouter()
   const supabase = createClientComponentClient()
 
+  // --- [ИЗМЕНЕНИЕ] Обернули функцию в useCallback для стабильности ---
+  const toggleCommandPalette = useCallback(() => {
+    setCommandPaletteOpen(open => !open)
+  }, [])
+  
   // Логика для Ctrl+K
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
-        setCommandPaletteOpen(open => !open)
+        toggleCommandPalette()
       }
     }
     document.addEventListener('keydown', down)
     return () => document.removeEventListener('keydown', down)
-  }, [])
+  }, [toggleCommandPalette]) // <-- Добавили зависимость
 
-  // Получение данных о пользователе
+  // Получение данных о пользователе (без изменений)
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -127,12 +123,11 @@ export function Header() {
             AniHub
           </Link>
 
-          {/* Навигация для десктопа */}
           <nav className='hidden md:flex items-center space-x-6'>
             <Link href='/catalog' className='text-sm font-medium hover:text-purple-400 transition-colors'>
               Каталог
             </Link>
-            <Button variant='outline' className='h-8 text-sm text-muted-foreground' onClick={() => setCommandPaletteOpen(true)}>
+            <Button variant='outline' className='h-8 text-sm text-muted-foreground' onClick={toggleCommandPalette}>
               <Search className='h-4 w-4 mr-2' />
               Поиск...
               <span className='ml-4 text-xs bg-slate-700 rounded-sm px-1.5 py-0.5'>Ctrl+K</span>
@@ -143,7 +138,6 @@ export function Header() {
           </nav>
 
           <div className='flex items-center gap-2'>
-            {/* Секция пользователя */}
             {loading ? (
               <div className='h-8 w-8 rounded-full bg-slate-800 animate-pulse' />
             ) : user ? (
@@ -204,7 +198,6 @@ export function Header() {
               </div>
             )}
 
-            {/* Бургерное меню для мобильных */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant='ghost' size='icon' className='md:hidden h-8 w-8'>
@@ -215,7 +208,6 @@ export function Header() {
                  <nav className="flex flex-col space-y-4 pt-8">
                   <Link href='/catalog' onClick={() => setMobileMenuOpen(false)}>Каталог</Link>
                   <Link href='/popular' onClick={() => setMobileMenuOpen(false)}>Популярное</Link>
-                  {/* ... добавить остальные ссылки из вашего ТЗ для мобильного меню ... */}
                  </nav>
               </SheetContent>
             </Sheet>

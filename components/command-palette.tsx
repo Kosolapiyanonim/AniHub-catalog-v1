@@ -9,6 +9,7 @@ import { useDebounce } from '@/hooks/use-debounce'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { VisuallyHidden } from '@/components/ui/visually-hidden'
+import { useSearchStore } from '@/hooks/use-search-store' // <-- ИСПРАВЛЕННЫЙ ПУТЬ
 
 // Типы и функции форматирования
 interface AnimeSearchResult {
@@ -19,11 +20,6 @@ interface AnimeSearchResult {
   type: string | null
   status: string | null
   raw_data: { material_data?: { aired_at?: string } }
-}
-
-interface CommandPaletteProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
 }
 
 const formatType = (type: string | null) => {
@@ -46,8 +42,10 @@ const formatDate = (dateString?: string) => {
   } catch { return null }
 }
 
-export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
+export function CommandPalette() {
   const router = useRouter()
+  const { isOpen, close } = useSearchStore()
+
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [searchResults, setSearchResults] = useState<AnimeSearchResult[]>([])
@@ -55,12 +53,12 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (!open) {
+    if (!isOpen) {
       setSearchTerm('')
       setSearchResults([])
       setTotal(0)
     }
-  }, [open])
+  }, [isOpen])
 
   useEffect(() => {
     const fetchResults = async () => {
@@ -78,8 +76,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         setTotal(total || 0)
       } catch (error) {
         console.error('Search error:', error)
-        setSearchResults([])
-        setTotal(0)
       } finally {
         setLoading(false)
       }
@@ -90,12 +86,12 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const navigateToCatalog = () => {
     if (searchTerm.length < 2) return
     router.push(`/catalog?title=${encodeURIComponent(searchTerm)}`)
-    onOpenChange(false)
+    close()
   }
 
   const handleSelect = (shikimori_id: string) => {
     router.push(`/anime/${shikimori_id}`)
-    onOpenChange(false)
+    close()
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -106,7 +102,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={close}>
       <DialogContent className='w-[60vw] max-w-4xl h-[70vh] max-h-[800px] p-0'>
         <VisuallyHidden>
           <DialogTitle>Поиск по сайту</DialogTitle>
@@ -118,7 +114,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             onValueChange={setSearchTerm}
             onKeyDown={handleKeyDown}
           />
-          {/* // <-- [ИЗМЕНЕНИЕ] Убираем ограничение по высоте у списка */}
           <CommandList className='flex-1 max-h-none'>
             {loading && <CommandEmpty>Загрузка...</CommandEmpty>}
             {!loading && searchResults.length === 0 && searchTerm.length > 1 && <CommandEmpty>Ничего не найдено.</CommandEmpty>}
@@ -143,7 +138,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                         className='rounded-md object-cover'
                       />
                     </div>
-                    <div className='flex-1'>
+                    <div>
                       <p className='font-medium line-clamp-1'>{anime.title}</p>
                       <div className='text-sm text-muted-foreground flex items-center flex-wrap gap-x-2.5 mt-1'>
                         {typeText && <span>{typeText}</span>}

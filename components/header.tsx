@@ -23,6 +23,7 @@ import {
 import { CommandPalette } from './command-palette'
 import { toast } from 'sonner'
 import type { User as SupabaseUser } from '@supabase/auth-helpers-nextjs'
+import { useSearchStore } from '@/hooks/use-search-store' // <-- ИСПРАВЛЕННЫЙ ПУТЬ
 
 function NotificationsDropdown() {
   const [hasNotifications, setHasNotifications] = useState(true)
@@ -60,27 +61,22 @@ function NotificationsDropdown() {
 export function Header() {
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [loading, setLoading] = useState(true)
-  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const router = useRouter()
   const supabase = createClientComponentClient()
-
-  // Обернули функцию в useCallback, чтобы она не пересоздавалась при каждом рендере.
-  // Это делает обработчик событий более стабильным.
-  const toggleCommandPalette = useCallback(() => {
-    setCommandPaletteOpen(open => !open)
-  }, [])
   
+  const toggleSearch = useSearchStore((state) => state.toggle)
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
-        toggleCommandPalette()
+        toggleSearch()
       }
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [toggleCommandPalette])
+  }, [toggleSearch])
 
   useEffect(() => {
     const getUser = async () => {
@@ -124,7 +120,7 @@ export function Header() {
             <Link href='/catalog' className='text-sm font-medium hover:text-purple-400 transition-colors'>
               Каталог
             </Link>
-            <Button variant='outline' className='h-8 text-sm text-muted-foreground' onClick={toggleCommandPalette}>
+            <Button variant='outline' className='h-8 text-sm text-muted-foreground' onClick={toggleSearch}>
               <Search className='h-4 w-4 mr-2' />
               Поиск...
               <span className='ml-4 text-xs bg-slate-700 rounded-sm px-1.5 py-0.5'>Ctrl+K</span>
@@ -210,7 +206,7 @@ export function Header() {
           </div>
         </div>
       </header>
-      <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
+      <CommandPalette />
     </>
   )
 }

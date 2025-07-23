@@ -2,6 +2,7 @@
 
 "use client";
 
+import { useState } from "react";
 import { useAnimeListStatus } from "@/hooks/use-anime-list-status";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -22,10 +23,13 @@ const statusMap = new Map(statuses.map(s => [s.key, { label: s.label, icon: s.ic
 interface Props {
   animeId: number;
   initialStatus?: string | null;
+  // --- ИЗМЕНЕНИЕ: Добавляем onStatusChange в пропсы ---
+  onStatusChange?: (newStatus: string | null) => void;
 }
 
-export function AnimePageListButton({ animeId, initialStatus }: Props) {
-  const { session, currentStatus, loading, handleStatusChange } = useAnimeListStatus(animeId, initialStatus);
+export function AnimePageListButton({ animeId, initialStatus, onStatusChange }: Props) {
+  // --- ИЗМЕНЕНИЕ: Передаем onStatusChange в хук ---
+  const { session, currentStatus, loading, handleStatusChange } = useAnimeListStatus(animeId, initialStatus, onStatusChange);
   const [popoverOpen, setPopoverOpen] = useState(false);
   
   if (!session) {

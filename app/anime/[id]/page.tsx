@@ -12,7 +12,7 @@ import { ArrowLeft, Star, Play } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { AnimeCarousel } from "@/components/AnimeCarousel";
 import { SubscribeButton } from "@/components/SubscribeButton";
-import { AnimePageListButton } from "@/components/anime-page-list-button";
+import { AnimePageListButton } from "@/components/anime-page-list-button"; // Используем правильную кнопку
 
 // Интерфейсы данных
 interface RelatedAnime {
@@ -65,9 +65,10 @@ export default function AnimePage() {
     fetchAnime();
   }, [animeId]);
 
-  const handleStatusUpdate = useCallback((updatedAnimeId: number, newStatus: string | null) => {
-      if (anime && anime.id === updatedAnimeId) {
-          setAnime({ ...anime, user_list_status: newStatus });
+  // --- ИЗМЕНЕНИЕ: Эта функция будет вызываться из кнопки, чтобы обновить состояние страницы ---
+  const handleStatusUpdate = useCallback((newStatus: string | null) => {
+      if (anime) {
+          setAnime(prevAnime => prevAnime ? { ...prevAnime, user_list_status: newStatus } : null);
       }
   }, [anime]);
 
@@ -85,7 +86,6 @@ export default function AnimePage() {
     <div className="min-h-screen bg-slate-900 pt-20">
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* --- [ИСПРАВЛЕНИЕ] Этот блок был восстановлен --- */}
           <aside className="lg:col-span-1">
             <div className="sticky top-24 space-y-4">
               <div className="aspect-[3/4] relative rounded-lg overflow-hidden bg-slate-800">
@@ -100,6 +100,7 @@ export default function AnimePage() {
               <AnimePageListButton
                   animeId={anime.id}
                   initialStatus={anime.user_list_status}
+                  onStatusChange={handleStatusUpdate} // <-- Передаем нашу функцию
               />
             </div>
           </aside>

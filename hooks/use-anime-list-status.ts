@@ -6,7 +6,12 @@ import { useState, useEffect, useCallback } from "react";
 import { useSupabase } from "@/components/supabase-provider";
 import { toast } from "sonner";
 
-export function useAnimeListStatus(animeId: number, initialStatus?: string | null) {
+// --- ИЗМЕНЕНИЕ: Хук теперь принимает необязательную функцию onStatusChange ---
+export function useAnimeListStatus(
+  animeId: number, 
+  initialStatus?: string | null,
+  onStatusChange?: (newStatus: string | null) => void
+) {
   const { session } = useSupabase();
   const [currentStatus, setCurrentStatus] = useState(initialStatus);
   const [loading, setLoading] = useState(false);
@@ -31,13 +36,19 @@ export function useAnimeListStatus(animeId: number, initialStatus?: string | nul
       
       const newResolvedStatus = newStatus === 'remove' ? null : newStatus;
       setCurrentStatus(newResolvedStatus);
+      
+      // --- ИЗМЕНЕНИЕ: Вызываем колбэк, если он был передан ---
+      if (onStatusChange) {
+        onStatusChange(newResolvedStatus);
+      }
+
       toast.success("Статус обновлен!");
     } catch (error) {
       toast.error("Не удалось обновить статус.");
     } finally {
       setLoading(false);
     }
-  }, [animeId, session]);
+  }, [animeId, session, onStatusChange]);
 
   return { session, currentStatus, loading, handleStatusChange };
 }

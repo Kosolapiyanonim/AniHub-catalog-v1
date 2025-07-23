@@ -84,7 +84,7 @@ export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps)
   const handleApply = () => onApply(filters)
   const handleReset = () => onApply(DEFAULT_FILTERS)
 
-  // Вспомогательный компонент для группы чекбоксов
+  // Вспомогательный компонент для группы чекбо��сов
   const CheckboxGroup = ({
     items,
     selected,

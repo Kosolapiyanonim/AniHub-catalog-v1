@@ -1,37 +1,24 @@
-// components/providers.tsx
+"use client"
 
-'use client'
-
-import React, { useState } from 'react'
-import { ThemeProvider } from '@/components/theme-provider'
-import { SupabaseProvider } from '@/components/supabase-provider'
-import { Toaster } from '@/components/ui/sonner'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query' // <-- 1. Импортируем нужное
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import type React from "react"
+import { useState } from "react"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { ThemeProvider } from "@/components/theme-provider"
+import { SupabaseProvider } from "@/components/supabase-provider"
+import { Toaster } from "@/components/ui/sonner"
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  // 2. Создаем клиент для React Query
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 60 * 1000,
-          },
-        },
-      })
-  )
+  // one QueryClient instance per app
+  const [queryClient] = useState(() => new QueryClient())
 
   return (
-    // 3. Оборачиваем все в QueryClientProvider
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute='class' defaultTheme='dark' enableSystem={false}>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
         <SupabaseProvider>
           {children}
           <Toaster />
         </SupabaseProvider>
       </ThemeProvider>
-      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   )
 }

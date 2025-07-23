@@ -100,28 +100,25 @@ importers:
         version: 2.16.8(react-dom@18.0.0(react@18.0.0))(react@18.0.0)(typescript@5.0.2)
       '@supabase/auth-helpers-nextjs':
         specifier: latest
-        version: 0.10.0(@supabase/supabase-js@2.52.0)
+        version: 0.10.0(@supabase/supabase-js@2.52.1)
       '@supabase/ssr':
         specifier: latest
-        version: 0.6.1(@supabase/supabase-js@2.52.0)
+        version: 0.6.1(@supabase/supabase-js@2.52.1)
       '@supabase/supabase-js':
         specifier: latest
-        version: 2.52.0
+        version: 2.52.1
       '@sveltejs/kit':
         specifier: latest
-        version: 2.25.2(@sveltejs/vite-plugin-svelte@6.1.0(svelte@5.36.13)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(svelte@5.36.13)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0))
+        version: 2.25.2(@sveltejs/vite-plugin-svelte@6.1.0(svelte@5.36.14)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(svelte@5.36.14)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0))
       '@tanstack/react-query':
         specifier: latest
         version: 5.83.0(react@18.0.0)
-      '@tanstack/react-query-devtools':
-        specifier: latest
-        version: 5.83.0(@tanstack/react-query@5.83.0(react@18.0.0))(react@18.0.0)
       '@vercel/analytics':
         specifier: latest
-        version: 1.5.0(@remix-run/react@2.16.8(react-dom@18.0.0(react@18.0.0))(react@18.0.0)(typescript@5.0.2))(@sveltejs/kit@2.25.2(@sveltejs/vite-plugin-svelte@6.1.0(svelte@5.36.13)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(svelte@5.36.13)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(next@14.2.16(react-dom@18.0.0(react@18.0.0))(react@18.0.0))(react@18.0.0)(svelte@5.36.13)(vue-router@4.5.1(vue@3.5.18(typescript@5.0.2)))(vue@3.5.18(typescript@5.0.2))
+        version: 1.5.0(@remix-run/react@2.16.8(react-dom@18.0.0(react@18.0.0))(react@18.0.0)(typescript@5.0.2))(@sveltejs/kit@2.25.2(@sveltejs/vite-plugin-svelte@6.1.0(svelte@5.36.14)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(svelte@5.36.14)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(next@14.2.16(react-dom@18.0.0(react@18.0.0))(react@18.0.0))(react@18.0.0)(svelte@5.36.14)(vue-router@4.5.1(vue@3.5.18(typescript@5.0.2)))(vue@3.5.18(typescript@5.0.2))
       '@vercel/speed-insights':
         specifier: latest
-        version: 1.2.0(@sveltejs/kit@2.25.2(@sveltejs/vite-plugin-svelte@6.1.0(svelte@5.36.13)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(svelte@5.36.13)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(next@14.2.16(react-dom@18.0.0(react@18.0.0))(react@18.0.0))(react@18.0.0)(svelte@5.36.13)(vue-router@4.5.1(vue@3.5.18(typescript@5.0.2)))(vue@3.5.18(typescript@5.0.2))
+        version: 1.2.0(@sveltejs/kit@2.25.2(@sveltejs/vite-plugin-svelte@6.1.0(svelte@5.36.14)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(svelte@5.36.14)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(next@14.2.16(react-dom@18.0.0(react@18.0.0))(react@18.0.0))(react@18.0.0)(svelte@5.36.14)(vue-router@4.5.1(vue@3.5.18(typescript@5.0.2)))(vue@3.5.18(typescript@5.0.2))
       autoprefixer:
         specifier: ^10.4.20
         version: 10.4.20(postcss@8.5.0)
@@ -184,16 +181,13 @@ importers:
         version: 2.0.6(react-dom@18.0.0(react@18.0.0))(react@18.0.0)
       svelte:
         specifier: latest
-        version: 5.36.13
+        version: 5.36.14
       tailwind-merge:
         specifier: ^2.5.5
         version: 2.5.5
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@3.4.17)
-      use-debounce:
-        specifier: latest
-        version: 10.0.5(react@18.0.0)
       vaul:
         specifier: latest
         version: 1.1.2(@types/react-dom@18.0.0)(@types/react@18.0.0)(react-dom@18.0.0(react@18.0.0))(react@18.0.0)
@@ -1327,8 +1321,8 @@ packages:
   '@supabase/storage-js@2.7.1':
     resolution: {integrity: sha512-asYHcyDR1fKqrMpytAS1zjyEfvxuOIp1CIXX7ji4lHHcJKqyk+sLl/Vxgm4sN6u8zvuUtae9e4kDxQP2qrwWBA==}
 
-  '@supabase/supabase-js@2.52.0':
-    resolution: {integrity: sha512-jbs3CV1f2+ge7sgBeEduboT9v/uGjF22v0yWi/5/XFn5tbM8MfWRccsMtsDwAwu24XK8H6wt2LJDiNnZLtx/bg==}
+  '@supabase/supabase-js@2.52.1':
+    resolution: {integrity: sha512-IxYljprgl381j4SuFrW4JimjTb59WJ98DqxhMvEOJjpGJWuZ7kwttIWn7E4NBnvkYwZ948zJkJ7dSI6B0oO0Xw==}
 
   '@sveltejs/acorn-typescript@1.0.5':
     resolution: {integrity: sha512-IwQk4yfwLdibDlrXVE04jTZYlLnwsTT2PIOQQGNLWfjavGifnk1JD1LcZjZaBTRcxZu2FfPfNLOE04DSu9lqtQ==}
@@ -1367,15 +1361,6 @@ packages:
 
   '@tanstack/query-core@5.83.0':
     resolution: {integrity: sha512-0M8dA+amXUkyz5cVUm/B+zSk3xkQAcuXuz5/Q/LveT4ots2rBpPTZOzd7yJa2Utsf8D2Upl5KyjhHRY+9lB/XA==}
-
-  '@tanstack/query-devtools@5.81.2':
-    resolution: {integrity: sha512-jCeJcDCwKfoyyBXjXe9+Lo8aTkavygHHsUHAlxQKKaDeyT0qyQNLKl7+UyqYH2dDF6UN/14873IPBHchcsU+Zg==}
-
-  '@tanstack/react-query-devtools@5.83.0':
-    resolution: {integrity: sha512-yfp8Uqd3I1jgx8gl0lxbSSESu5y4MO2ThOPBnGNTYs0P+ZFu+E9g5IdOngyUGuo6Uz6Qa7p9TLdZEX3ntik2fQ==}
-    peerDependencies:
-      '@tanstack/react-query': ^5.83.0
-      react: ^18 || ^19
 
   '@tanstack/react-query@5.83.0':
     resolution: {integrity: sha512-/XGYhZ3foc5H0VM2jLSD/NyBRIOK4q9kfeml4+0x2DlL6xVuAcVEW+hTlTapAmejObg0i3eNqhkr2dT+eciwoQ==}
@@ -2317,8 +2302,8 @@ packages:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
 
-  svelte@5.36.13:
-    resolution: {integrity: sha512-LnSywHHQM/nJekC65d84T1Yo85IeCYN4AryWYPhTokSvcEAFdYFCfbMhX1mc0zHizT736QQj0nalUk+SXaWrEQ==}
+  svelte@5.36.14:
+    resolution: {integrity: sha512-okgNwfVa4FfDGOgd0ndooKjQz1LknUFDGfEJp6QNjYP6B4hDG0KktOP+Pta3ZtE8s+JELsYP+7nqMrJzQLkf5A==}
     engines: {node: '>=18'}
 
   tailwind-merge@2.5.5:
@@ -2391,12 +2376,6 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
-
-  use-debounce@10.0.5:
-    resolution: {integrity: sha512-Q76E3lnIV+4YT9AHcrHEHYmAd9LKwUAbPXDm7FlqVGDHiSOhX3RDjT8dm0AxbJup6WgOb1YEcKyCr11kBJR5KQ==}
-    engines: {node: '>= 16.0.0'}
-    peerDependencies:
-      react: '*'
 
   use-sidecar@1.1.3:
     resolution: {integrity: sha512-Fedw0aZvkhynoPYlA5WXrMCAMm+nSWdZt6lzJQ7Ok8S6Q+VsHmHpRWndVRJ8Be0ZbkfPc5LRYH+5XrzXcEeLRQ==}
@@ -3495,15 +3474,15 @@ snapshots:
 
   '@standard-schema/utils@0.3.0': {}
 
-  '@supabase/auth-helpers-nextjs@0.10.0(@supabase/supabase-js@2.52.0)':
+  '@supabase/auth-helpers-nextjs@0.10.0(@supabase/supabase-js@2.52.1)':
     dependencies:
-      '@supabase/auth-helpers-shared': 0.7.0(@supabase/supabase-js@2.52.0)
-      '@supabase/supabase-js': 2.52.0
+      '@supabase/auth-helpers-shared': 0.7.0(@supabase/supabase-js@2.52.1)
+      '@supabase/supabase-js': 2.52.1
       set-cookie-parser: 2.7.1
 
-  '@supabase/auth-helpers-shared@0.7.0(@supabase/supabase-js@2.52.0)':
+  '@supabase/auth-helpers-shared@0.7.0(@supabase/supabase-js@2.52.1)':
     dependencies:
-      '@supabase/supabase-js': 2.52.0
+      '@supabase/supabase-js': 2.52.1
       jose: 4.15.9
 
   '@supabase/auth-js@2.71.1':
@@ -3533,16 +3512,16 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@supabase/ssr@0.6.1(@supabase/supabase-js@2.52.0)':
+  '@supabase/ssr@0.6.1(@supabase/supabase-js@2.52.1)':
     dependencies:
-      '@supabase/supabase-js': 2.52.0
+      '@supabase/supabase-js': 2.52.1
       cookie: 1.0.2
 
   '@supabase/storage-js@2.7.1':
     dependencies:
       '@supabase/node-fetch': 2.6.15
 
-  '@supabase/supabase-js@2.52.0':
+  '@supabase/supabase-js@2.52.1':
     dependencies:
       '@supabase/auth-js': 2.71.1
       '@supabase/functions-js': 2.4.5
@@ -3558,10 +3537,10 @@ snapshots:
     dependencies:
       acorn: 8.15.0
 
-  '@sveltejs/kit@2.25.2(@sveltejs/vite-plugin-svelte@6.1.0(svelte@5.36.13)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(svelte@5.36.13)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0))':
+  '@sveltejs/kit@2.25.2(@sveltejs/vite-plugin-svelte@6.1.0(svelte@5.36.14)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(svelte@5.36.14)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0))':
     dependencies:
       '@sveltejs/acorn-typescript': 1.0.5(acorn@8.15.0)
-      '@sveltejs/vite-plugin-svelte': 6.1.0(svelte@5.36.13)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0))
+      '@sveltejs/vite-plugin-svelte': 6.1.0(svelte@5.36.14)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0))
       '@types/cookie': 0.6.0
       acorn: 8.15.0
       cookie: 0.6.0
@@ -3573,26 +3552,26 @@ snapshots:
       sade: 1.8.1
       set-cookie-parser: 2.7.1
       sirv: 3.0.1
-      svelte: 5.36.13
+      svelte: 5.36.14
       vite: 7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)
 
-  '@sveltejs/vite-plugin-svelte-inspector@5.0.0(@sveltejs/vite-plugin-svelte@6.1.0(svelte@5.36.13)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(svelte@5.36.13)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0))':
+  '@sveltejs/vite-plugin-svelte-inspector@5.0.0(@sveltejs/vite-plugin-svelte@6.1.0(svelte@5.36.14)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(svelte@5.36.14)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0))':
     dependencies:
-      '@sveltejs/vite-plugin-svelte': 6.1.0(svelte@5.36.13)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0))
+      '@sveltejs/vite-plugin-svelte': 6.1.0(svelte@5.36.14)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0))
       debug: 4.4.1
-      svelte: 5.36.13
+      svelte: 5.36.14
       vite: 7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)
     transitivePeerDependencies:
       - supports-color
 
-  '@sveltejs/vite-plugin-svelte@6.1.0(svelte@5.36.13)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0))':
+  '@sveltejs/vite-plugin-svelte@6.1.0(svelte@5.36.14)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0))':
     dependencies:
-      '@sveltejs/vite-plugin-svelte-inspector': 5.0.0(@sveltejs/vite-plugin-svelte@6.1.0(svelte@5.36.13)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(svelte@5.36.13)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0))
+      '@sveltejs/vite-plugin-svelte-inspector': 5.0.0(@sveltejs/vite-plugin-svelte@6.1.0(svelte@5.36.14)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(svelte@5.36.14)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0))
       debug: 4.4.1
       deepmerge: 4.3.1
       kleur: 4.1.5
       magic-string: 0.30.17
-      svelte: 5.36.13
+      svelte: 5.36.14
       vite: 7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)
       vitefu: 1.1.1(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0))
     transitivePeerDependencies:
@@ -3606,14 +3585,6 @@ snapshots:
       tslib: 2.8.1
 
   '@tanstack/query-core@5.83.0': {}
-
-  '@tanstack/query-devtools@5.81.2': {}
-
-  '@tanstack/react-query-devtools@5.83.0(@tanstack/react-query@5.83.0(react@18.0.0))(react@18.0.0)':
-    dependencies:
-      '@tanstack/query-devtools': 5.81.2
-      '@tanstack/react-query': 5.83.0(react@18.0.0)
-      react: 18.0.0
 
   '@tanstack/react-query@5.83.0(react@18.0.0)':
     dependencies:
@@ -3674,22 +3645,22 @@ snapshots:
     dependencies:
       '@types/node': 22.0.0
 
-  '@vercel/analytics@1.5.0(@remix-run/react@2.16.8(react-dom@18.0.0(react@18.0.0))(react@18.0.0)(typescript@5.0.2))(@sveltejs/kit@2.25.2(@sveltejs/vite-plugin-svelte@6.1.0(svelte@5.36.13)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(svelte@5.36.13)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(next@14.2.16(react-dom@18.0.0(react@18.0.0))(react@18.0.0))(react@18.0.0)(svelte@5.36.13)(vue-router@4.5.1(vue@3.5.18(typescript@5.0.2)))(vue@3.5.18(typescript@5.0.2))':
+  '@vercel/analytics@1.5.0(@remix-run/react@2.16.8(react-dom@18.0.0(react@18.0.0))(react@18.0.0)(typescript@5.0.2))(@sveltejs/kit@2.25.2(@sveltejs/vite-plugin-svelte@6.1.0(svelte@5.36.14)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(svelte@5.36.14)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(next@14.2.16(react-dom@18.0.0(react@18.0.0))(react@18.0.0))(react@18.0.0)(svelte@5.36.14)(vue-router@4.5.1(vue@3.5.18(typescript@5.0.2)))(vue@3.5.18(typescript@5.0.2))':
     optionalDependencies:
       '@remix-run/react': 2.16.8(react-dom@18.0.0(react@18.0.0))(react@18.0.0)(typescript@5.0.2)
-      '@sveltejs/kit': 2.25.2(@sveltejs/vite-plugin-svelte@6.1.0(svelte@5.36.13)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(svelte@5.36.13)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0))
+      '@sveltejs/kit': 2.25.2(@sveltejs/vite-plugin-svelte@6.1.0(svelte@5.36.14)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(svelte@5.36.14)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0))
       next: 14.2.16(react-dom@18.0.0(react@18.0.0))(react@18.0.0)
       react: 18.0.0
-      svelte: 5.36.13
+      svelte: 5.36.14
       vue: 3.5.18(typescript@5.0.2)
       vue-router: 4.5.1(vue@3.5.18(typescript@5.0.2))
 
-  '@vercel/speed-insights@1.2.0(@sveltejs/kit@2.25.2(@sveltejs/vite-plugin-svelte@6.1.0(svelte@5.36.13)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(svelte@5.36.13)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(next@14.2.16(react-dom@18.0.0(react@18.0.0))(react@18.0.0))(react@18.0.0)(svelte@5.36.13)(vue-router@4.5.1(vue@3.5.18(typescript@5.0.2)))(vue@3.5.18(typescript@5.0.2))':
+  '@vercel/speed-insights@1.2.0(@sveltejs/kit@2.25.2(@sveltejs/vite-plugin-svelte@6.1.0(svelte@5.36.14)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(svelte@5.36.14)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(next@14.2.16(react-dom@18.0.0(react@18.0.0))(react@18.0.0))(react@18.0.0)(svelte@5.36.14)(vue-router@4.5.1(vue@3.5.18(typescript@5.0.2)))(vue@3.5.18(typescript@5.0.2))':
     optionalDependencies:
-      '@sveltejs/kit': 2.25.2(@sveltejs/vite-plugin-svelte@6.1.0(svelte@5.36.13)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(svelte@5.36.13)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0))
+      '@sveltejs/kit': 2.25.2(@sveltejs/vite-plugin-svelte@6.1.0(svelte@5.36.14)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0)))(svelte@5.36.14)(vite@7.0.5(@types/node@22.0.0)(jiti@1.21.7)(yaml@2.8.0))
       next: 14.2.16(react-dom@18.0.0(react@18.0.0))(react@18.0.0)
       react: 18.0.0
-      svelte: 5.36.13
+      svelte: 5.36.14
       vue: 3.5.18(typescript@5.0.2)
       vue-router: 4.5.1(vue@3.5.18(typescript@5.0.2))
 
@@ -4491,7 +4462,7 @@ snapshots:
 
   supports-preserve-symlinks-flag@1.0.0: {}
 
-  svelte@5.36.13:
+  svelte@5.36.14:
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@jridgewell/sourcemap-codec': 1.5.4
@@ -4586,10 +4557,6 @@ snapshots:
       tslib: 2.8.1
     optionalDependencies:
       '@types/react': 18.0.0
-
-  use-debounce@10.0.5(react@18.0.0):
-    dependencies:
-      react: 18.0.0
 
   use-sidecar@1.1.3(@types/react@18.0.0)(react@18.0.0):
     dependencies:

@@ -1,7 +1,7 @@
 // src/app/api/search/route.ts
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server' // Используем серверный клиент
 import { z } from 'zod'
 
 // Схема для валидации входящего запроса
@@ -16,7 +16,6 @@ export async function GET(req: NextRequest) {
   // Валидация
   const validation = searchSchema.safeParse({ query })
   if (!validation.success) {
-    // Если запрос пустой или слишком короткий, возвращаем пустой массив
     if (query === '' || query === null) {
       return NextResponse.json({ data: [] }, { status: 200 })
     }
@@ -24,30 +23,20 @@ export async function GET(req: NextRequest) {
   }
 
   const validatedQuery = validation.data.query
-
   const supabase = createClient()
 
-  // Преобразуем запрос для полнотекстового поиска
-  // 'one piece' -> 'one' & 'piece'
+  // Преобразуем запрос для полнотекстового поиска ('one piece' -> 'one' & 'piece')
   const ftsQuery = validatedQuery.trim().split(' ').join(' & ')
 
   const { data, error } = await supabase
     .from('animes')
-    // Используем полнотекстовый поиск по полю ts_document
-    .select(
-      `
-      id,
-      title,
-      poster_url,
-      year,
-      shikimori_id
-    `
-    )
+    // Используем эффективный полнотекстовый поиск по полю ts_document
+    .select('title, poster_url, year, shikimori_id')
     .textSearch('ts_document', ftsQuery, {
       type: 'websearch',
       config: 'russian',
     })
-    .limit(8) // Ограничиваем количество результатов для выпадающего меню
+    .limit(8) // Ограничиваем до 8 результатов для выпадающего меню
 
   if (error) {
     console.error('Supabase search error:', error)

@@ -8,11 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Plus, Check, Bookmark, Trash2, Eye, CalendarCheck, XCircle, History, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// --- [ИСПРАВЛЕНИЕ] Возвращаем полный список статусов ---
 const statuses = [
     { key: "watching", label: "Смотрю", icon: Eye },
     { key: "planned", label: "В планах", icon: Clock },
     { key: "completed", label: "Просмотрено", icon: CalendarCheck },
-    // ... можно добавить и другие статусы при желании
+    { key: "rewatching", label: "Пересматриваю", icon: History },
+    { key: "on_hold", label: "Отложено", icon: Bookmark },
+    { key: "dropped", label: "Брошено", icon: XCircle },
 ];
 const statusMap = new Map(statuses.map(s => [s.key, { label: s.label, icon: s.icon }]));
 
@@ -51,7 +54,7 @@ export function AnimeCardListButton({ animeId, initialStatus }: Props) {
             </DropdownMenuItem>
           ))}
           {currentStatus && (
-              <><DropdownMenuSeparator className="bg-slate-700" /><DropdownMenuItem className="text-red-500 hover:!text-red-500 hover:!bg-red-500/10 cursor-pointer" onSelect={() => handleStatusChange("remove")}><Trash2 className="mr-2 h-4 w-4" /><span>Удалить</span></DropdownMenuItem></>
+              <><DropdownMenuSeparator className="bg-slate-700" /><DropdownMenuItem className="text-red-500 hover:!text-red-500 hover:!bg-red-500/10 cursor-pointer" onSelect={() => handleStatusChange("remove")}><Trash2 className="mr-2 h-4 w-4" /><span>Удалить из списка</span></DropdownMenuItem></>
           )}
       </DropdownMenuContent>
     </DropdownMenu>

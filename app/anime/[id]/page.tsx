@@ -12,7 +12,7 @@ import { ArrowLeft, Star, Play } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { AnimeCarousel } from "@/components/AnimeCarousel";
 import { SubscribeButton } from "@/components/SubscribeButton";
-import { AnimePageListButton } from "@/components/anime-page-list-button"; // <-- ИЗМЕНЕНИЕ
+import { AnimePageListButton } from "@/components/anime-page-list-button";
 
 // Интерфейсы данных
 interface RelatedAnime {
@@ -85,6 +85,7 @@ export default function AnimePage() {
     <div className="min-h-screen bg-slate-900 pt-20">
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* --- [ИСПРАВЛЕНИЕ] Этот блок был восстановлен --- */}
           <aside className="lg:col-span-1">
             <div className="sticky top-24 space-y-4">
               <div className="aspect-[3/4] relative rounded-lg overflow-hidden bg-slate-800">
@@ -96,7 +97,6 @@ export default function AnimePage() {
                 </Link>
                 <SubscribeButton animeId={anime.id} />
               </div>
-              {/* --- ИЗМЕНЕНИЕ --- */}
               <AnimePageListButton
                   animeId={anime.id}
                   initialStatus={anime.user_list_status}
@@ -109,7 +109,7 @@ export default function AnimePage() {
               <div className="flex items-start justify-between">
                   <h1 className="text-3xl md:text-4xl font-bold text-white pr-4">{anime.title}</h1>
                   <a href={`https://shikimori.one/animes/${anime.shikimori_id}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 pt-2 shrink-0 text-gray-300 hover:text-white">
-                      <span className="font-bold text-lg">{anime.shikimori_rating}</span>
+                      {anime.shikimori_rating && <span className="font-bold text-lg">{anime.shikimori_rating}</span>}
                       <Image src="/shikimori-logo.svg" alt="Shikimori" width={20} height={20} />
                   </a>
               </div>

@@ -68,7 +68,8 @@ function NotificationsDropdown() {
 
 // Основной компонент хедера
 export function Header() {
-  const [user, setUser] = = useState<SupabaseUser | null>(null)
+  // ИСПРАВЛЕНИЕ: Убран лишний знак равенства
+  const [user, setUser] = useState<SupabaseUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)

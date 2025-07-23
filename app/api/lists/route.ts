@@ -1,5 +1,4 @@
-// app/api/lists/route.ts
-
+// /app/api/lists/route.ts
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
@@ -15,7 +14,6 @@ export async function POST(request: Request) {
   const cookieStore = cookies();
   const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
   const { data: { session } } = await supabase.auth.getSession();
-
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -23,16 +21,11 @@ export async function POST(request: Request) {
   const user_id = session.user.id;
 
   if (status === 'remove') {
-    // Удаляем запись из списка
     const { error } = await supabase.from("user_lists").delete().match({ user_id, anime_id });
-    if (error) {
-        console.error("Error removing from list:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ message: "Successfully removed" });
   }
 
-  // Добавляем или обновляем запись в списке
   const { error } = await supabase.from("user_lists").upsert({
     user_id,
     anime_id,
@@ -41,7 +34,6 @@ export async function POST(request: Request) {
   }, { onConflict: 'user_id,anime_id' });
 
   if (error) {
-    console.error("Error upserting to list:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
   return NextResponse.json({ message: "List updated successfully" });

@@ -1,4 +1,5 @@
-// /components/AddToListButton.tsx
+// components/AddToListButton.tsx
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -8,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Loader2, Check, Plus, Bookmark, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const statuses = [
   { key: "watching", label: "Смотрю" },
@@ -20,12 +22,13 @@ const statuses = [
 
 interface AddToListButtonProps {
   animeId: number;
-  // ИСПРАВЛЕНИЕ: Делаем initialStatus необязательным
   initialStatus?: string | null;
   variant?: 'full' | 'icon';
+  className?: string;
+  onStatusChange?: (animeId: number, newStatus: string | null) => void;
 }
 
-export function AddToListButton({ animeId, initialStatus, variant = 'full' }: AddToListButtonProps) {
+export function AddToListButton({ animeId, initialStatus, variant = 'full', className, onStatusChange }: AddToListButtonProps) {
   const { session } = useSupabase();
   const [currentStatus, setCurrentStatus] = useState(initialStatus);
   const [loading, setLoading] = useState(false);
@@ -38,13 +41,19 @@ export function AddToListButton({ animeId, initialStatus, variant = 'full' }: Ad
     if (!session) return toast.error("Нужно войти в аккаунт");
     setLoading(true);
     try {
-      await fetch("/api/lists", {
+      const response = await fetch("/api/lists", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ anime_id: animeId, status: newStatus }),
       });
-      setCurrentStatus(newStatus === 'remove' ? null : newStatus);
+
+      if (!response.ok) throw new Error("Server error");
+      
+      const newResolvedStatus = newStatus === 'remove' ? null : newStatus;
+      setCurrentStatus(newResolvedStatus);
+      if (onStatusChange) onStatusChange(animeId, newResolvedStatus);
       toast.success("Статус обновлен!");
+
     } catch (error) {
       toast.error("Не удалось обновить статус.");
     } finally {
@@ -53,9 +62,9 @@ export function AddToListButton({ animeId, initialStatus, variant = 'full' }: Ad
   };
 
   if (!session) {
-    if (variant === 'icon') return null;
+    if (variant === 'icon') return null; // Не показываем иконку для неавторизованных
     return (
-        <Link href="/login" className="w-full">
+        <Link href="/login" className={cn("w-full", className)}>
             <Button variant="outline" className="w-full"><Plus className="w-4 h-4 mr-2" /> Добавить в список</Button>
         </Link>
     );
@@ -67,7 +76,7 @@ export function AddToListButton({ animeId, initialStatus, variant = 'full' }: Ad
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         {variant === 'full' ? (
-          <Button variant="outline" className="w-full" disabled={loading}>
+          <Button variant="outline" className={cn("w-full", className)} disabled={loading}>
             {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : 
              currentStatus ? (<><Check className="w-4 h-4 mr-2 text-green-500" />{currentStatusLabel}</>) : 
              (<><Plus className="w-4 h-4 mr-2" />Добавить в список</>)}
@@ -76,7 +85,7 @@ export function AddToListButton({ animeId, initialStatus, variant = 'full' }: Ad
           <Button 
               variant="secondary" 
               size="icon" 
-              className="h-8 w-8" 
+              className={cn("absolute top-2 right-2 z-10 h-8 w-8 bg-black/50 text-white hover:bg-black/70", className)} 
               disabled={loading}
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
           >

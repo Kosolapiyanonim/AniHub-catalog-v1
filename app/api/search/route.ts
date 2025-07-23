@@ -1,50 +1,58 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+// src/app/api/search/route.ts
 
-export const dynamic = 'force-dynamic';
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { z } from 'zod'
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const title = searchParams.get("title");
+// Схема для валидации входящего запроса
+const searchSchema = z.object({
+  query: z.string().min(2, 'Query must be at least 2 characters long.'),
+})
 
-  // Не ищем, если запрос слишком короткий
-  if (!title || title.length < 3) {
-    return NextResponse.json([]);
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url)
+  const query = searchParams.get('query')
+
+  // Валидация
+  const validation = searchSchema.safeParse({ query })
+  if (!validation.success) {
+    // Если запрос пустой или слишком короткий, возвращаем пустой массив
+    if (query === '' || query === null) {
+      return NextResponse.json({ data: [] }, { status: 200 })
+    }
+    return NextResponse.json({ error: validation.error.format() }, { status: 400 })
   }
 
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+  const validatedQuery = validation.data.query
 
-  try {
-    // Запрашиваем raw_data, где лежит вся нужная нам информация
-    const { data, error } = await supabase
-      .from('animes')
-      .select('shikimori_id, title, poster_url, raw_data')
-      .or(`title.ilike.%${title}%,title_orig.ilike.%${title}%`)
-      .limit(8);
+  const supabase = createClient()
 
-    if (error) throw error;
+  // Преобразуем запрос для полнотекстового поиска
+  // 'one piece' -> 'one' & 'piece'
+  const ftsQuery = validatedQuery.trim().split(' ').join(' & ')
 
-    // Сразу извлекаем нужные поля из raw_data на сервере
-    const results = data?.map(anime => {
-        const material = anime.raw_data?.material_data || {};
-        const raw = anime.raw_data || {};
-        return {
-            shikimori_id: anime.shikimori_id,
-            title: anime.title,
-            poster_url: anime.poster_url,
-            // Извлекаем нужные поля прямо здесь
-            type: raw.type,
-            status: material.anime_status,
-            aired_at: material.aired_at
-        }
-    }) || [];
+  const { data, error } = await supabase
+    .from('animes')
+    // Используем полнотекстовый поиск по полю ts_document
+    .select(
+      `
+      id,
+      title,
+      poster_url,
+      year,
+      shikimori_id
+    `
+    )
+    .textSearch('ts_document', ftsQuery, {
+      type: 'websearch',
+      config: 'russian',
+    })
+    .limit(8) // Ограничиваем количество результатов для выпадающего меню
 
-    return NextResponse.json(results);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("Search API error:", message);
-    return NextResponse.json({ error: message }, { status: 500 });
+  if (error) {
+    console.error('Supabase search error:', error)
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
+
+  return NextResponse.json({ data }, { status: 200 })
 }

@@ -12,10 +12,9 @@ import { ArrowLeft, Star, Play } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { AnimeCarousel } from "@/components/AnimeCarousel";
 import { SubscribeButton } from "@/components/SubscribeButton";
-import { AddToListButton } from "@/components/AddToListButton"; // <-- [ИЗМЕНЕНИЕ] Импортируем нашу универсальную кнопку
+import { AnimePageListButton } from "@/components/anime-page-list-button"; // <-- ИЗМЕНЕНИЕ
 
-// Интерфейсы данных (без изменений)
-// ...
+// Интерфейсы данных
 interface RelatedAnime {
   id: number;
   shikimori_id: string;
@@ -47,8 +46,7 @@ export default function AnimePage() {
 
   useEffect(() => {
     const fetchAnime = async () => {
-      // ... (логика загрузки данных остается без изменений)
-       if (!animeId) return;
+      if (!animeId) return;
       setLoading(true);
       try {
         const response = await fetch(`/api/anime/${animeId}`);
@@ -67,14 +65,13 @@ export default function AnimePage() {
     fetchAnime();
   }, [animeId]);
 
-  // --- [ИЗМЕНЕНИЕ] Эта функция будет обновлять состояние страницы при смене статуса ---
   const handleStatusUpdate = useCallback((updatedAnimeId: number, newStatus: string | null) => {
       if (anime && anime.id === updatedAnimeId) {
           setAnime({ ...anime, user_list_status: newStatus });
       }
   }, [anime]);
 
-  if (loading) { /* ... (состояния загрузки/ошибки без изменений) ... */ 
+  if (loading) {
     return <div className="min-h-screen bg-slate-900 flex items-center justify-center"><LoadingSpinner size="lg" /></div>;
   }
   if (error) {
@@ -99,18 +96,15 @@ export default function AnimePage() {
                 </Link>
                 <SubscribeButton animeId={anime.id} />
               </div>
-              {/* --- [ИЗМЕНЕНИЕ] Используем нашу новую универсальную кнопку --- */}
-              <AddToListButton
+              {/* --- ИЗМЕНЕНИЕ --- */}
+              <AnimePageListButton
                   animeId={anime.id}
                   initialStatus={anime.user_list_status}
-                  onStatusChange={handleStatusUpdate}
-                  variant="full"
               />
             </div>
           </aside>
 
           <main className="lg:col-span-3 space-y-12">
-            {/* ... (остальная часть страницы без изменений) ... */}
             <section>
               <div className="flex items-start justify-between">
                   <h1 className="text-3xl md:text-4xl font-bold text-white pr-4">{anime.title}</h1>

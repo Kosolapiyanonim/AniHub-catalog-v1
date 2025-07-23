@@ -17,49 +17,96 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { Menu, Bell, User, LogOut, Settings, Heart, Search } from 'lucide-react'
-import { CommandPalette } from './command-palette' // <-- [ИЗМЕНЕНИЕ] Импортируем CommandPalette
+import {
+  Menu,
+  Bell,
+  User,
+  LogOut,
+  Settings,
+  Heart,
+  Search,
+  CheckCheck,
+} from 'lucide-react'
+import { CommandPalette } from './command-palette'
 import { toast } from 'sonner'
 import type { User as SupabaseUser } from '@supabase/auth-helpers-nextjs'
 
+// Компонент-заглушка для уведомлений
+function NotificationsDropdown() {
+  const [hasNotifications, setHasNotifications] = useState(true) // Временно true для демонстрации
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant='ghost' size='icon' className='relative h-8 w-8 hidden sm:flex'>
+          <Bell className='h-4 w-4' />
+          {hasNotifications && (
+            <span className='absolute top-1 right-1 flex h-2.5 w-2.5'>
+              <span className='animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75'></span>
+              <span className='relative inline-flex rounded-full h-2 w-2 bg-red-500'></span>
+            </span>
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className='w-80' align='end'>
+        <DropdownMenuLabel className='flex items-center justify-between'>
+          <span>Уведомления</span>
+          <Button variant='ghost' size='sm' className='h-auto p-1 text-xs'>
+            <CheckCheck className='w-3 h-3 mr-1' />
+            Прочитать все
+          </Button>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {/* Здесь будет логика отображения вкладок и списка уведомлений */}
+        <div className='p-4 text-center text-sm text-muted-foreground'>
+          Пока нет новых уведомлений.
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+// Основной компонент хедера
 export function Header() {
-  const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [user, setUser] = = useState<SupabaseUser | null>(null)
   const [loading, setLoading] = useState(true)
-  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false) // <-- [ИЗМЕНЕНИЕ] Состояние для CommandPalette
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const router = useRouter()
   const supabase = createClientComponentClient()
 
+  // Логика для Ctrl+K
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        setCommandPaletteOpen(open => !open)
+      }
+    }
+    document.addEventListener('keydown', down)
+    return () => document.removeEventListener('keydown', down)
+  }, [])
+
+  // Получение данных о пользователе
   useEffect(() => {
     const getUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
       setLoading(false)
     }
-
     getUser()
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setUser(session?.user ?? null)
       setLoading(false)
     })
-
     return () => subscription.unsubscribe()
   }, [supabase.auth])
 
   const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut()
-      toast.success('Вы вышли из аккаунта')
-      router.push('/')
-      router.refresh()
-    } catch (error) {
-      toast.error('Ошибка при выходе')
-    }
+    await supabase.auth.signOut()
+    toast.success('Вы вышли из аккаунта')
+    router.refresh()
   }
 
   const getUserInitials = (user: SupabaseUser) => {
@@ -79,34 +126,29 @@ export function Header() {
             AniHub
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* Навигация для десктопа */}
           <nav className='hidden md:flex items-center space-x-6'>
-            <Link href='/catalog' className='text-sm font-medium hover:text-primary transition-colors'>
+            <Link href='/catalog' className='text-sm font-medium hover:text-purple-400 transition-colors'>
               Каталог
             </Link>
-            {/* // <-- [ИЗМЕНЕНИЕ] Кнопка для открытия CommandPalette */}
-            <Button variant='outline' className='h-8' onClick={() => setCommandPaletteOpen(true)}>
+            <Button variant='outline' className='h-8 text-sm text-muted-foreground' onClick={() => setCommandPaletteOpen(true)}>
               <Search className='h-4 w-4 mr-2' />
               Поиск...
               <span className='ml-4 text-xs bg-slate-700 rounded-sm px-1.5 py-0.5'>Ctrl+K</span>
             </Button>
-            <Link href='/popular' className='text-sm font-medium hover:text-primary transition-colors'>
+            <Link href='/popular' className='text-sm font-medium hover:text-purple-400 transition-colors'>
               Популярное
             </Link>
           </nav>
 
-          <div className='flex items-center gap-4'>
-            {/* User Section */}
+          <div className='flex items-center gap-2'>
+            {/* Секция пользователя */}
             {loading ? (
-              <div className='h-8 w-8 rounded-full bg-muted animate-pulse' />
+              <div className='h-8 w-8 rounded-full bg-slate-800 animate-pulse' />
             ) : user ? (
               <div className='flex items-center space-x-2'>
-                {/* Notifications */}
-                <Button variant='ghost' size='icon' className='h-8 w-8 hidden sm:flex'>
-                  <Bell className='h-4 w-4' />
-                </Button>
+                <NotificationsDropdown />
 
-                {/* User Menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant='ghost' className='relative h-8 w-8 rounded-full'>
@@ -124,17 +166,23 @@ export function Header() {
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                      <User className='mr-2 h-4 w-4' />
-                      <span>Профиль</span>
+                    <DropdownMenuItem asChild>
+                      <Link href={`/profile/${user.id}`}>
+                        <User className='mr-2 h-4 w-4' />
+                        <span>Профиль</span>
+                      </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Heart className='mr-2 h-4 w-4' />
-                      <span>Мои списки</span>
+                    <DropdownMenuItem asChild>
+                      <Link href={`/profile/${user.id}/lists`}>
+                        <Heart className='mr-2 h-4 w-4' />
+                        <span>Мои списки</span>
+                      </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Settings className='mr-2 h-4 w-4' />
-                      <span>Настройки</span>
+                    <DropdownMenuItem asChild>
+                       <Link href="/settings">
+                          <Settings className='mr-2 h-4 w-4' />
+                          <span>Настройки</span>
+                        </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleSignOut}>
@@ -146,33 +194,33 @@ export function Header() {
               </div>
             ) : (
               <div className='hidden md:flex items-center space-x-2'>
-                <Link href='/login'>
-                  <Button variant='ghost' size='sm'>
-                    Войти
-                  </Button>
+                <Link href='/login' passHref>
+                  <Button variant='ghost' size='sm'>Войти</Button>
                 </Link>
-                <Link href='/register'>
+                <Link href='/register' passHref>
                   <Button size='sm'>Регистрация</Button>
                 </Link>
               </div>
             )}
 
-            {/* Mobile Menu */}
+            {/* Бургерное меню для мобильных */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant='ghost' size='sm' className='md:hidden'>
+                <Button variant='ghost' size='icon' className='md:hidden h-8 w-8'>
                   <Menu className='h-4 w-4' />
                 </Button>
               </SheetTrigger>
               <SheetContent side='right' className='w-[300px] sm:w-[400px]'>
-                {/* ...содержимое мобильного меню без изменений... */}
+                 <nav className="flex flex-col space-y-4 pt-8">
+                  <Link href='/catalog' onClick={() => setMobileMenuOpen(false)}>Каталог</Link>
+                  <Link href='/popular' onClick={() => setMobileMenuOpen(false)}>Популярное</Link>
+                  {/* ... добавить остальные ссылки из вашего ТЗ для мобильного меню ... */}
+                 </nav>
               </SheetContent>
             </Sheet>
           </div>
         </div>
       </header>
-
-      {/* // <-- [ИЗМЕНЕНИЕ] CommandPalette рендерится здесь */}
       <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
     </>
   )

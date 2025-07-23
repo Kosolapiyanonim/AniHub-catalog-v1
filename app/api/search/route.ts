@@ -1,7 +1,6 @@
 // src/app/api/search/route.ts
 
 import { NextRequest, NextResponse } from 'next/server'
-// ИЗМЕНЕНИЕ: Используем правильный клиент для API-маршрутов
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
@@ -19,33 +18,39 @@ export async function GET(req: NextRequest) {
   const validation = searchSchema.safeParse({ query })
   if (!validation.success) {
     if (query === '' || query === null) {
-      return NextResponse.json({ data: [] }, { status: 200 })
+      return NextResponse.json({ data: [], total: 0 }, { status: 200 })
     }
     return NextResponse.json({ error: validation.error.format() }, { status: 400 })
   }
 
   const validatedQuery = validation.data.query
-
-  // ИЗМЕНЕНИЕ: Создаем клиент правильным способом
   const cookieStore = cookies()
   const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
-
   const ftsQuery = validatedQuery.trim().split(' ').join(' & ')
 
-  const { data, error } = await supabase
-    .from('animes')
-    .select('title, poster_url, year, shikimori_id')
-    .textSearch('ts_document', ftsQuery, {
-      type: 'websearch',
-      config: 'russian',
-    })
-    .limit(8)
+  // --- [ИЗМЕНЕНИЕ] Выполняем два запроса параллельно ---
+  const [dataResponse, countResponse] = await Promise.all([
+    // Запрос №1: получаем 8 записей с детальной информацией
+    supabase
+      .from('animes')
+      .select('title, poster_url, year, shikimori_id, type, status, raw_data')
+      .textSearch('ts_document', ftsQuery, { type: 'websearch', config: 'russian' })
+      .limit(8),
+    // Запрос №2: получаем только общее количество
+    supabase
+      .from('animes')
+      .select('*', { count: 'exact', head: true })
+      .textSearch('ts_document', ftsQuery, { type: 'websearch', config: 'russian' }),
+  ])
+  
+  const { data, error: dataError } = dataResponse
+  const { count, error: countError } = countResponse
 
-  if (error) {
-    console.error('Supabase search error:', error)
+  if (dataError || countError) {
+    console.error('Supabase search error:', dataError || countError)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 
-  // ИЗМЕНЕНИЕ: Оборачиваем ответ в { data }, как ожидает клиент
-  return NextResponse.json({ data })
+  // --- [ИЗМЕНЕНИЕ] Возвращаем и данные, и общее количество ---
+  return NextResponse.json({ data, total: count ?? 0 })
 }

@@ -1,10 +1,13 @@
 // src/app/api/search/route.ts
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server' // Используем серверный клиент
+// ИЗМЕНЕНИЕ: Используем правильный клиент для API-маршрутов
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 import { z } from 'zod'
 
-// Схема для валидации входящего запроса
+export const dynamic = 'force-dynamic'
+
 const searchSchema = z.object({
   query: z.string().min(2, 'Query must be at least 2 characters long.'),
 })
@@ -13,7 +16,6 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const query = searchParams.get('query')
 
-  // Валидация
   const validation = searchSchema.safeParse({ query })
   if (!validation.success) {
     if (query === '' || query === null) {
@@ -23,25 +25,27 @@ export async function GET(req: NextRequest) {
   }
 
   const validatedQuery = validation.data.query
-  const supabase = createClient()
 
-  // Преобразуем запрос для полнотекстового поиска ('one piece' -> 'one' & 'piece')
+  // ИЗМЕНЕНИЕ: Создаем клиент правильным способом
+  const cookieStore = cookies()
+  const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+
   const ftsQuery = validatedQuery.trim().split(' ').join(' & ')
 
   const { data, error } = await supabase
     .from('animes')
-    // Используем эффективный полнотекстовый поиск по полю ts_document
     .select('title, poster_url, year, shikimori_id')
     .textSearch('ts_document', ftsQuery, {
       type: 'websearch',
       config: 'russian',
     })
-    .limit(8) // Ограничиваем до 8 результатов для выпадающего меню
+    .limit(8)
 
   if (error) {
     console.error('Supabase search error:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 
-  return NextResponse.json({ data }, { status: 200 })
+  // ИЗМЕНЕНИЕ: Оборачиваем ответ в { data }, как ожидает клиент
+  return NextResponse.json({ data })
 }

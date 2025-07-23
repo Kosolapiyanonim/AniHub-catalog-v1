@@ -15,8 +15,9 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
+import { DialogTitle } from '@/components/ui/dialog' // <-- [ИЗМЕНЕНИЕ] Импортируем DialogTitle
+import { VisuallyHidden } from '@/components/ui/visually-hidden' // <-- [ИЗМЕНЕНИЕ] Импортируем VisuallyHidden
 
-// Тип для результатов поиска
 interface AnimeSearchResult {
   shikimori_id: string
   title: string
@@ -32,11 +33,10 @@ interface CommandPaletteProps {
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const router = useRouter()
   const [searchTerm, setSearchTerm] = useState('')
-  const debouncedSearchTerm = useDebounce(searchTerm, 300) // Задержка в 300мс
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [searchResults, setSearchResults] = useState<AnimeSearchResult[]>([])
   const [loading, setLoading] = useState(false)
 
-  // Горячие клавиши Ctrl+K / Cmd+K
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
@@ -48,7 +48,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     return () => document.removeEventListener('keydown', down)
   }, [open, onOpenChange])
 
-  // Логика получения данных
   useEffect(() => {
     const fetchResults = async () => {
       if (debouncedSearchTerm.length < 2) {
@@ -71,7 +70,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     fetchResults()
   }, [debouncedSearchTerm])
 
-  // Действие при выборе аниме
   const handleSelect = (shikimori_id: string) => {
     router.push(`/anime/${shikimori_id}`)
     onOpenChange(false)
@@ -79,6 +77,10 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
+      {/* // <-- [ИЗМЕНЕНИЕ] Добавляем скрытый заголовок для доступности */}
+      <VisuallyHidden>
+        <DialogTitle>Поиск по сайту</DialogTitle>
+      </VisuallyHidden>
       <CommandInput
         placeholder='Начните вводить название аниме...'
         value={searchTerm}

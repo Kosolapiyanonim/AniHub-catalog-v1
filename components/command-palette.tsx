@@ -7,10 +7,10 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useDebounce } from '@/hooks/use-debounce'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog' // <--- [ИЗМЕНЕНИЕ] Используем Dialog напрямую
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { VisuallyHidden } from '@/components/ui/visually-hidden'
 
-// Типы и функции форматирования остаются теми же
+// Типы и функции форматирования
 interface AnimeSearchResult {
   shikimori_id: string
   title: string
@@ -55,7 +55,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    // Сбрасываем поиск при закрытии окна
     if (!open) {
       setSearchTerm('')
       setSearchResults([])
@@ -107,7 +106,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   }
 
   return (
-    // --- [ИЗМЕНЕНИЕ] Используем Dialog и DialogContent для контроля размера ---
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className='w-[60vw] max-w-4xl h-[70vh] max-h-[800px] p-0'>
         <VisuallyHidden>
@@ -120,7 +118,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             onValueChange={setSearchTerm}
             onKeyDown={handleKeyDown}
           />
-          <CommandList className='flex-1'>
+          {/* // <-- [ИЗМЕНЕНИЕ] Убираем ограничение по высоте у списка */}
+          <CommandList className='flex-1 max-h-none'>
             {loading && <CommandEmpty>Загрузка...</CommandEmpty>}
             {!loading && searchResults.length === 0 && searchTerm.length > 1 && <CommandEmpty>Ничего не найдено.</CommandEmpty>}
             <CommandGroup heading='Результаты поиска'>

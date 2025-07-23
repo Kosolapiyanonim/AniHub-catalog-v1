@@ -2,7 +2,7 @@
 
 'use client'
 
-import { useState, useEffect, useCallback } from 'react' // Добавили useCallback
+import { useState, useEffect, useCallback } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -24,7 +24,6 @@ import { CommandPalette } from './command-palette'
 import { toast } from 'sonner'
 import type { User as SupabaseUser } from '@supabase/auth-helpers-nextjs'
 
-// Компонент-заглушка для уведомлений (без изменений)
 function NotificationsDropdown() {
   const [hasNotifications, setHasNotifications] = useState(true)
 
@@ -58,7 +57,6 @@ function NotificationsDropdown() {
   )
 }
 
-// Основной компонент хедера
 export function Header() {
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [loading, setLoading] = useState(true)
@@ -67,24 +65,23 @@ export function Header() {
   const router = useRouter()
   const supabase = createClientComponentClient()
 
-  // --- [ИЗМЕНЕНИЕ] Обернули функцию в useCallback для стабильности ---
+  // Обернули функцию в useCallback, чтобы она не пересоздавалась при каждом рендере.
+  // Это делает обработчик событий более стабильным.
   const toggleCommandPalette = useCallback(() => {
     setCommandPaletteOpen(open => !open)
   }, [])
   
-  // Логика для Ctrl+K
   useEffect(() => {
-    const down = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
         toggleCommandPalette()
       }
     }
-    document.addEventListener('keydown', down)
-    return () => document.removeEventListener('keydown', down)
-  }, [toggleCommandPalette]) // <-- Добавили зависимость
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [toggleCommandPalette])
 
-  // Получение данных о пользователе (без изменений)
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -143,7 +140,6 @@ export function Header() {
             ) : user ? (
               <div className='flex items-center space-x-2'>
                 <NotificationsDropdown />
-
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant='ghost' className='relative h-8 w-8 rounded-full'>

@@ -1,18 +1,21 @@
-// /components/anime-card.tsx
+// components/anime-card.tsx
 'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
 import { AnimeListPopover } from './AnimeListPopover';
+import { AnimeCardListButton } from './anime-card-list-button';
 
-// Вспомогательная функция для форматирования типа
 const formatAnimeType = (type: string | null | undefined): string => {
     if (!type) return '';
     const typeMap: { [key: string]: string } = {
-        'anime-serial': 'Аниме сериал',
-        'tv_series': 'Аниме сериал',
+        'tv_series': 'Сериал',
+        'movie': 'Фильм',
+        'ova': 'OVA',
+        'ona': 'ONA',
+        'special': 'Спешл',
+        'anime-serial': 'Аниме сериал', // Добавим старые варианты для совместимости
         'anime': 'Полнометражное',
-        'movie': 'Полнометражное',
     };
     return typeMap[type.toLowerCase()] || type;
 };
@@ -30,7 +33,9 @@ export function AnimeCard({ anime, priority = false, onStatusChange }: AnimeCard
 
   return (
     <AnimeListPopover anime={anime} onStatusChange={onStatusChange}>
-        <Link href={`/anime/${anime.shikimori_id}`} className="block group">
+      <div className="relative group">
+        <AnimeCardListButton animeId={anime.id} initialStatus={anime.user_list_status} onStatusChange={onStatusChange} />
+        <Link href={`/anime/${anime.shikimori_id}`} className="block">
             <div className="aspect-[2/3] overflow-hidden rounded-lg bg-slate-800 relative">
             {anime.poster_url ? (
                 <Image
@@ -47,7 +52,6 @@ export function AnimeCard({ anime, priority = false, onStatusChange }: AnimeCard
             </div>
             <div className="mt-2">
                 <h3 className="text-sm font-medium text-white truncate group-hover:text-purple-400">{anime.title}</h3>
-                {/* ИЗМЕНЕНИЕ: Отображаем отформатированный тип и год */}
                 <p className="text-xs text-slate-400">
                     {formatAnimeType(anime.type)}
                     {anime.year && anime.type ? ' • ' : ''}
@@ -55,6 +59,7 @@ export function AnimeCard({ anime, priority = false, onStatusChange }: AnimeCard
                 </p>
             </div>
         </Link>
+      </div>
     </AnimeListPopover>
   );
 }

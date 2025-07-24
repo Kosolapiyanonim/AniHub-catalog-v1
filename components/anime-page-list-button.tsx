@@ -2,13 +2,12 @@
 
 "use client";
 
-import { useState } from "react";
 import { useAnimeListStatus } from "@/hooks/use-anime-list-status";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Bookmark, Trash2, Eye, CalendarCheck, XCircle, History, Clock } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+import { Loader2, Plus, Bookmark, Trash2, Eye, CalendarCheck, XCircle, History, Clock, ChevronDown } from "lucide-react";
 import Link from "next/link";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Card } from "@/components/ui/card";
 
 const statuses = [
     { key: "watching", label: "Смотрю", icon: Eye },
@@ -28,13 +27,17 @@ interface Props {
 
 export function AnimePageListButton({ animeId, initialStatus, onStatusChange }: Props) {
   const { session, currentStatus, loading, handleStatusChange } = useAnimeListStatus(animeId, initialStatus, onStatusChange);
-  const [popoverOpen, setPopoverOpen] = useState(false);
   
+  // Если пользователь не авторизован, показываем специальный блок
   if (!session) {
     return (
-      <Link href="/login" className="w-full">
-        <Button variant="outline" className="w-full"><Plus className="mr-2 h-4 w-4" /> Добавить в список</Button>
-      </Link>
+      <Card className="bg-slate-800 border-slate-700 text-center p-4 space-y-2">
+        <p className="text-sm text-gray-300">Войдите, чтобы добавить в список</p>
+        <div className="flex gap-2">
+          <Button asChild size="sm" className="flex-1"><Link href="/login">Войти</Link></Button>
+          <Button asChild size="sm" variant="secondary" className="flex-1"><Link href="/register">Регистрация</Link></Button>
+        </div>
+      </Card>
     );
   }
 
@@ -42,47 +45,39 @@ export function AnimePageListButton({ animeId, initialStatus, onStatusChange }: 
   const CurrentIcon = statusInfo ? statusInfo.icon : Plus;
 
   return (
-    <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="outline" className="w-full" disabled={loading}>
-          {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CurrentIcon className="mr-2 h-4 w-4" />}
-          {statusInfo ? statusInfo.label : 'Добавить в список'}
+    <Collapsible className="w-full space-y-1">
+      <CollapsibleTrigger asChild>
+        <Button variant="outline" className="w-full justify-between" disabled={loading}>
+          <span className="flex items-center gap-2">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CurrentIcon className="h-4 w-4" />}
+            {statusInfo ? statusInfo.label : 'Добавить в список'}
+          </span>
+          <ChevronDown className="h-4 w-4 transition-transform [&[data-state=open]]:rotate-180" />
         </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-64 p-2 bg-slate-800 border-slate-700 text-white">
-        <div className="grid grid-cols-1 gap-1">
-          {statuses.map((status) => (
-            <Button
-              key={status.key}
-              variant={currentStatus === status.key ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => {
-                  handleStatusChange(status.key);
-                  setPopoverOpen(false);
-              }}
-              className="justify-start"
-            >
-              <status.icon className="mr-2 h-4 w-4" />{status.label}
-            </Button>
-          ))}
-          {currentStatus && (
-            <>
-              <Separator className="my-1 bg-slate-700" />
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                    handleStatusChange("remove");
-                    setPopoverOpen(false);
-                }}
-                className="justify-start text-red-500 hover:!text-red-500 hover:!bg-red-500/10"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />Удалить из списка
-              </Button>
-            </>
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="space-y-1 data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
+        {statuses.map((status) => (
+          <Button
+            key={status.key}
+            variant={currentStatus === status.key ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => handleStatusChange(status.key)}
+            className="w-full justify-start"
+          >
+            <status.icon className="mr-2 h-4 w-4" />{status.label}
+          </Button>
+        ))}
+        {currentStatus && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleStatusChange("remove")}
+            className="w-full justify-start text-red-500 hover:!text-red-500 hover:!bg-red-500/10"
+          >
+            <Trash2 className="mr-2 h-4 w-4" />Удалить из списка
+          </Button>
+        )}
+      </CollapsibleContent>
+    </Collapsible>
   );
 }

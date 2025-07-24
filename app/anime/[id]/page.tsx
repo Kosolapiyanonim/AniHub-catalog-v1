@@ -1,16 +1,19 @@
+// app/anime/[id]/page.tsx
+
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Star, Play, Check, Plus } from "lucide-react";
+import { ArrowLeft, Star, Play } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
-import { AnimeListPopover } from "@/components/AnimeListPopover";
-import { AnimeCard } from "@/components/anime-card";
+import { AnimeCarousel } from "@/components/AnimeCarousel";
 import { SubscribeButton } from "@/components/SubscribeButton";
+// --- [ИЗМЕНЕНИЕ] Импортируем правильную кнопку для этой страницы ---
+import { AnimePageListButton } from "@/components/anime-page-list-button";
 
 // Интерфейсы данных
 interface RelatedAnime {
@@ -32,12 +35,6 @@ interface AnimeData {
   related: RelatedAnime[];
   user_list_status?: string | null;
 }
-
-const statuses = [
-    { key: "watching", label: "Смотрю" },
-    { key: "planned", label: "В планах" },
-    { key: "completed", label: "Просмотрено" },
-];
 
 export default function AnimePage() {
   const params = useParams();
@@ -69,11 +66,11 @@ export default function AnimePage() {
     fetchAnime();
   }, [animeId]);
 
-  const handleStatusUpdate = (newStatus: string | null) => {
-      if (anime) {
-          setAnime({ ...anime, user_list_status: newStatus });
-      }
-  };
+  const handleStatusUpdate = useCallback((newStatus: string | null) => {
+    if (anime) {
+      setAnime(prevAnime => prevAnime ? { ...prevAnime, user_list_status: newStatus } : null);
+    }
+  }, [anime]);
 
   if (loading) {
     return <div className="min-h-screen bg-slate-900 flex items-center justify-center"><LoadingSpinner size="lg" /></div>;
@@ -84,8 +81,6 @@ export default function AnimePage() {
   if (!anime) {
     return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-center p-4"><div><h1 className="text-2xl font-bold text-white mb-4">Аниме не найдено</h1><Button onClick={() => router.back()} variant="outline"><ArrowLeft className="w-4 h-4 mr-2" />Назад</Button></div></div>;
   }
-
-  const currentStatusLabel = statuses.find(s => s.key === anime.user_list_status)?.label || "Добавить в список";
 
   return (
     <div className="min-h-screen bg-slate-900 pt-20">
@@ -106,12 +101,12 @@ export default function AnimePage() {
                 </Link>
                 <SubscribeButton animeId={anime.id} />
               </div>
-              <AnimeListPopover anime={anime} onStatusChange={handleStatusUpdate}>
-                <Button variant="outline" className="w-full">
-                  {anime.user_list_status ? <Check className="w-4 h-4 mr-2 text-green-500" /> : <Plus className="w-4 h-4 mr-2" />}
-                  {currentStatusLabel}
-                </Button>
-              </AnimeListPopover>
+              {/* --- [ИЗМЕНЕНИЕ] Используем правильную кнопку для этой страницы --- */}
+              <AnimePageListButton
+                animeId={anime.id}
+                initialStatus={anime.user_list_status}
+                onStatusChange={handleStatusUpdate}
+              />
             </div>
           </aside>
 
@@ -121,7 +116,7 @@ export default function AnimePage() {
               <div className="flex items-start justify-between">
                   <h1 className="text-3xl md:text-4xl font-bold text-white pr-4">{anime.title}</h1>
                   <a href={`https://shikimori.one/animes/${anime.shikimori_id}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 pt-2 shrink-0 text-gray-300 hover:text-white">
-                      <span className="font-bold text-lg">{anime.shikimori_rating}</span>
+                      {anime.shikimori_rating && <span className="font-bold text-lg">{anime.shikimori_rating}</span>}
                       <Image src="/shikimori-logo.svg" alt="Shikimori" width={20} height={20} />
                   </a>
               </div>

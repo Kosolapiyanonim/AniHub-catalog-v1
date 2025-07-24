@@ -1,3 +1,5 @@
+// app/api/anime/[id]/route.ts
+
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
@@ -17,7 +19,10 @@ export async function GET(
   const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
 
   try {
-    // --- ШАГ 1: Получаем основную информацию об аниме и его прямые связи (жанры, студии) ---
+    // --- ШАГ 1: Получаем сессию пользователя ---
+    const { data: { session } } = await supabase.auth.getSession();
+
+    // --- ШАГ 2: Получаем основную информацию об аниме ---
     const { data: anime, error: animeError } = await supabase
       .from('animes')
       .select(`
@@ -30,13 +35,28 @@ export async function GET(
       .single();
 
     if (animeError) {
-      if (animeError.code === 'PGRST116') { // Код ошибки "не найдено"
+      if (animeError.code === 'PGRST116') {
         return NextResponse.json({ error: 'Аниме не найдено' }, { status: 404 });
       }
       throw animeError;
     }
 
-    // --- ШАГ 2: Получаем озвучки и ID связанных произведений параллельно ---
+    // --- ШАГ 3: Получаем статус аниме в списке пользователя (если он авторизован) ---
+    let userListStatus: string | null = null;
+    if (session) {
+      const { data: listData } = await supabase
+        .from('user_lists')
+        .select('status')
+        .eq('user_id', session.user.id)
+        .eq('anime_id', anime.id)
+        .single();
+      
+      if (listData) {
+        userListStatus = listData.status;
+      }
+    }
+
+    // --- ШАГ 4: Получаем озвучки и связанные произведения параллельно ---
     const [translationsResponse, relatedResponse] = await Promise.all([
       supabase.from('translations').select('*').eq('anime_id', anime.id),
       supabase.from('anime_relations').select('relation_type_formatted, related_id').eq('anime_id', anime.id)
@@ -45,7 +65,7 @@ export async function GET(
     const translations = translationsResponse.data || [];
     const relations = relatedResponse.data || [];
 
-    // --- ШАГ 3: Получаем информацию о связанных аниме (если они есть) ---
+    // --- ШАГ 5: Получаем информацию о связанных аниме (если они есть) ---
     let relatedAnimesWithInfo = [];
     if (relations.length > 0) {
       const relatedAnimeIds = relations.map(r => r.related_id);
@@ -55,20 +75,19 @@ export async function GET(
         .select('id, shikimori_id, title, poster_url, year, type')
         .in('id', relatedAnimeIds);
 
-      // Собираем все вместе, отфильтровывая "битые" связи, где relatedInfo не нашлось
       relatedAnimesWithInfo = relations
         .map(relation => {
           const animeInfo = relatedInfo?.find(a => a.id === relation.related_id);
-          if (!animeInfo) return null; // Если связанное аниме не найдено, пропускаем
+          if (!animeInfo) return null;
           return {
             ...animeInfo,
             relation_type_formatted: relation.relation_type_formatted,
           };
         })
-        .filter(Boolean); // Убираем все null из массива
+        .filter(Boolean);
     }
     
-    // --- ШАГ 4: Собираем финальный ответ ---
+    // --- ШАГ 6: Собираем финальный ответ, добавляя статус пользователя ---
     const responseData = {
       ...anime,
       genres: (anime.genres || []).map((g: any) => g.genres).filter(Boolean),
@@ -76,6 +95,7 @@ export async function GET(
       tags: (anime.tags || []).map((t: any) => t.tags).filter(Boolean),
       translations: translations,
       related: relatedAnimesWithInfo,
+      user_list_status: userListStatus, // <-- Вот добавленная информация
     };
 
     return NextResponse.json(responseData);

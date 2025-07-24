@@ -1,117 +1,52 @@
+// hooks/use-anime-list-status.ts
+
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useSupabase } from '@/components/supabase-provider';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect, useCallback } from "react";
+import { useSupabase } from "@/components/supabase-provider";
+import { toast } from "sonner";
 
 export function useAnimeListStatus(
   animeId: number, 
   initialStatus?: string | null,
   onStatusChange?: (animeId: number, newStatus: string | null) => void
 ) {
-  const { supabase, session } = useSupabase();
-  const { toast } = useToast();
-  const [currentStatus, setCurrentStatus] = useState<string | null>(initialStatus || null);
+  const { session } = useSupabase();
+  const [currentStatus, setCurrentStatus] = useState(initialStatus);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (session && animeId) {
-      fetchCurrentStatus();
+    setCurrentStatus(initialStatus);
+  }, [initialStatus]);
+
+  const handleStatusChange = useCallback(async (newStatus: string) => {
+    if (!session) {
+      toast.error("Для этого действия необходимо войти в аккаунт");
+      return;
     }
-  }, [session, animeId]);
-
-  const fetchCurrentStatus = async () => {
-    if (!session || !supabase) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('user_anime_lists')
-        .select('status')
-        .eq('user_id', session.user.id)
-        .eq('anime_id', animeId)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching anime status:', error);
-        return;
-      }
-
-      setCurrentStatus(data?.status || null);
-    } catch (error) {
-      console.error('Error fetching anime status:', error);
-    }
-  };
-
-  const handleStatusChange = async (newStatus: string) => {
-    if (!session || !supabase) return;
-    
     setLoading(true);
-
     try {
-      if (newStatus === 'remove') {
-        // Remove from list
-        const { error } = await supabase
-          .from('user_anime_lists')
-          .delete()
-          .eq('user_id', session.user.id)
-          .eq('anime_id', animeId);
-
-        if (error) throw error;
-
-        setCurrentStatus(null);
-        onStatusChange?.(animeId, null);
-        
-        toast({
-          title: "Удалено из списка",
-          description: "Аниме удалено из вашего списка",
-        });
-      } else {
-        // Update or insert status
-        const { error } = await supabase
-          .from('user_anime_lists')
-          .upsert({
-            user_id: session.user.id,
-            anime_id: animeId,
-            status: newStatus,
-            updated_at: new Date().toISOString()
-          });
-
-        if (error) throw error;
-
-        setCurrentStatus(newStatus);
-        onStatusChange?.(animeId, newStatus);
-
-        const statusLabels: Record<string, string> = {
-          watching: 'Смотрю',
-          planned: 'В планах',
-          completed: 'Просмотрено',
-          rewatching: 'Пересматриваю',
-          on_hold: 'Отложено',
-          dropped: 'Брошено'
-        };
-
-        toast({
-          title: "Статус обновлен",
-          description: `Статус изменен на "${statusLabels[newStatus]}"`,
-        });
-      }
-    } catch (error) {
-      console.error('Error updating anime status:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось обновить статус аниме",
-        variant: "destructive",
+      const response = await fetch("/api/lists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ anime_id: animeId, status: newStatus }),
       });
+      if (!response.ok) throw new Error("Ошибка сервера");
+      
+      const newResolvedStatus = newStatus === 'remove' ? null : newStatus;
+      setCurrentStatus(newResolvedStatus);
+      
+      if (onStatusChange) {
+        onStatusChange(animeId, newResolvedStatus);
+      }
+
+      toast.success("Статус обновлен!");
+    } catch (error) {
+      toast.error("Не удалось обновить статус.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [animeId, session, onStatusChange]);
 
-  return {
-    session,
-    currentStatus,
-    loading,
-    handleStatusChange,
-    fetchCurrentStatus
-  };
+  return { session, currentStatus, loading, handleStatusChange };
 }

@@ -1,17 +1,33 @@
-// components/anime-grid.tsx
-
 "use client"
 
 import { useState, useEffect } from "react"
 import { AnimeCard } from "./anime-card"
+import { LoadingSpinner } from "./loading-spinner"
 import { Button } from "@/components/ui/button"
 import { TrendingUp, Star, Calendar } from "lucide-react"
-import Link from "next/link"
 
-// Упрощенный интерфейс
+interface Translation {
+  id: string
+  title: string
+  type: string
+  quality: string
+  link: string
+}
+
 interface Anime {
-  id: number;
-  shikimori_id: string;
+  id: string
+  title: string
+  title_orig?: string
+  other_title?: string
+  year: number
+  poster_url: string
+  description: string
+  rating: number
+  genres: string[]
+  episodes_total?: number
+  status: string
+  translations: Translation[]
+  screenshots: string[]
 }
 
 export function AnimeGrid() {
@@ -21,51 +37,38 @@ export function AnimeGrid() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const loadAnimeData = async () => {
-      setLoading(true)
-      try {
-        // --- [ИЗМЕНЕНИЕ] Запрашиваем данные через наш быстрый /api/catalog ---
-        const [popularResponse, topRatedResponse, newestResponse] = await Promise.all([
-          fetch("/api/catalog?limit=12&sort=shikimori_votes"),
-          fetch("/api/catalog?limit=8&sort=shikimori_rating"),
-          fetch("/api/catalog?limit=8&sort=year"),
-        ])
-        
-        const [popularData, topRatedData, newestData] = await Promise.all([
-          popularResponse.json(),
-          topRatedResponse.json(),
-          newestResponse.json(),
-        ])
-
-        setPopularAnime(popularData.results || [])
-        setTopRatedAnime(topRatedData.results || [])
-        setNewestAnime(newestData.results || [])
-      } catch (error) {
-        console.error("Error loading anime data:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
     loadAnimeData()
   }, [])
 
+  async function loadAnimeData() {
+    setLoading(true)
+    try {
+      // Загружаем популярные аниме
+      const popularResponse = await fetch("/api/anime/popular?limit=12")
+      const popularData = await popularResponse.json()
+      setPopularAnime(popularData.results || [])
+
+      // Загружаем топ рейтинг (можно использовать тот же API с другими параметрами)
+      const topRatedResponse = await fetch("/api/anime/popular?limit=8&sort=rating")
+      const topRatedData = await topRatedResponse.json()
+      setTopRatedAnime(topRatedData.results || [])
+
+      // Загружаем новинки
+      const newestResponse = await fetch("/api/anime/popular?limit=8&sort=year")
+      const newestData = await newestResponse.json()
+      setNewestAnime(newestData.results || [])
+    } catch (error) {
+      console.error("Error loading anime data:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   if (loading) {
     return (
-        <div className="space-y-16">
-            {/* Скелетный загрузчик для секций */}
-            <div className="space-y-8">
-                <div className="h-8 w-1/3 bg-slate-800 rounded-md animate-pulse" />
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-                    {Array.from({ length: 6 }).map((_, i) => <div key={i} className="aspect-[2/3] bg-slate-800 rounded-lg animate-pulse" />)}
-                </div>
-            </div>
-            <div className="space-y-8">
-                <div className="h-8 w-1/3 bg-slate-800 rounded-md animate-pulse" />
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
-                    {Array.from({ length: 4 }).map((_, i) => <div key={i} className="aspect-[2/3] bg-slate-800 rounded-lg animate-pulse" />)}
-                </div>
-            </div>
-        </div>
+      <div className="flex justify-center items-center h-64">
+        <LoadingSpinner size="lg" />
+      </div>
     )
   }
 
@@ -79,12 +82,12 @@ export function AnimeGrid() {
             <h2 className="text-3xl font-bold text-white">Популярные</h2>
           </div>
           <Button variant="outline" asChild>
-            <Link href="/popular">Смотреть все</Link>
+            <a href="/popular">Смотреть все</a>
           </Button>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-          {popularAnime.map((anime, i) => (
-            <AnimeCard key={anime.shikimori_id} anime={anime} priority={i < 6} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+          {popularAnime.map((anime) => (
+            <AnimeCard key={anime.id} anime={anime} />
           ))}
         </div>
       </section>
@@ -97,12 +100,12 @@ export function AnimeGrid() {
             <h2 className="text-3xl font-bold text-white">Топ рейтинг</h2>
           </div>
           <Button variant="outline" asChild>
-            <Link href="/popular">Смотреть все</Link>
+            <a href="/popular">Смотреть все</a>
           </Button>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
-          {topRatedAnime.map((anime, i) => (
-            <AnimeCard key={anime.shikimori_id} anime={anime} priority={i < 4} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {topRatedAnime.map((anime) => (
+            <AnimeCard key={anime.id} anime={anime} />
           ))}
         </div>
       </section>
@@ -115,12 +118,12 @@ export function AnimeGrid() {
             <h2 className="text-3xl font-bold text-white">Новинки</h2>
           </div>
           <Button variant="outline" asChild>
-            <Link href="/catalog">Каталог</Link>
+            <a href="/catalog">Каталог</a>
           </Button>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
-          {newestAnime.map((anime, i) => (
-            <AnimeCard key={anime.shikimori_id} anime={anime} priority={i < 4} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {newestAnime.map((anime) => (
+            <AnimeCard key={anime.id} anime={anime} />
           ))}
         </div>
       </section>

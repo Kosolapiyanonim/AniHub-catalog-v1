@@ -16,6 +16,9 @@ const DynamicAnimeCarousel = dynamic(() => import("@/components/AnimeCarousel").
 })
 
 // Re-export as a plain functional component
-export default function AnimeCarouselClient(props: ComponentProps<typeof DynamicAnimeCarousel>) {
+export function AnimeCarouselClient(props: ComponentProps<typeof DynamicAnimeCarousel>) {
   return <DynamicAnimeCarousel {...props} />
 }
+
+// Default export for backward compatibility
+export default AnimeCarouselClient

@@ -131,6 +131,9 @@ importers:
       date-fns:
         specifier: 4.1.0
         version: 4.1.0
+      embla-carousel:
+        specifier: latest
+        version: 8.6.0
       embla-carousel-autoplay:
         specifier: latest
         version: 8.6.0(embla-carousel@8.6.0)

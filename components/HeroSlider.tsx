@@ -1,104 +1,166 @@
-// components/HeroSlider.tsx
-
 "use client"
 
-import React, { useRef } from "react"; // <-- ИСПРАВЛЕНИЕ: правильный импорт
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import Autoplay from "embla-carousel-autoplay";
-import Image from "next/image";
-import Link from "next/link";
-import { Button } from "./ui/button";
-import { Play, Info, Star, Clapperboard } from "lucide-react";
-import { Badge } from "./ui/badge";
-
-interface Anime {
-  id: number;
-  shikimori_id: string;
-  title: string;
-  poster_url?: string | null;
-  year?: number | null;
-  description?: string;
-  type?: string;
-  episodes_count?: number;
-  shikimori_rating?: number;
-}
+import * as React from "react"
+import { Card, CardContent } from "@/components/ui/card"
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+  type CarouselApi,
+} from "@/components/ui/carousel"
+import Image from "next/image"
+import { Button } from "@/components/ui/button"
+import { Play, Pause, ChevronUp, ChevronDown } from "lucide-react"
+import { cn } from "@/lib/utils"
+import type { Anime } from "@/lib/types"
+import Link from "next/link"
 
 interface HeroSliderProps {
-  items?: Anime[] | null;
+  animes: Anime[]
 }
 
-export function HeroSlider({ items }: HeroSliderProps) {
-  const plugin = useRef(Autoplay({ delay: 5000, stopOnInteraction: true }));
-  const validItems = items?.filter(Boolean) as Anime[];
+export function HeroSlider({ animes }: HeroSliderProps) {
+  const [api, setApi] = React.useState<CarouselApi>()
+  const [current, setCurrent] = React.useState(0)
+  const [isPlaying, setIsPlaying] = React.useState(true)
+  const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  if (!validItems || validItems.length === 0) {
+  const resetTimeout = React.useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    if (!api) {
+      return
+    }
+
+    api.on("select", () => {
+      setCurrent(api.selectedScrollSnap())
+    })
+
+    const play = () => {
+      if (isPlaying) {
+        timeoutRef.current = setTimeout(() => {
+          api.scrollNext()
+        }, 5000)
+      }
+    }
+
+    api.on("settle", play)
+    play()
+
+    return () => {
+      resetTimeout()
+      api.off("settle", play)
+    }
+  }, [api, isPlaying, resetTimeout])
+
+  const togglePlay = () => {
+    setIsPlaying((prev) => !prev)
+    resetTimeout()
+  }
+
+  if (!animes || animes.length === 0) {
     return (
-      <div className="h-[70vh] bg-slate-800 flex items-center justify-center text-white rounded-lg">
-        <p className="text-center">Отметьте аниме в базе для отображения в Hero-секции...</p>
+      <div className="flex items-center justify-center h-[400px] md:h-[500px] lg:h-[600px] bg-gray-900 text-white">
+        <p className="text-xl">Нет данных для отображения в Hero Slider.</p>
       </div>
-    );
+    )
   }
 
   return (
-    <Carousel
-      className="w-full relative"
-      opts={{ loop: validItems.length > 1 }}
-      plugins={[plugin.current]}
-      onMouseEnter={plugin.current.stop}
-      onMouseLeave={plugin.current.reset}
-    >
-      <CarouselContent>
-        {validItems.map((anime, index) => (
-          <CarouselItem key={anime.id}>
-            <div className="relative h-[70vh] w-full flex md:flex-row flex-col bg-slate-900 rounded-lg overflow-hidden">
-              <div className="relative z-10 w-full md:w-3/5 flex items-center p-4 sm:p-8 md:pl-16">
-                <div className="text-white w-full max-w-lg">
-                  <p className="font-semibold text-purple-400 mb-2 text-sm"># {index + 1} В центре внимания</p>
-                  <h1 className="text-3xl lg:text-5xl font-bold mb-4 line-clamp-2">{anime.title}</h1>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-gray-300 mb-5 text-sm">
-                    {anime.shikimori_rating && (
-                      <div className="flex items-center gap-1"><Star className="w-4 h-4 text-yellow-400" /><span>{anime.shikimori_rating}</span></div>
-                    )}
-                    {anime.year && <span>{anime.year}</span>}
-                    {anime.type && <Badge variant="secondary">{anime.type.replace(/_/g, " ")}</Badge>}
-                    {anime.episodes_count && (
-                      <div className="flex items-center gap-1"><Clapperboard className="w-4 h-4" /><span>{anime.episodes_count} эп.</span></div>
-                    )}
+    <div className="relative w-full overflow-hidden rounded-lg shadow-lg">
+      <Carousel setApi={setApi} className="w-full">
+        <CarouselContent>
+          {animes.map((anime, index) => (
+            <CarouselItem key={anime.id || index}>
+              <Card className="relative w-full h-[400px] md:h-[500px] lg:h-[600px] rounded-lg overflow-hidden">
+                <Image
+                  src={anime.poster || "/placeholder.svg?height=600&width=1200&query=anime-hero-background"}
+                  alt={anime.name || "Anime Poster"}
+                  fill
+                  style={{ objectFit: "cover" }}
+                  className="absolute inset-0 z-0"
+                  priority={index === 0}
+                />
+                <div className="absolute inset-0 z-10 bg-gradient-to-t from-black via-black/60 to-transparent" />
+                <div className="absolute inset-0 z-20 bg-gradient-to-r from-black via-black/20 to-transparent" />
+
+                <CardContent className="relative z-30 flex flex-col justify-end h-full p-6 md:p-10 lg:p-12 text-white">
+                  <div className="max-w-3xl space-y-4">
+                    <h2 className="text-3xl md:text-5xl lg:text-6xl font-extrabold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 drop-shadow-lg">
+                      {anime.name || "Название не указано"}
+                    </h2>
+                    <p className="text-base md:text-lg lg:text-xl text-gray-200 line-clamp-3">
+                      {anime.description || "Описание отсутствует."}
+                    </p>
+                    <div className="flex flex-wrap gap-2 text-sm md:text-base">
+                      {anime.anime_genres && Array.isArray(anime.anime_genres) && anime.anime_genres.length > 0 ? (
+                        anime.anime_genres.map((genre, genreIndex) => (
+                          <span
+                            key={genre.genres?.id || genreIndex}
+                            className="px-3 py-1 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md transition-all duration-300 hover:scale-105"
+                          >
+                            {genre.genres?.name || "Жанр"}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="px-3 py-1 rounded-full bg-gray-700 text-white shadow-md">
+                          Жанры не указаны
+                        </span>
+                      )}
+                      <span className="px-3 py-1 rounded-full bg-gradient-to-r from-green-500 to-teal-600 text-white shadow-md transition-all duration-300 hover:scale-105">
+                        Рейтинг: {anime.score || "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex gap-4 pt-4">
+                      <Link href={`/anime/${anime.id}`}>
+                        <Button className="bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105">
+                          Подробнее
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="outline"
+                        className="bg-white/20 backdrop-blur-sm text-white border-white hover:bg-white/30 transition-all duration-300 transform hover:scale-105"
+                        onClick={togglePlay}
+                      >
+                        {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                        <span className="ml-2">{isPlaying ? "Пауза" : "Воспроизвести"}</span>
+                      </Button>
+                    </div>
                   </div>
-                  {anime.description && (
-                    <p className="text-gray-300 mb-8 line-clamp-3 text-sm md:text-base">{anime.description}</p>
-                  )}
-                  <div className="flex items-center gap-4">
-                    <Link href={`/anime/${anime.shikimori_id}/watch`}>
-                      <Button size="lg" className="bg-purple-600 hover:bg-purple-700"><Play className="w-5 h-5 mr-2" />Смотреть</Button>
-                    </Link>
-                    <Link href={`/anime/${anime.shikimori_id}`}>
-                      <Button size="lg" variant="outline"><Info className="w-5 h-5 mr-2" />Подробнее</Button>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-              <div className="w-full md:w-2/5 h-full absolute right-0 top-0 md:relative">
-                {anime.poster_url && 
-                    <Image src={anime.poster_url} alt={`${anime.title} background`} fill className="object-cover opacity-30 blur-2xl" />
-                }
-                <div className="absolute inset-0 bg-gradient-to-l from-slate-900 via-slate-900/50 to-transparent"></div>
-                <div className="absolute inset-0 flex items-center justify-center p-8">
-                  <div className="relative w-48 h-72 sm:w-56 sm:h-80 md:w-64 md:h-96 rounded-lg overflow-hidden shadow-2xl">
-                    {anime.poster_url && 
-                        <Image src={anime.poster_url} alt={`${anime.title} poster`} fill className="object-cover" priority={index === 0} sizes="(max-width: 768px) 50vw, 33vw" />
-                    }
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CarouselItem>
-        ))}
-      </CarouselContent>
-      <div className="absolute right-8 bottom-8 z-20 hidden md:flex gap-2">
-        <CarouselPrevious />
-        <CarouselNext />
-      </div>
-    </Carousel>
-  );
+                </CardContent>
+              </Card>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-40">
+          <CarouselPrevious className="relative w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-all duration-300 flex items-center justify-center shadow-lg">
+            <ChevronUp className="h-6 w-6" />
+          </CarouselPrevious>
+          <div className="w-0.5 h-12 bg-gradient-to-b from-transparent via-white/50 to-transparent mx-auto" />
+          <CarouselNext className="relative w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-all duration-300 flex items-center justify-center shadow-lg">
+            <ChevronDown className="h-6 w-6" />
+          </CarouselNext>
+        </div>
+
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-40">
+          {animes.map((_, index) => (
+            <div
+              key={index}
+              className={cn(
+                "h-2 rounded-full transition-all duration-300",
+                current === index ? "w-8 bg-white" : "w-2 bg-gray-400",
+              )}
+            />
+          ))}
+        </div>
+      </Carousel>
+    </div>
+  )
 }

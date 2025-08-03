@@ -14,7 +14,7 @@ const sizeMap = {
   lg: "h-8 w-8",
 }
 
-export default function LoadingSpinner({ size = "md", className }: LoadingSpinnerProps) {
+export function LoadingSpinner({ size = "md", className }: LoadingSpinnerProps) {
   return (
     <Loader2 className={cn("animate-spin text-muted-foreground", sizeMap[size], className)} aria-label="Загрузка" />
   )

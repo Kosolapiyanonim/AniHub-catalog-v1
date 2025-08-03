@@ -1,52 +1,50 @@
 // /components/supabase-provider.tsx
-"use client"
+"use client";
 
-import type React from "react"
-
-import { createContext, useContext, useEffect, useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import type { SupabaseClient, Session } from "@supabase/supabase-js"
+import { createContext, useContext, useEffect, useState } from "react";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import type { SupabaseClient, Session } from "@supabase/supabase-js";
 
 type SupabaseContextType = {
-  supabase: SupabaseClient
-  session: Session | null
-}
+  supabase: SupabaseClient;
+  session: Session | null;
+};
 
-const SupabaseContext = createContext<SupabaseContextType | null>(null)
+const SupabaseContext = createContext<SupabaseContextType | null>(null);
 
 export function SupabaseProvider({ children }: { children: React.ReactNode }) {
-  const [supabase] = useState(() => createClientComponentClient())
-  const [session, setSession] = useState<Session | null>(null)
+  const [supabase] = useState(() => createClientComponentClient());
+  const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-    })
+      setSession(session);
+    });
 
     const getInitialSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      setSession(session)
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
     }
-    getInitialSession()
+    getInitialSession();
 
     return () => {
-      subscription.unsubscribe()
-    }
-  }, [supabase])
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
 
-  return <SupabaseContext.Provider value={{ supabase, session }}>{children}</SupabaseContext.Provider>
+  return (
+    <SupabaseContext.Provider value={{ supabase, session }}>
+      {children}
+    </SupabaseContext.Provider>
+  );
 }
 
 export const useSupabase = () => {
-  const context = useContext(SupabaseContext)
+  const context = useContext(SupabaseContext);
   if (context === null) {
-    throw new Error("useSupabase must be used within a SupabaseProvider")
+    throw new Error("useSupabase must be used within a SupabaseProvider");
   }
-  return context
-}
-
-export default SupabaseProvider
+  return context;
+};

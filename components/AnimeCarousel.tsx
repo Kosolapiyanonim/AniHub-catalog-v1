@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Button } from "./ui/button";
 import { ArrowRight } from "lucide-react";
 
+// ... (интерфейсы остаются без изменен��й)
 interface Anime {
   id: number;
   shikimori_id: string;
@@ -40,7 +41,15 @@ export function AnimeCarousel({ title, items, viewAllLink, icon }: AnimeCarousel
           </Button>
         )}
       </div>
-      <Carousel opts={{ align: "start", dragFree: true }} className="w-full">
+      <Carousel 
+        opts={{ 
+          align: "start", 
+          dragFree: true,
+          // ИЗМЕНЕНИЕ: Включаем бесконечный скролл
+          loop: true,
+        }} 
+        className="w-full"
+      >
         <CarouselContent>
           {validItems.map((anime, index) => (
             <CarouselItem key={anime.id || index} className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/6">

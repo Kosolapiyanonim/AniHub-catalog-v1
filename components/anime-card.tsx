@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { AnimeListPopover } from './AnimeListPopover';
 import { AnimeCardListButton } from './anime-card-list-button';
-import { ProgressBar } from './ui/progress-bar'; // <-- [ИЗМЕНЕНИЕ] Импортируем прогресс-бар
+import { ProgressBar } from './ui/progress'; // <-- [ИЗМЕНЕНИЕ] Импортируем прогресс-бар
 
 const formatAnimeType = (type: string | null | undefined): string => {
     if (!type) return '';

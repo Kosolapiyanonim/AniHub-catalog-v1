@@ -8,7 +8,8 @@ import { Footer } from "@/components/footer";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Suspense } from "react";
-import { Providers } from "@/components/providers"; // <-- [ИЗМЕНЕНИЕ] Импортируем наш новый единый компонент
+import { Providers } from "@/components/providers";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"], display: "swap" });
 
@@ -22,16 +23,17 @@ export default function RootLayout({ children }: { children: React.ReactNode; })
   return (
     <html lang="ru" suppressHydrationWarning>
       <body className={`${inter.className} bg-slate-900 text-white`}>
-        {/* [ИЗМЕНЕНИЕ] Используем единый компонент для всех провайдеров */}
-        <Providers>
-          <div className="relative flex min-h-screen flex-col">
-            <Suspense>
-              <Header />
-            </Suspense>
-            <main className="flex-1 pt-16">{children}</main>
-            <Footer />
-          </div>
-        </Providers>
+        <ErrorBoundary>
+          <Providers>
+            <div className="relative flex min-h-screen flex-col">
+              <Suspense>
+                <Header />
+              </Suspense>
+              <main className="flex-1 pt-16">{children}</main>
+              <Footer />
+            </div>
+          </Providers>
+        </ErrorBoundary>
         
         <Analytics />
         <SpeedInsights />

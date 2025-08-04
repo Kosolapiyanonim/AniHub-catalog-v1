@@ -1,7 +1,7 @@
 // /app/page.tsx
 import { HeroSlider } from "@/components/HeroSlider"
 import { AnimeCarousel } from "@/components/AnimeCarousel"
-import { LoadingSpinner } from "@/components/loading-spinner"
+import { SuspenseFallback } from "@/components/suspense-fallback"
 import { TrendingUp, Star } from "lucide-react"
 import { Suspense } from "react"
 import { getHomePageData } from "@/lib/data-fetchers"
@@ -15,10 +15,12 @@ export default async function HomePage() {
     <div className="min-h-screen bg-slate-900">
       {/* Оборачиваем HeroSlider в контейнер, чтобы он имел те же отступы, что и основной контент */}
       <div className="container mx-auto px-4">
-        <HeroSlider items={data.hero} />
+        <Suspense fallback={<SuspenseFallback type="hero" />}>
+          <HeroSlider items={data.hero} />
+        </Suspense>
       </div>
       <main className="container mx-auto px-4 py-12 space-y-12">
-        <Suspense fallback={<LoadingSpinner />}>
+        <Suspense fallback={<SuspenseFallback type="carousel" />}>
           <AnimeCarousel
             title="Тренды сезона"
             items={data.trending}
@@ -26,7 +28,7 @@ export default async function HomePage() {
             icon={<TrendingUp />}
           />
         </Suspense>
-        <Suspense fallback={<LoadingSpinner />}>
+        <Suspense fallback={<SuspenseFallback type="carousel" />}>
           <AnimeCarousel
             title="Самое популярное"
             items={data.popular}

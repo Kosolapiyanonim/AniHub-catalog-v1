@@ -17,12 +17,16 @@ export interface KodikMaterialData {
   kinopoisk_rating?: number
   shikimori_rating?: number
   shikimori_votes?: number
+  kinopoisk_votes?: number
   anime_genres?: string[]
   anime_studios?: string[]
   countries?: string[]
   anime_status?: string
   episodes_count?: number
+  episodes_total?: number
   duration?: number
+  rating_mpaa?: string
+  imdb_rating?: number
 }
 
 export interface KodikAnimeData {
@@ -36,13 +40,17 @@ export interface KodikAnimeData {
   translation: KodikTranslation
   episodes_count?: number
   shikimori_id?: string
+  kinopoisk_id?: string
   material_data?: KodikMaterialData
+  screenshots?: string[]
+  updated_at?: string
 }
 
 // Типы для нашей базы данных
 export interface AnimeRecord {
   id: number
   shikimori_id: string
+  kinopoisk_id?: string
   title: string
   title_orig?: string
   year?: number
@@ -52,7 +60,14 @@ export interface AnimeRecord {
   episodes_count?: number
   shikimori_rating?: number
   shikimori_votes?: number
+  kinopoisk_rating?: number
+  kinopoisk_votes?: number
+  imdb_rating?: number
+  rating_mpaa?: string
   player_link?: string
+  screenshots?: any
+  raw_data?: any
+  updated_at_kodik?: string
   created_at: string
   updated_at: string
 }

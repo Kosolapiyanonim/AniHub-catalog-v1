@@ -137,7 +137,11 @@ export default function AnimePage() {
             {anime.related && anime.related.length > 0 && (
               <section>
                 <h2 className="text-xl font-bold text-white mb-4">Связанное</h2>
-                <AnimeCarousel items={anime.related} />
+                <AnimeCarousel 
+                  title="Связанное аниме"
+                  items={anime.related}
+                  viewAllLink="/catalog"
+                />
               </section>
             )}
             

@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import type { KodikAnimeData, AnimeRecord } from "@/lib/types";
+import type { KodikAnimeData } from "@/lib/types";
 
 // ====================================================================
 // GET-обработчик для проверки статуса (решает ошибку 405)
@@ -114,7 +114,7 @@ export async function POST(request: Request) {
         continue;
       }
 
-      // 1. Отбираем только у����икальные аниме по shikimori_id
+      // 1. Отбираем только уникальные аниме по shikimori_id
       const uniqueAnimeMap = new Map<string, KodikAnimeData>();
       animeListFromKodik.forEach(anime => {
         if (anime.shikimori_id && !uniqueAnimeMap.has(anime.shikimori_id)) {
@@ -131,7 +131,7 @@ export async function POST(request: Request) {
       // 3. Формируем и вставляем/обновляем ОСНОВНЫЕ записи аниме
       const animeRecordsToUpsert = uniqueAnimeList.map(anime => {
           const material = anime.material_data || {};
-          return { /* ... формирование объекта AnimeRecord ... */
+          return {
             shikimori_id: anime.shikimori_id,
             kinopoisk_id: anime.kinopoisk_id,
             title: material.anime_title || anime.title,
@@ -150,6 +150,7 @@ export async function POST(request: Request) {
             shikimori_votes: material.shikimori_votes,
             screenshots: { screenshots: anime.screenshots || [] },
             updated_at_kodik: anime.updated_at,
+            raw_data: anime,
           };
       });
 

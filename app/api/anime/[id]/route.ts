@@ -66,7 +66,7 @@ export async function GET(
     const relations = relatedResponse.data || [];
 
     // --- ШАГ 5: Получаем информацию о связанных аниме (если они есть) ---
-    let relatedAnimesWithInfo = [];
+    let relatedAnimesWithInfo: any[] = [];
     if (relations.length > 0) {
       const relatedAnimeIds = relations.map(r => r.related_id);
       

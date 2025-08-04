@@ -47,7 +47,7 @@ export async function POST() {
       log(`🌊 Волна №${pagesParsed}. Запрос к Kodik...`);
 
       const params = new URLSearchParams({ token: KODIK_TOKEN, limit: "100", with_material_data: "true" });
-      const response = await fetch(`${currentPageUrl}?${params.toString()}`);
+      const response: Response = await fetch(`${currentPageUrl}?${params.toString()}`);
       
       if (!response.ok) {
         log(`❗️ Ошибка от Kodik API на странице ${pagesParsed}, пропускаем...`);
@@ -55,7 +55,7 @@ export async function POST() {
         continue;
       }
 
-      const data = await response.json();
+      const data: any = await response.json();
       const animeList: KodikAnimeData[] = data.results || [];
       log(`🔄 Получено ${animeList.length} записей для обработки.`);
 

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { createClient } from "@/lib/supabase/server"
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
 import {
   ArrowLeft,
@@ -24,7 +24,7 @@ import { PlayerClient } from "@/components/player-client"
 
 export default async function WatchPage({ params }: { params: { id: string } }) {
   const cookieStore = cookies()
-  const supabase = createClient(cookieStore)
+  const supabase = createServerComponentClient({ cookies: () => cookieStore })
 
   // Получаем данные аниме
   const { data: animeData } = await supabase

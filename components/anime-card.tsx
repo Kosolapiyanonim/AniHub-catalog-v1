@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { AnimeListPopover } from './AnimeListPopover';
 import { AnimeCardListButton } from './anime-card-list-button';
-import { ProgressBar } from './ui/progress'; // <-- [ИЗМЕНЕНИЕ] Импортируем прогресс-бар
+import { Progress } from './ui/progress'; // <-- [ИЗМЕНЕНИЕ] Импортируем прогресс-бар
 
 const formatAnimeType = (type: string | null | undefined): string => {
     if (!type) return '';
@@ -47,7 +47,7 @@ export function AnimeCard({ anime, priority = false, onStatusChange }: AnimeCard
               <div className="flex items-center justify-center h-full text-slate-500 text-xs p-2">Постер отсутствует</div>
           )}
           {/* --- [ИЗМЕНЕНИЕ] Отображаем прогресс-бар, если он есть --- */}
-          {progressPercent !== null && <ProgressBar progress={progressPercent} />}
+          {progressPercent !== null && <Progress progress={progressPercent} />}
         </div>
         <div className="mt-2">
             <h3 className="text-sm font-medium text-white truncate group-hover:text-purple-400">{anime.title}</h3>

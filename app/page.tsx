@@ -8,7 +8,9 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* HeroSlider теперь может быть как полноэкранным, так и обычным */}
+      {/* HeroSlider теперь действительно вне любого контейнера с px-4 */}
+      {/* Он растягивается на 100% ширины, так как находится в div.flex-1 в layout.tsx */}
+      <div className="min-h-screen bg-slate-900">
       <HeroSlider items={data.hero} />
       
       {/* Основной контент теперь ЯВНО обернут в container */}

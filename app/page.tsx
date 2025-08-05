@@ -1,4 +1,3 @@
-// /app/page.tsx
 import { HeroSlider } from "@/components/HeroSlider"
 import { AnimeCarousel } from "@/components/AnimeCarousel"
 import { LoadingSpinner } from "@/components/loading-spinner"
@@ -13,10 +12,10 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* HeroSlider теперь будет занимать 100% высоты экрана */}
+      {/* HeroSlider теперь может быть как полноэкранным, так и обычным */}
       <HeroSlider items={data.hero} />
 
-      {/* Основной контент, который появляется при скролле */}
+      {/* Основной контент с каруселями */}
       <div className="bg-slate-900 relative z-10">
         <main className="container mx-auto px-4 py-12 space-y-12">
           <Suspense fallback={<LoadingSpinner />}>

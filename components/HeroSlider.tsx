@@ -1,12 +1,12 @@
 "use client"
 
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
 import Autoplay from "embla-carousel-autoplay"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Play, Info, Star, Clapperboard, Calendar } from "lucide-react"
+import { Play, Info, Star, Clapperboard, Calendar, Maximize, Minimize } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import type { Anime } from "@/lib/types"
 
@@ -17,17 +17,31 @@ interface HeroSliderProps {
 export function HeroSlider({ items }: HeroSliderProps) {
   const plugin = useRef(Autoplay({ delay: 7000, stopOnInteraction: true }))
   const validItems = items?.filter(Boolean) as Anime[]
+  const [isFullscreen, setIsFullscreen] = useState(true)
 
   if (!validItems || validItems.length === 0) {
     return (
-      <div className="relative w-full h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-indigo-950 text-white">
+      <div
+        className={`relative w-full ${isFullscreen ? "h-screen" : "h-[70vh] min-h-[500px]"} flex items-center justify-center bg-gradient-to-br from-slate-900 to-indigo-950 text-white ${!isFullscreen ? "container mx-auto px-4 rounded-lg" : ""}`}
+      >
         <p className="text-xl text-center px-4">Отметьте аниме в базе для отображения в Hero-секции...</p>
       </div>
     )
   }
 
   return (
-    <div className="relative w-full h-screen overflow-hidden">
+    <div
+      className={`relative w-full ${isFullscreen ? "h-screen" : "h-[70vh] min-h-[500px]"} overflow-hidden ${!isFullscreen ? "container mx-auto px-4" : ""}`}
+    >
+      {/* Кнопка переключения режима */}
+      <Button
+        onClick={() => setIsFullscreen(!isFullscreen)}
+        className="absolute top-4 right-4 z-50 bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm rounded-full w-10 h-10 p-0 transition-all duration-300 hover:scale-110"
+        size="sm"
+      >
+        {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+      </Button>
+
       <Carousel
         className="w-full h-full"
         opts={{ loop: true }}
@@ -56,13 +70,15 @@ export function HeroSlider({ items }: HeroSliderProps) {
             return (
               <CarouselItem key={anime.id} className="w-full min-w-full !pr-0 overflow-hidden h-full">
                 {/* --- МОБИЛЬНАЯ АДАПТАЦИЯ --- */}
-                <div className="md:hidden relative w-full h-screen">
+                <div
+                  className={`md:hidden relative w-full ${isFullscreen ? "h-screen" : "h-[70vh] min-h-[500px]"} ${!isFullscreen ? "rounded-lg overflow-hidden" : ""}`}
+                >
                   <div className="absolute inset-0 z-0">
                     <Image
                       src={backgroundImageUrl || "/placeholder.svg"}
                       alt={`Фон для ${anime.title}`}
                       fill
-                      className="object-cover"
+                      className={`object-cover ${!isFullscreen ? "rounded-lg" : ""}`}
                       priority={index === 0}
                       sizes="100vw"
                     />
@@ -152,15 +168,18 @@ export function HeroSlider({ items }: HeroSliderProps) {
                   </div>
                 </div>
                 {/* --- КОНЕЦ МОБИЛЬНОЙ АДАПТАЦИИ --- */}
+
                 {/* --- ДЕСКТОПНАЯ ВЕРСИЯ --- */}
-                <div className="hidden md:block relative w-full h-screen">
+                <div
+                  className={`hidden md:block relative w-full ${isFullscreen ? "h-screen" : "h-[70vh] min-h-[500px]"} ${!isFullscreen ? "rounded-lg overflow-hidden" : ""}`}
+                >
                   <div className="absolute inset-0 z-0">
                     <div className="absolute inset-y-0 left-0 w-1/2 filter blur-md scale-110">
                       <Image
                         src={backgroundImageUrl || "/placeholder.svg"}
                         alt={`Фон для ${anime.title}`}
                         fill
-                        className="object-cover"
+                        className={`object-cover ${!isFullscreen ? "rounded-lg" : ""}`}
                         priority={index === 0}
                         sizes="(max-width: 1200px) 50vw, 50vw"
                       />
@@ -178,7 +197,9 @@ export function HeroSlider({ items }: HeroSliderProps) {
                         >
                           #{index + 1} В центре внимания
                         </Badge>
-                        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-3 sm:mb-4 leading-tight drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
+                        <h1
+                          className={`${isFullscreen ? "text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl" : "text-xl sm:text-2xl md:text-3xl lg:text-4xl"} font-bold mb-3 sm:mb-4 leading-tight drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]`}
+                        >
                           {anime.title}
                         </h1>
 
@@ -249,10 +270,11 @@ export function HeroSlider({ items }: HeroSliderProps) {
                       </div>
                     </div>
 
-                    {/* ПОСТЕР ПОМЕНЬШЕ */}
+                    {/* ПОСТЕР */}
                     <div className="w-1/2 h-full flex items-center justify-center pl-6">
-                      {/* Уменьшены размеры контейнера постера */}
-                      <div className="relative w-40 h-60 sm:w-48 sm:h-72 md:w-56 md:h-80 lg:w-64 lg:h-96 xl:w-72 xl:h-[32rem] 2xl:w-80 2xl:h-[36rem] rounded-xl overflow-hidden shadow-2xl ring-1 ring-white/20 transform transition-transform duration-700 hover:scale-105 group">
+                      <div
+                        className={`relative ${isFullscreen ? "w-40 h-60 sm:w-48 sm:h-72 md:w-56 md:h-80 lg:w-64 lg:h-96 xl:w-72 xl:h-[32rem] 2xl:w-80 2xl:h-[36rem]" : "w-32 h-48 sm:w-40 sm:h-60 md:w-48 md:h-72 lg:w-56 lg:h-80"} rounded-xl overflow-hidden shadow-2xl ring-1 ring-white/20 transform transition-transform duration-700 hover:scale-105 group`}
+                      >
                         <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-purple-500/20 via-transparent to-cyan-500/20 pointer-events-none z-10 opacity-70 group-hover:opacity-100 transition-opacity"></div>
                         {anime.poster_url ? (
                           <Image

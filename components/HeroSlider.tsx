@@ -44,12 +44,19 @@ export function HeroSlider({ items }: HeroSliderProps) {
 
       <Carousel
         className="w-full h-full"
-        opts={{ loop: true }}
+        opts={{
+          loop: true,
+          duration: 30, // Увеличиваем длительность анимации для плавности
+          dragFree: false,
+          containScroll: "trimSnaps", // Предотвращает показ частей соседних слайдов
+        }}
         plugins={[plugin.current]}
         onMouseEnter={plugin.current.stop}
         onMouseLeave={plugin.current.reset}
       >
-        <CarouselContent className="flex !ml-0 h-full">
+        <CarouselContent className="flex h-full -ml-0">
+          {" "}
+          {/* Убираем отрицательный отступ */}
           {validItems.map((anime, index) => {
             const backgroundImageUrl =
               anime.background_image_url || anime.poster_url || "/placeholder.svg?height=1080&width=1920"
@@ -67,8 +74,19 @@ export function HeroSlider({ items }: HeroSliderProps) {
               episodeStatusText = `${anime.episodes_aired} эп.`
             }
 
+            // Динамическое количество строк описания
+            const getDescriptionLines = () => {
+              if (isFullscreen) {
+                return "line-clamp-4 sm:line-clamp-5 md:line-clamp-6 lg:line-clamp-7 xl:line-clamp-8"
+              } else {
+                return "line-clamp-3 sm:line-clamp-4 md:line-clamp-5"
+              }
+            }
+
             return (
-              <CarouselItem key={anime.id} className="w-full min-w-full !pr-0 overflow-hidden h-full">
+              <CarouselItem key={anime.id} className="w-full min-w-full pl-0 pr-0 overflow-hidden h-full">
+                {" "}
+                {/* Убираем все отступы */}
                 {/* --- МОБИЛЬНАЯ АДАПТАЦИЯ --- */}
                 <div
                   className={`md:hidden relative w-full ${isFullscreen ? "h-screen" : "h-[70vh] min-h-[500px]"} ${!isFullscreen ? "rounded-lg overflow-hidden" : ""}`}
@@ -78,7 +96,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
                       src={backgroundImageUrl || "/placeholder.svg"}
                       alt={`Фон для ${anime.title}`}
                       fill
-                      className={`object-cover ${!isFullscreen ? "rounded-lg" : ""}`}
+                      className={`object-cover transition-transform duration-1000 ease-in-out ${!isFullscreen ? "rounded-lg" : ""}`}
                       priority={index === 0}
                       sizes="100vw"
                     />
@@ -120,7 +138,9 @@ export function HeroSlider({ items }: HeroSliderProps) {
                       </div>
 
                       {anime.description && (
-                        <p className="text-gray-300 mb-3 line-clamp-3 text-[0.7rem] sm:text-xs opacity-90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
+                        <p
+                          className={`text-gray-300 mb-3 ${getDescriptionLines()} text-[0.7rem] sm:text-xs opacity-90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]`}
+                        >
                           {anime.description}
                         </p>
                       )}
@@ -133,7 +153,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
                             src={anime.poster_url || "/placeholder.svg"}
                             alt={`Постер для ${anime.title}`}
                             fill
-                            className="object-cover"
+                            className="object-cover transition-transform duration-500 ease-in-out"
                             sizes="(max-width: 640px) 50vw, 33vw"
                           />
                         ) : (
@@ -147,7 +167,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
                         <Link href={`/anime/${anime.shikimori_id}/watch`} className="flex-1 max-w-[45%]">
                           <Button
                             size="sm"
-                            className="w-full bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800 text-white shadow-md h-8 sm:h-10 text-[0.7rem] sm:text-sm"
+                            className="w-full bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800 text-white shadow-md h-8 sm:h-10 text-[0.7rem] sm:text-sm transition-all duration-300"
                           >
                             <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                             <span className="truncate">Смотреть</span>
@@ -157,7 +177,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="w-full bg-white/10 hover:bg-white/20 border-white/30 text-white backdrop-blur-sm shadow-md h-8 sm:h-10 text-[0.7rem] sm:text-sm"
+                            className="w-full bg-white/10 hover:bg-white/20 border-white/30 text-white backdrop-blur-sm shadow-md h-8 sm:h-10 text-[0.7rem] sm:text-sm transition-all duration-300"
                           >
                             <Info className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                             <span className="truncate">Подробнее</span>
@@ -168,7 +188,6 @@ export function HeroSlider({ items }: HeroSliderProps) {
                   </div>
                 </div>
                 {/* --- КОНЕЦ МОБИЛЬНОЙ АДАПТАЦИИ --- */}
-
                 {/* --- ДЕСКТОПНАЯ ВЕРСИЯ --- */}
                 <div
                   className={`hidden md:block relative w-full ${isFullscreen ? "h-screen" : "h-[70vh] min-h-[500px]"} ${!isFullscreen ? "rounded-lg overflow-hidden" : ""}`}
@@ -179,7 +198,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
                         src={backgroundImageUrl || "/placeholder.svg"}
                         alt={`Фон для ${anime.title}`}
                         fill
-                        className={`object-cover ${!isFullscreen ? "rounded-lg" : ""}`}
+                        className={`object-cover transition-transform duration-1000 ease-in-out ${!isFullscreen ? "rounded-lg" : ""}`}
                         priority={index === 0}
                         sizes="(max-width: 1200px) 50vw, 50vw"
                       />
@@ -193,25 +212,25 @@ export function HeroSlider({ items }: HeroSliderProps) {
                       <div className="max-w-2xl">
                         <Badge
                           variant="secondary"
-                          className="mb-3 sm:mb-4 text-[0.7rem] sm:text-xs md:text-sm bg-white/10 text-purple-300 border border-purple-500/30 backdrop-blur-sm"
+                          className="mb-3 sm:mb-4 text-[0.7rem] sm:text-xs md:text-sm bg-white/10 text-purple-300 border border-purple-500/30 backdrop-blur-sm transition-all duration-300"
                         >
                           #{index + 1} В центре внимания
                         </Badge>
                         <h1
-                          className={`${isFullscreen ? "text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl" : "text-xl sm:text-2xl md:text-3xl lg:text-4xl"} font-bold mb-3 sm:mb-4 leading-tight drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]`}
+                          className={`${isFullscreen ? "text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl" : "text-xl sm:text-2xl md:text-3xl lg:text-4xl"} font-bold mb-3 sm:mb-4 leading-tight drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] transition-all duration-500`}
                         >
                           {anime.title}
                         </h1>
 
                         <div className="flex flex-wrap items-center gap-2 sm:gap-3 md:gap-4 text-gray-300 mb-3 sm:mb-4 text-xs sm:text-sm md:text-base">
                           {anime.shikimori_rating && (
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1 transition-all duration-300">
                               <Star className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-yellow-400 fill-current" />
                               <span>{anime.shikimori_rating.toFixed(1)}</span>
                             </div>
                           )}
                           {anime.year && (
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1 transition-all duration-300">
                               <Calendar className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
                               <span>{anime.year}</span>
                             </div>
@@ -219,13 +238,13 @@ export function HeroSlider({ items }: HeroSliderProps) {
                           {anime.type && (
                             <Badge
                               variant="outline"
-                              className="text-[0.6rem] xs:text-[0.65rem] sm:text-xs border-gray-600 px-1.5 py-0.5"
+                              className="text-[0.6rem] xs:text-[0.65rem] sm:text-xs border-gray-600 px-1.5 py-0.5 transition-all duration-300"
                             >
                               {anime.type.replace(/_/g, " ")}
                             </Badge>
                           )}
                           {episodeStatusText && (
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1 transition-all duration-300">
                               <Clapperboard className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
                               <span>{episodeStatusText}</span>
                             </div>
@@ -233,7 +252,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
                           {anime.status && (
                             <Badge
                               variant="outline"
-                              className="text-[0.6rem] xs:text-[0.65rem] sm:text-xs border-purple-500 text-purple-400 px-1.5 py-0.5"
+                              className="text-[0.6rem] xs:text-[0.65rem] sm:text-xs border-purple-500 text-purple-400 px-1.5 py-0.5 transition-all duration-300"
                             >
                               {anime.status}
                             </Badge>
@@ -241,7 +260,9 @@ export function HeroSlider({ items }: HeroSliderProps) {
                         </div>
 
                         {anime.description && (
-                          <p className="text-gray-300 mb-4 sm:mb-6 line-clamp-3 text-xs sm:text-sm md:text-base opacity-90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
+                          <p
+                            className={`text-gray-300 mb-4 sm:mb-6 ${getDescriptionLines()} text-xs sm:text-sm md:text-base opacity-90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)] transition-all duration-500`}
+                          >
                             {anime.description}
                           </p>
                         )}
@@ -273,15 +294,15 @@ export function HeroSlider({ items }: HeroSliderProps) {
                     {/* ПОСТЕР */}
                     <div className="w-1/2 h-full flex items-center justify-center pl-6">
                       <div
-                        className={`relative ${isFullscreen ? "w-40 h-60 sm:w-48 sm:h-72 md:w-56 md:h-80 lg:w-64 lg:h-96 xl:w-72 xl:h-[32rem] 2xl:w-80 2xl:h-[36rem]" : "w-32 h-48 sm:w-40 sm:h-60 md:w-48 md:h-72 lg:w-56 lg:h-80"} rounded-xl overflow-hidden shadow-2xl ring-1 ring-white/20 transform transition-transform duration-700 hover:scale-105 group`}
+                        className={`relative ${isFullscreen ? "w-40 h-60 sm:w-48 sm:h-72 md:w-56 md:h-80 lg:w-64 lg:h-96 xl:w-72 xl:h-[32rem] 2xl:w-80 2xl:h-[36rem]" : "w-32 h-48 sm:w-40 sm:h-60 md:w-48 md:h-72 lg:w-56 lg:h-80"} rounded-xl overflow-hidden shadow-2xl ring-1 ring-white/20 transform transition-all duration-700 hover:scale-105 group`}
                       >
-                        <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-purple-500/20 via-transparent to-cyan-500/20 pointer-events-none z-10 opacity-70 group-hover:opacity-100 transition-opacity"></div>
+                        <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-purple-500/20 via-transparent to-cyan-500/20 pointer-events-none z-10 opacity-70 group-hover:opacity-100 transition-opacity duration-500"></div>
                         {anime.poster_url ? (
                           <Image
                             src={anime.poster_url || "/placeholder.svg"}
                             alt={`Постер для ${anime.title}`}
                             fill
-                            className="object-cover"
+                            className="object-cover transition-transform duration-700 ease-in-out"
                             sizes="(max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
                           />
                         ) : (

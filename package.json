@@ -59,7 +59,7 @@
     "immer": "latest",
     "input-otp": "latest",
     "lucide-react": "^0.454.0",
-    "meilisearch": "^0.51.0",
+    "meilisearch": "latest",
     "next": "14.2.16",
     "next-themes": "latest",
     "react": "^18",

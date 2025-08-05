@@ -7,6 +7,32 @@ import { NextResponse } from "next/server";
 // Единственное правильное объявление
 export const dynamic = 'force-dynamic';
 
+// Определяем типы для наших данных
+interface AnimeBase {
+  id: number;
+  shikimori_id: string | null;
+  title: string;
+  poster_url: string | null;
+  year: number | null;
+  shikimori_rating: number | null;
+  episodes_count: number | null;
+  type: string | null;
+}
+
+interface HeroAnime extends AnimeBase {
+  description: string | null;
+}
+
+interface Translation {
+  anime_id: number;
+  quality: string | null;
+}
+
+// Тип для аниме с дополнительным полем best_quality
+interface HeroAnimeWithQuality extends HeroAnime {
+  best_quality: string | null;
+}
+
 const ANIME_CARD_SELECT = "id, shikimori_id, title, poster_url, year, shikimori_rating, episodes_count, type";
 const HERO_ANIME_SELECT = `${ANIME_CARD_SELECT}, description`;
 
@@ -46,7 +72,8 @@ export async function GET() {
       supabase.from("animes_with_details").select(ANIME_CARD_SELECT).not('shikimori_id', 'is', null).order("updated_at_kodik", { ascending: false }).order("weighted_rating", { ascending: false }).limit(12),
     ]);
 
-    let heroWithDetails = [];
+    // Явно указываем тип для heroWithDetails
+    let heroWithDetails: HeroAnimeWithQuality[] = [];
     if (heroAnimesResponse.data) {
       const heroAnimeIds = heroAnimesResponse.data.map(a => a.id);
       const { data: translations } = await supabase.from("translations").select("anime_id, quality").in("anime_id", heroAnimeIds);

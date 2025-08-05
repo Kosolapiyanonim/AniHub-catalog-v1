@@ -35,9 +35,9 @@ export function HeroSlider({ items }: HeroSliderProps) {
         onMouseEnter={plugin.current.stop}
         onMouseLeave={plugin.current.reset}
       >
-        <CarouselContent className="flex ml-0">
+        <CarouselContent className="flex !ml-0">
           {" "}
-          {/* Убираем отрицательный margin для CarouselContent */}
+          {/* Принудительно убираем отрицательный margin для CarouselContent */}
           {validItems.map((anime, index) => {
             const backgroundImageUrl =
               anime.background_image_url || anime.poster_url || "/placeholder.svg?height=700&width=1200"
@@ -56,9 +56,9 @@ export function HeroSlider({ items }: HeroSliderProps) {
             }
 
             return (
-              <CarouselItem key={anime.id} className="w-full min-w-full pl-0 overflow-hidden">
+              <CarouselItem key={anime.id} className="w-full min-w-full !pr-0 overflow-hidden">
                 {" "}
-                {/* Убираем padding и добавляем overflow-hidden */}
+                {/* Принудительно убираем padding-right и добавляем overflow-hidden */}
                 {/* --- МОБИЛЬНАЯ АДАПТАЦИЯ --- */}
                 <div className="md:hidden relative w-full h-[70vh] min-h-[500px]">
                   <div className="absolute inset-0 z-0">

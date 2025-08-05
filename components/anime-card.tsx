@@ -1,8 +1,25 @@
+<<<<<<< HEAD
 import Image from "next/image"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { AnimeCardListButton } from "./anime-card-list-button"
 import type { Anime } from "@/lib/types"
+=======
+// components/anime-card.tsx
+'use client';
+
+import Link from 'next/link';
+import Image from 'next/image';
+import { AnimeListPopover } from './AnimeListPopover';
+import { AnimeCardListButton } from './anime-card-list-button';
+import { ProgressBar } from './ui/progress-bar'; // <-- [ИЗМЕНЕНИЕ] Импортируем прогресс-бар
+
+const formatAnimeType = (type: string | null | undefined): string => {
+    if (!type) return '';
+    const typeMap: { [key: string]: string } = { 'tv_series': 'Сериал', 'movie': 'Фильм', 'ova': 'OVA', 'ona': 'ONA', 'special': 'Спешл', 'anime-serial': 'Аниме сериал', 'anime': 'Полнометражное' };
+    return typeMap[type.toLowerCase()] || type;
+};
+>>>>>>> parent of 5192222 (Update anime-card.tsx)
 
 interface AnimeCardProps {
   anime: Anime

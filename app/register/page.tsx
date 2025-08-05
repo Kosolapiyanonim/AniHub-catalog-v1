@@ -3,175 +3,110 @@
 import type React from "react"
 
 import { useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { Mail, Lock, User, Chrome, Music } from "lucide-react"
-import { toast } from "sonner"
+import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
+import { useRouter } from "next/navigation"
+import { useToast } from "@/components/ui/use-toast"
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [fullName, setFullName] = useState("")
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const { toast } = useToast()
+  const supabase = createClient()
 
-  const handleEmailRegister = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${location.origin}/auth/callback`,
+      },
+    })
 
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-          },
-        },
+    if (error) {
+      toast({
+        title: "Ошибка регистрации",
+        description: error.message,
+        variant: "destructive",
       })
-
-      if (error) {
-        toast.error(error.message)
-      } else {
-        toast.success("Проверьте email для подтверждения регистрации!")
-        router.push("/login")
-      }
-    } catch (error) {
-      toast.error("Произошла ошибка при регистрации")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleGoogleLogin = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${location.origin}/auth/callback`,
-        },
+    } else {
+      toast({
+        title: "Успешная регистрация",
+        description: "Проверьте свою электронную почту для подтверждения регистрации.",
       })
-
-      if (error) {
-        toast.error(error.message)
-      }
-    } catch (error) {
-      toast.error("Ошибка входа через Google")
+      router.push("/login?message=Check email to continue sign in process")
     }
-  }
-
-  const handleSpotifyLogin = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "spotify",
-        options: {
-          redirectTo: `${location.origin}/auth/callback`,
-        },
-      })
-
-      if (error) {
-        toast.error(error.message)
-      }
-    } catch (error) {
-      toast.error("Ошибка входа через Spotify")
-    }
+    setLoading(false)
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Регистрация в AniHub</CardTitle>
-          <CardDescription className="text-center">Создайте аккаунт, чтобы сохранять любимые аниме</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <form onSubmit={handleEmailRegister} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Полное имя</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="Ваше имя"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="pl-10"
-                  required
-                />
-              </div>
+    <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md space-y-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-foreground">Создать аккаунт</h2>
+          <p className="mt-2 text-center text-sm text-muted-foreground">
+            Или{" "}
+            <Link href="/login" className="font-medium text-primary hover:text-primary/80">
+              войти в существующий
+            </Link>
+          </p>
+        </div>
+        <form className="mt-8 space-y-6" onSubmit={handleRegister}>
+          <div className="rounded-md shadow-sm -space-y-px">
+            <div>
+              <Label htmlFor="email-address" className="sr-only">
+                Email адрес
+              </Label>
+              <Input
+                id="email-address"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                className="relative block w-full rounded-t-md border-0 py-1.5 text-foreground ring-1 ring-inset ring-input placeholder:text-muted-foreground focus:z-10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                placeholder="Email адрес"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+              />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
-                  required
-                />
-              </div>
+            <div>
+              <Label htmlFor="password" className="sr-only">
+                Пароль
+              </Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="new-password"
+                required
+                className="relative block w-full rounded-b-md border-0 py-1.5 text-foreground ring-1 ring-inset ring-input placeholder:text-muted-foreground focus:z-10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                placeholder="Пароль"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+              />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Пароль</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
-                  required
-                  minLength={6}
-                />
-              </div>
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+          </div>
+
+          <div>
+            <Button
+              type="submit"
+              className="group relative flex w-full justify-center rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+              disabled={loading}
+            >
               {loading ? "Регистрация..." : "Зарегистрироваться"}
             </Button>
-          </form>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <Separator className="w-full" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Или войдите через</span>
-            </div>
           </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Button variant="outline" onClick={handleGoogleLogin}>
-              <Chrome className="mr-2 h-4 w-4" />
-              Google
-            </Button>
-            <Button variant="outline" onClick={handleSpotifyLogin}>
-              <Music className="mr-2 h-4 w-4" />
-              Spotify
-            </Button>
-          </div>
-
-          <div className="text-center text-sm">
-            <span className="text-muted-foreground">Уже есть аккаунт? </span>
-            <Link href="/login" className="text-primary hover:underline">
-              Войти
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+        </form>
+      </div>
     </div>
   )
 }

@@ -1,36 +1,41 @@
-// src/app/api/search/route.ts
-import { NextRequest, NextResponse } from 'next/server'
-import { animeIndex } from '@/lib/meilisearch-client'
-import { z } from 'zod'
+import { NextResponse } from "next/server"
+import { MeiliSearch } from "meilisearch"
 
-export const dynamic = 'force-dynamic'
+const MEILISEARCH_HOST = process.env.MEILISEARCH_HOST || "http://localhost:7700"
+const MEILISEARCH_API_KEY = process.env.MEILISEARCH_API_KEY || "aSecretMasterKey"
 
-const searchSchema = z.object({
-  query: z.string().min(1, 'Query must not be empty'),
+const client = new MeiliSearch({
+  host: MEILISEARCH_HOST,
+  apiKey: MEILISEARCH_API_KEY,
 })
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url)
-  const query = searchParams.get('query') || ''
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const query = searchParams.get("q") || ""
+  const limit = Number.parseInt(searchParams.get("limit") || "10")
 
-  const validation = searchSchema.safeParse({ query })
-  if (!validation.success) {
-    return NextResponse.json({ error: validation.error.format() }, { status: 400 })
+  if (!query) {
+    return NextResponse.json({ results: [] })
   }
 
   try {
-    const results = await animeIndex.search(validation.data.query, {
-      limit: 12,
-      attributesToRetrieve: ['id', 'title', 'poster_url', 'year', 'shikimori_id', 'type', 'status'],
-      attributesToHighlight: ['title'],
+    const searchResults = await client.index("anime").search(query, {
+      limit: limit,
+      attributesToRetrieve: [
+        "id",
+        "shikimori_id",
+        "title",
+        "russian",
+        "poster_url",
+        "type",
+        "year",
+        "shikimori_rating",
+      ],
     })
 
-    return NextResponse.json({
-      data: results.hits,
-      total: results.estimatedTotalHits,
-    })
-  } catch (error) {
-    console.error('Meilisearch error:', error)
-    return NextResponse.json({ error: 'Search failed' }, { status: 500 })
+    return NextResponse.json({ results: searchResults.hits })
+  } catch (error: any) {
+    console.error("Error during MeiliSearch search:", error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

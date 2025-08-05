@@ -1,104 +1,124 @@
-// components/HeroSlider.tsx
-
 "use client"
-
-import React, { useRef } from "react"; // <-- ИСПРАВЛЕНИЕ: правильный импорт
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import Autoplay from "embla-carousel-autoplay";
-import Image from "next/image";
-import Link from "next/link";
-import { Button } from "./ui/button";
-import { Play, Info, Star, Clapperboard } from "lucide-react";
-import { Badge } from "./ui/badge";
-
-interface Anime {
-  id: number;
-  shikimori_id: string;
-  title: string;
-  poster_url?: string | null;
-  year?: number | null;
-  description?: string;
-  type?: string;
-  episodes_count?: number;
-  shikimori_rating?: number;
-}
+import Image from "next/image"
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Play } from "lucide-react"
+import Link from "next/link"
+import { Badge } from "@/components/ui/badge"
+import type { Anime } from "@/lib/types"
 
 interface HeroSliderProps {
-  items?: Anime[] | null;
+  animeList?: Anime[]
 }
 
-export function HeroSlider({ items }: HeroSliderProps) {
-  const plugin = useRef(Autoplay({ delay: 5000, stopOnInteraction: true }));
-  const validItems = items?.filter(Boolean) as Anime[];
+const defaultAnimeList: Anime[] = [
+  {
+    id: 1,
+    shikimori_id: 21,
+    title: "One Piece",
+    russian: "Ван-Пис",
+    poster_url: "/placeholder.svg?height=1080&width=1920",
+    type: "tv_series",
+    year: 1999,
+    shikimori_rating: 8.7,
+    status: "ongoing",
+    episodes_total: 1000,
+    duration: "24 min.",
+    rating_mpaa: "PG-13",
+    description:
+      "Monkey D. Luffy refuses to let anyone stand in the way of his quest to become the king of all pirates. With a course charted for the treacherous waters of the Grand Line and beyond, this is one captain who'll never give up until he's claimed the greatest treasure on Earth: the Legendary One Piece!",
+    kodik_id: "12345",
+    anime_kind: "tv",
+    user_list_status: null,
+  },
+  {
+    id: 2,
+    shikimori_id: 40028,
+    title: "Attack on Titan: The Final Season",
+    russian: "Атака титанов: Финал",
+    poster_url: "/placeholder.svg?height=1080&width=1920",
+    type: "tv_series",
+    year: 2020,
+    shikimori_rating: 9.1,
+    status: "completed",
+    episodes_total: 28,
+    duration: "24 min.",
+    rating_mpaa: "R",
+    description:
+      "With the Titans eliminated, the war is far from over. Humanity still faces threats from beyond the walls, and the true nature of the world is slowly revealed.",
+    kodik_id: "67890",
+    anime_kind: "tv",
+    user_list_status: null,
+  },
+  {
+    id: 3,
+    shikimori_id: 51142,
+    title: "Chainsaw Man",
+    russian: "Человек-бензопила",
+    poster_url: "/placeholder.svg?height=1080&width=1920",
+    type: "tv_series",
+    year: 2022,
+    shikimori_rating: 8.6,
+    status: "completed",
+    episodes_total: 12,
+    duration: "24 min.",
+    rating_mpaa: "R",
+    description:
+      "Denji, a teenage boy living with a Chainsaw Devil named Pochita, is forced to pay off his deceased father's debt by harvesting devil corpses. After being killed by a devil, Pochita sacrifices himself to revive Denji, who becomes a human-devil hybrid.",
+    kodik_id: "11223",
+    anime_kind: "tv",
+    user_list_status: null,
+  },
+]
 
-  if (!validItems || validItems.length === 0) {
-    return (
-      <div className="h-[70vh] bg-slate-800 flex items-center justify-center text-white rounded-lg">
-        <p className="text-center">Отметьте аниме в базе для отображения в Hero-секции...</p>
-      </div>
-    );
-  }
-
+export function HeroSlider({ animeList = defaultAnimeList }: HeroSliderProps) {
   return (
-    <Carousel
-      className="w-full relative"
-      opts={{ loop: validItems.length > 1 }}
-      plugins={[plugin.current]}
-      onMouseEnter={plugin.current.stop}
-      onMouseLeave={plugin.current.reset}
-    >
+    <Carousel className="w-full relative">
       <CarouselContent>
-        {validItems.map((anime, index) => (
+        {animeList.map((anime) => (
           <CarouselItem key={anime.id}>
-            <div className="relative h-[70vh] w-full flex md:flex-row flex-col bg-slate-900 rounded-lg overflow-hidden">
-              <div className="relative z-10 w-full md:w-3/5 flex items-center p-4 sm:p-8 md:pl-16">
-                <div className="text-white w-full max-w-lg">
-                  <p className="font-semibold text-purple-400 mb-2 text-sm"># {index + 1} В центре внимания</p>
-                  <h1 className="text-3xl lg:text-5xl font-bold mb-4 line-clamp-2">{anime.title}</h1>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-gray-300 mb-5 text-sm">
-                    {anime.shikimori_rating && (
-                      <div className="flex items-center gap-1"><Star className="w-4 h-4 text-yellow-400" /><span>{anime.shikimori_rating}</span></div>
-                    )}
-                    {anime.year && <span>{anime.year}</span>}
-                    {anime.type && <Badge variant="secondary">{anime.type.replace(/_/g, " ")}</Badge>}
-                    {anime.episodes_count && (
-                      <div className="flex items-center gap-1"><Clapperboard className="w-4 h-4" /><span>{anime.episodes_count} эп.</span></div>
-                    )}
-                  </div>
-                  {anime.description && (
-                    <p className="text-gray-300 mb-8 line-clamp-3 text-sm md:text-base">{anime.description}</p>
+            <Card className="relative w-full h-[400px] md:h-[500px] lg:h-[600px] xl:h-[700px] rounded-lg overflow-hidden">
+              <Image
+                src={anime.poster_url || "/placeholder.svg?height=700&width=1200&query=anime hero banner"}
+                alt={anime.title || "Anime banner"}
+                fill
+                className="object-cover object-center"
+                priority
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+              <CardContent className="absolute bottom-0 left-0 p-6 md:p-8 text-white w-full md:w-2/3 lg:w-1/2">
+                <h2 className="text-3xl md:text-5xl font-bold mb-2 line-clamp-2">{anime.russian || anime.title}</h2>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {anime.type && (
+                    <Badge variant="secondary" className="bg-purple-600/80 text-white">
+                      {anime.type}
+                    </Badge>
                   )}
-                  <div className="flex items-center gap-4">
-                    <Link href={`/anime/${anime.shikimori_id}/watch`}>
-                      <Button size="lg" className="bg-purple-600 hover:bg-purple-700"><Play className="w-5 h-5 mr-2" />Смотреть</Button>
-                    </Link>
-                    <Link href={`/anime/${anime.shikimori_id}`}>
-                      <Button size="lg" variant="outline"><Info className="w-5 h-5 mr-2" />Подробнее</Button>
-                    </Link>
-                  </div>
+                  {anime.year && (
+                    <Badge variant="secondary" className="bg-purple-600/80 text-white">
+                      {anime.year}
+                    </Badge>
+                  )}
+                  {anime.shikimori_rating && (
+                    <Badge variant="secondary" className="bg-yellow-500/80 text-white">
+                      Рейтинг: {anime.shikimori_rating}
+                    </Badge>
+                  )}
                 </div>
-              </div>
-              <div className="w-full md:w-2/5 h-full absolute right-0 top-0 md:relative">
-                {anime.poster_url && 
-                    <Image src={anime.poster_url} alt={`${anime.title} background`} fill className="object-cover opacity-30 blur-2xl" />
-                }
-                <div className="absolute inset-0 bg-gradient-to-l from-slate-900 via-slate-900/50 to-transparent"></div>
-                <div className="absolute inset-0 flex items-center justify-center p-8">
-                  <div className="relative w-48 h-72 sm:w-56 sm:h-80 md:w-64 md:h-96 rounded-lg overflow-hidden shadow-2xl">
-                    {anime.poster_url && 
-                        <Image src={anime.poster_url} alt={`${anime.title} poster`} fill className="object-cover" priority={index === 0} sizes="(max-width: 768px) 50vw, 33vw" />
-                    }
-                  </div>
-                </div>
-              </div>
-            </div>
+                <p className="text-sm md:text-base text-gray-300 mb-6 line-clamp-3">{anime.description}</p>
+                <Link href={`/anime/${anime.shikimori_id}`} passHref>
+                  <Button className="bg-purple-600 hover:bg-purple-700 text-white">
+                    <Play className="mr-2 h-5 w-5" /> Смотреть
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
           </CarouselItem>
         ))}
       </CarouselContent>
-      <div className="absolute right-8 bottom-8 z-20 hidden md:flex gap-2">
-        <CarouselPrevious />
-        <CarouselNext />
-      </div>
+      <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white/20 hover:bg-white/40 text-white" />
+      <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white/20 hover:bg-white/40 text-white" />
     </Carousel>
-  );
+  )
 }

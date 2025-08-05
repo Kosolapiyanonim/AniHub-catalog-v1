@@ -1,167 +1,118 @@
-// components/command-palette.tsx
+"use client"
 
-'use client'
+import * as React from "react"
+import type { DialogProps } from "@radix-ui/react-dialog"
+import { Command as CommandPrimitive } from "cmdk"
+import { Search } from "lucide-react"
 
-import React, { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Image from 'next/image'
-import { useDebounce } from '@/hooks/use-debounce'
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
-import { VisuallyHidden } from '@/components/ui/visually-hidden'
-import { useSearchStore } from '@/hooks/use-search-store' // <-- ИСПРАВЛЕННЫЙ ПУТЬ
+import { cn } from "@/lib/utils"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 
-// Типы и функции форматирования
-interface AnimeSearchResult {
-  shikimori_id: string
-  title: string
-  poster_url: string | null
-  year: number | null
-  type: string | null
-  status: string | null
-  raw_data: { material_data?: { aired_at?: string } }
+interface CommandPaletteProps extends DialogProps {
+  children: React.ReactNode
 }
 
-const formatType = (type: string | null) => {
-  if (!type) return null
-  if (type.includes('serial')) return 'Аниме сериал'
-  if (type.includes('movie')) return 'Аниме фильм'
-  return null
-}
-
-const formatStatus = (status: string | null) => {
-  if (status === 'released') return 'Завершённое'
-  if (status === 'ongoing') return 'Онгоинг'
-  return null
-}
-
-const formatDate = (dateString?: string) => {
-  if (!dateString) return null
-  try {
-    return new Date(dateString).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long' })
-  } catch { return null }
-}
-
-export function CommandPalette() {
-  const router = useRouter()
-  const { isOpen, close } = useSearchStore()
-
-  const [searchTerm, setSearchTerm] = useState('')
-  const debouncedSearchTerm = useDebounce(searchTerm, 300)
-  const [searchResults, setSearchResults] = useState<AnimeSearchResult[]>([])
-  const [total, setTotal] = useState(0)
-  const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    if (!isOpen) {
-      setSearchTerm('')
-      setSearchResults([])
-      setTotal(0)
-    }
-  }, [isOpen])
-
-  useEffect(() => {
-    const fetchResults = async () => {
-      if (debouncedSearchTerm.length < 2) {
-        setSearchResults([])
-        setTotal(0)
-        setLoading(false)
-        return
-      }
-      setLoading(true)
-      try {
-        const response = await fetch(`/api/search?query=${encodeURIComponent(debouncedSearchTerm)}`)
-        const { data, total } = await response.json()
-        setSearchResults(data || [])
-        setTotal(total || 0)
-      } catch (error) {
-        console.error('Search error:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchResults()
-  }, [debouncedSearchTerm])
-
-  const navigateToCatalog = () => {
-    if (searchTerm.length < 2) return
-    router.push(`/catalog?title=${encodeURIComponent(searchTerm)}`)
-    close()
-  }
-
-  const handleSelect = (shikimori_id: string) => {
-    router.push(`/anime/${shikimori_id}`)
-    close()
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      navigateToCatalog()
-    }
-  }
-
+const CommandPalette = ({ children, ...props }: CommandPaletteProps) => {
   return (
-    <Dialog open={isOpen} onOpenChange={close}>
-      <DialogContent className='w-[60vw] max-w-4xl h-[70vh] max-h-[800px] p-0'>
-        <VisuallyHidden>
-          <DialogTitle>Поиск по сайту</DialogTitle>
-        </VisuallyHidden>
-        <Command className='flex h-full flex-col'>
-          <CommandInput
-            placeholder='Название аниме...'
-            value={searchTerm}
-            onValueChange={setSearchTerm}
-            onKeyDown={handleKeyDown}
-          />
-          <CommandList className='flex-1 max-h-none'>
-            {loading && <CommandEmpty>Загрузка...</CommandEmpty>}
-            {!loading && searchResults.length === 0 && searchTerm.length > 1 && <CommandEmpty>Ничего не найдено.</CommandEmpty>}
-            <CommandGroup heading='Результаты поиска'>
-              {searchResults.map(anime => {
-                const typeText = formatType(anime.type)
-                const statusText = formatStatus(anime.status)
-                const airedText = formatDate(anime.raw_data?.material_data?.aired_at)
-
-                return (
-                  <CommandItem
-                    key={anime.shikimori_id}
-                    value={anime.title}
-                    onSelect={() => handleSelect(anime.shikimori_id)}
-                    className='flex items-center gap-4 cursor-pointer p-3'
-                  >
-                    <div className='relative h-16 w-12 flex-shrink-0'>
-                      <Image
-                        src={anime.poster_url || '/placeholder.png'}
-                        alt={anime.title}
-                        fill
-                        className='rounded-md object-cover'
-                      />
-                    </div>
-                    <div>
-                      <p className='font-medium line-clamp-1'>{anime.title}</p>
-                      <div className='text-sm text-muted-foreground flex items-center flex-wrap gap-x-2.5 mt-1'>
-                        {typeText && <span>{typeText}</span>}
-                        {statusText && <span className='text-purple-400 font-medium'>• {statusText}</span>}
-                        {airedText && <span>• {airedText}</span>}
-                      </div>
-                    </div>
-                  </CommandItem>
-                )
-              })}
-            </CommandGroup>
-            
-            {!loading && total > 8 && searchResults.length > 0 && (
-                <CommandItem 
-                  onSelect={navigateToCatalog}
-                  className='justify-center text-sm text-purple-400 cursor-pointer sticky bottom-0 bg-popover'
-                >
-                  Показать все {total} результатов в каталоге
-                </CommandItem>
-            )}
-          </CommandList>
-        </Command>
+    <Dialog {...props}>
+      <DialogContent className="overflow-hidden p-0 shadow-lg">
+        <CommandPrimitive
+          className={cn(
+            "flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground",
+            "data-[state=open]:animate-in data-[state=open]:fade-in-90 data-[state=open]:slide-in-from-bottom-10",
+          )}
+        >
+          {children}
+        </CommandPrimitive>
       </DialogContent>
     </Dialog>
   )
+}
+
+interface CommandInputProps extends React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input> {}
+
+const CommandInput = React.forwardRef<HTMLInputElement, CommandInputProps>(({ className, ...props }, ref) => (
+  <div className="flex items-center border-b px-3" cmdk-input-wrapper="">
+    <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+    <CommandPrimitive.Input
+      ref={ref}
+      className={cn(
+        "flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",
+        className,
+      )}
+      {...props}
+    />
+  </div>
+))
+CommandInput.displayName = CommandPrimitive.Input.displayName
+
+interface CommandListProps extends React.ComponentPropsWithoutRef<typeof CommandPrimitive.List> {}
+
+const CommandList = React.forwardRef<HTMLDivElement, CommandListProps>(({ className, ...props }, ref) => (
+  <CommandPrimitive.List
+    ref={ref}
+    className={cn("max-h-[300px] overflow-y-auto overflow-x-hidden", className)}
+    {...props}
+  />
+))
+CommandList.displayName = CommandPrimitive.List.displayName
+
+interface CommandEmptyProps extends React.ComponentPropsWithoutRef<typeof CommandPrimitive.Empty> {}
+
+const CommandEmpty = React.forwardRef<HTMLDivElement, CommandEmptyProps>((props, ref) => (
+  <CommandPrimitive.Empty ref={ref} className="py-6 text-center text-sm" {...props} />
+))
+CommandEmpty.displayName = CommandPrimitive.Empty.displayName
+
+interface CommandGroupProps extends React.ComponentPropsWithoutRef<typeof CommandPrimitive.Group> {}
+
+const CommandGroup = React.forwardRef<HTMLDivElement, CommandGroupProps>(({ className, ...props }, ref) => (
+  <CommandPrimitive.Group
+    ref={ref}
+    className={cn(
+      "overflow-hidden p-1 text-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground",
+      className,
+    )}
+    {...props}
+  />
+))
+CommandGroup.displayName = CommandPrimitive.Group.displayName
+
+interface CommandSeparatorProps extends React.ComponentPropsWithoutRef<typeof CommandPrimitive.Separator> {}
+
+const CommandSeparator = React.forwardRef<HTMLDivElement, CommandSeparatorProps>(({ className, ...props }, ref) => (
+  <CommandPrimitive.Separator ref={ref} className={cn("-mx-1 h-px bg-border", className)} {...props} />
+))
+CommandSeparator.displayName = CommandPrimitive.Separator.displayName
+
+interface CommandItemProps extends React.ComponentPropsWithoutRef<typeof CommandPrimitive.Item> {}
+
+const CommandItem = React.forwardRef<HTMLDivElement, CommandItemProps>(({ className, ...props }, ref) => (
+  <CommandPrimitive.Item
+    ref={ref}
+    className={cn(
+      "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      className,
+    )}
+    {...props}
+  />
+))
+CommandItem.displayName = CommandPrimitive.Item.displayName
+
+interface CommandShortcutProps extends React.HTMLAttributes<HTMLSpanElement> {}
+
+const CommandShortcut = ({ className, ...props }: CommandShortcutProps) => {
+  return <span className={cn("ml-auto text-xs tracking-widest text-muted-foreground", className)} {...props} />
+}
+CommandShortcut.displayName = "CommandShortcut"
+
+export {
+  CommandPalette,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+  CommandShortcut,
+  CommandSeparator,
 }

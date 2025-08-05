@@ -1,21 +1,28 @@
 "use client"
 
-import dynamic from "next/dynamic"
-import type { ComponentProps } from "react"
+import { useEffect, useState } from "react"
+import { AnimeCarousel } from "@/components/AnimeCarousel"
 import { LoadingSpinner } from "@/components/loading-spinner"
+import type { Anime } from "@/lib/types"
 
-// Dynamically load the real carousel once we're on the client
-const DynamicAnimeCarousel = dynamic(() => import("@/components/AnimeCarousel").then((mod) => mod.AnimeCarousel), {
-  // Nice loading state while JS bundles
-  loading: () => (
-    <div className="h-64 flex items-center justify-center">
-      <LoadingSpinner />
-    </div>
-  ),
-  ssr: false, // turn off server-side render for this heavy interactive widget
-})
+interface AnimeCarouselClientProps {
+  animeList: Anime[]
+}
 
-// Re-export as a plain functional component
-export default function AnimeCarouselClient(props: ComponentProps<typeof DynamicAnimeCarousel>) {
-  return <DynamicAnimeCarousel {...props} />
+export function AnimeCarouselClient({ animeList }: AnimeCarouselClientProps) {
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  if (!isClient) {
+    return (
+      <div className="flex justify-center items-center h-48">
+        <LoadingSpinner />
+      </div>
+    )
+  }
+
+  return <AnimeCarousel title="" animeList={animeList} />
 }

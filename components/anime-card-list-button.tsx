@@ -1,62 +1,148 @@
-// components/anime-card-list-button.tsx
+"use client"
 
-"use client";
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Plus, Check, Eye, Heart, Bookmark, X } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useToast } from "@/hooks/use-toast"
+import { useSupabase } from "@/components/supabase-provider"
+import { cn } from "@/lib/utils"
 
-import { useAnimeListStatus } from "@/hooks/use-anime-list-status";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Check, Trash2, Eye, CalendarCheck, Clock, History, Bookmark, XCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
-
-const statuses = [
-    { key: "watching", label: "Смотрю", icon: Eye },
-    { key: "planned", label: "В планах", icon: Clock },
-    { key: "completed", label: "Просмотрено", icon: CalendarCheck },
-    { key: "rewatching", label: "Пересматриваю", icon: History },
-    { key: "on_hold", label: "Отложено", icon: Bookmark },
-    { key: "dropped", label: "Брошено", icon: XCircle },
-];
-const statusMap = new Map(statuses.map(s => [s.key, { label: s.label, icon: s.icon }]));
-
-interface Props {
-  animeId: number;
-  initialStatus?: string | null;
-  onStatusChange?: (animeId: number, newStatus: string | null) => void;
+interface AnimeCardListButtonProps {
+  animeId: number
+  initialStatus?: string | null
+  onStatusChange?: (newStatus: string | null) => void
 }
 
-export function AnimeCardListButton({ animeId, initialStatus, onStatusChange }: Props) {
-  const { session, currentStatus, loading, handleStatusChange } = useAnimeListStatus(animeId, initialStatus, onStatusChange);
+export function AnimeCardListButton({ animeId, initialStatus = null, onStatusChange }: AnimeCardListButtonProps) {
+  const [currentStatus, setCurrentStatus] = useState<string | null>(initialStatus)
+  const [loading, setLoading] = useState(false)
+  const { toast } = useToast()
+  const { user } = useSupabase()
 
-  if (!session) return null;
+  const handleStatusChange = async (newStatus: string | null) => {
+    if (!user) {
+      toast({
+        title: "Необходимо войти",
+        description: "Пожалуйста, войдите, чтобы добавлять аниме в список.",
+        variant: "destructive",
+      })
+      return
+    }
 
-  const statusInfo = currentStatus ? statusMap.get(currentStatus) : null;
-  const CurrentIcon = statusInfo ? statusInfo.icon : Plus;
+    setLoading(true)
+    try {
+      const response = await fetch("/api/lists", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ animeId, status: newStatus }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setCurrentStatus(data.status)
+        onStatusChange?.(data.status)
+        toast({
+          title: "Успех",
+          description: data.message,
+        })
+      } else {
+        toast({
+          title: "Ошибка",
+          description: data.error || "Не удалось обновить список.",
+          variant: "destructive",
+        })
+      }
+    } catch (error: any) {
+      toast({
+        title: "Ошибка",
+        description: `Произошла ошибка: ${error.message}`,
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const getStatusIcon = (status: string | null) => {
+    switch (status) {
+      case "watching":
+        return <Eye className="h-4 w-4" />
+      case "completed":
+        return <Check className="h-4 w-4" />
+      case "planned":
+        return <Bookmark className="h-4 w-4" />
+      case "dropped":
+        return <X className="h-4 w-4" />
+      case "on_hold":
+        return <Heart className="h-4 w-4" />
+      default:
+        return <Plus className="h-4 w-4" />
+    }
+  }
+
+  const getStatusText = (status: string | null) => {
+    switch (status) {
+      case "watching":
+        return "Смотрю"
+      case "completed":
+        return "Просмотрено"
+      case "planned":
+        return "В планах"
+      case "dropped":
+        return "Брошено"
+      case "on_hold":
+        return "Отложено"
+      default:
+        return "Добавить в список"
+    }
+  }
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button 
-          variant="secondary" 
-          size="icon" 
-          className="absolute top-2 right-2 z-20 h-8 w-8 bg-black/50 text-white hover:bg-black/70 transition-opacity" 
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-          title={statusInfo?.label || 'Добавить в список'}
+        <Button
+          variant="secondary"
+          size="icon"
+          className={cn(
+            "absolute top-2 right-2 z-20 rounded-full transition-all duration-200",
+            currentStatus
+              ? "bg-purple-600 hover:bg-purple-700 text-white"
+              : "bg-gray-800 hover:bg-gray-700 text-gray-300",
+          )}
+          disabled={loading}
+          aria-label={getStatusText(currentStatus)}
         >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CurrentIcon className="h-4 w-4" />}
+          {getStatusIcon(currentStatus)}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent onClick={(e) => { e.preventDefault(); e.stopPropagation();}} className="bg-slate-800 border-slate-700 text-white">
-          {statuses.map((status) => (
-            <DropdownMenuItem key={status.key} onSelect={() => handleStatusChange(status.key)} className="cursor-pointer hover:bg-slate-700">
-                <status.icon className="mr-2 h-4 w-4" />
-                <span>{status.label}</span>
-                {currentStatus === status.key && <Check className="ml-auto h-4 w-4 text-green-500" />}
+      <DropdownMenuContent className="w-48">
+        <DropdownMenuItem onClick={() => handleStatusChange("watching")}>
+          <Eye className="mr-2 h-4 w-4" /> Смотрю
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleStatusChange("completed")}>
+          <Check className="mr-2 h-4 w-4" /> Просмотрено
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleStatusChange("planned")}>
+          <Bookmark className="mr-2 h-4 w-4" /> В планах
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleStatusChange("on_hold")}>
+          <Heart className="mr-2 h-4 w-4" /> Отложено
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleStatusChange("dropped")}>
+          <X className="mr-2 h-4 w-4" /> Брошено
+        </DropdownMenuItem>
+        {currentStatus && (
+          <>
+            <DropdownMenuItem onClick={() => handleStatusChange(null)}>
+              <X className="mr-2 h-4 w-4" /> Удалить из списка
             </DropdownMenuItem>
-          ))}
-          {currentStatus && (
-              <><DropdownMenuSeparator className="bg-slate-700" /><DropdownMenuItem className="text-red-500 hover:!text-red-500 hover:!bg-red-500/10 cursor-pointer" onSelect={() => handleStatusChange("remove")}><Trash2 className="mr-2 h-4 w-4" /><span>Удалить из списка</span></DropdownMenuItem></>
-          )}
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
-  );
+  )
 }

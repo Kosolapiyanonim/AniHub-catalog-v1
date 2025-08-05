@@ -3,6 +3,8 @@ import Link from "next/link"
 import Image from "next/image"
 import { createClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
+import { Suspense } from "react"
+import { getAnimeById, getAnimeTranslations } from "@/lib/data-fetchers"
 import {
   ArrowLeft,
   Play,
@@ -22,9 +24,17 @@ import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { PlayerClient } from "@/components/player-client"
 
-export default async function WatchPage({ params }: { params: { id: string } }) {
+export default async function WatchPage({
+  params,
+  searchParams,
+}: { params: { id: string }; searchParams: { translation_id?: string } }) {
   const cookieStore = cookies()
   const supabase = createClient(cookieStore)
+  const animeId = Number.parseInt(params.id)
+
+  if (isNaN(animeId)) {
+    notFound()
+  }
 
   // Получаем данные аниме
   const { data: animeData } = await supabase
@@ -43,19 +53,19 @@ export default async function WatchPage({ params }: { params: { id: string } }) 
       genres:anime_genres(genres(name)),
       studios:anime_studios(studios(name))
     `)
-    .eq("shikimori_id", params.id)
+    .eq("shikimori_id", animeId)
     .single()
 
-  if (!animeData) {
+  const anime = await getAnimeById(animeId)
+
+  if (!animeData || !anime) {
     notFound()
   }
 
-  // Получаем озвучки
-  const { data: translations } = await supabase
-    .from("translations")
-    .select("*")
-    .eq("anime_id", animeData.id)
-    .order("title")
+  const translations = await getAnimeTranslations(anime.kodik_id)
+
+  const initialTranslationId =
+    searchParams.translation_id || (translations && translations.length > 0 ? translations[0].id : undefined)
 
   if (!translations || translations.length === 0) {
     return (
@@ -139,7 +149,13 @@ export default async function WatchPage({ params }: { params: { id: string } }) 
             <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm overflow-hidden">
               <CardContent className="p-0">
                 <div className="aspect-video bg-black relative group">
-                  <PlayerClient src="https://example.com/video.m3u8" poster={animeData.poster_url || undefined} />
+                  <Suspense fallback={<div>Загрузка плеера...</div>}>
+                    <PlayerClient
+                      translations={translations}
+                      initialTranslationId={initialTranslationId}
+                      poster={animeData.poster_url || undefined}
+                    />
+                  </Suspense>
 
                   {/* Контролы плеера (overlay) */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">

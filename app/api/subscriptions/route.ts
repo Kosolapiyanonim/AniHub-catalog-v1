@@ -1,47 +1,29 @@
-// /app/api/subscriptions/route.ts
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
-
-export const dynamic = 'force-dynamic';
+import { NextResponse } from "next/server"
+import { createClient } from "@/lib/supabase/server"
 
 export async function POST(request: Request) {
-  const { anime_id, subscribed } = await request.json();
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+  const supabase = createClient()
+  const { email } = await request.json()
 
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const user_id = session.user.id;
-
-  if (subscribed) {
-    const { error } = await supabase.from('user_subscriptions').upsert({ user_id, anime_id }, { onConflict: 'user_id,anime_id' });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ message: "Subscribed" });
-  } else {
-    const { error } = await supabase.from('user_subscriptions').delete().match({ user_id, anime_id });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ message: "Unsubscribed" });
+  if (!email) {
+    return NextResponse.json({ error: "Email is required" }, { status: 400 })
   }
-}
 
-export async function GET(request: Request) {
-    const { searchParams } = new URL(request.url);
-    const anime_id = searchParams.get("anime_id");
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+  try {
+    const { data, error } = await supabase.from("subscriptions").insert([{ email }]).select()
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return NextResponse.json({ subscribed: false });
+    if (error) {
+      if (error.code === "23505") {
+        // Unique violation
+        return NextResponse.json({ error: "Email already subscribed" }, { status: 409 })
+      }
+      console.error("Error subscribing:", error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 
-    const { data, error } = await supabase
-        .from('user_subscriptions')
-        .select('anime_id')
-        .eq('user_id', session.user.id)
-        .eq('anime_id', anime_id)
-        .maybeSingle();
-
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ subscribed: !!data });
+    return NextResponse.json({ message: "Successfully subscribed!", data })
+  } catch (error: any) {
+    console.error("Unexpected error during subscription:", error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 }

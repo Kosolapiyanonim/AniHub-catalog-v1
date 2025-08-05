@@ -8,16 +8,16 @@ import { useToast } from "@/hooks/use-toast"
 import { useSupabase } from "@/components/supabase-provider"
 import { cn } from "@/lib/utils"
 
-interface AnimeHoverCardListButtonProps {
+interface AddToListButtonProps {
   animeId: number
   initialStatus?: string | null
 }
 
-export function AnimeHoverCardListButton({ animeId, initialStatus = null }: AnimeHoverCardListButtonProps) {
+export function AddToListButton({ animeId, initialStatus = null }: AddToListButtonProps) {
   const [currentStatus, setCurrentStatus] = useState<string | null>(initialStatus)
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
-  const { user } = useSupabase()
+  const { supabase, user } = useSupabase()
 
   const handleStatusChange = async (newStatus: string | null) => {
     if (!user) {
@@ -104,9 +104,9 @@ export function AnimeHoverCardListButton({ animeId, initialStatus = null }: Anim
       <DropdownMenuTrigger asChild>
         <Button
           variant="secondary"
-          size="sm"
+          size="icon"
           className={cn(
-            "transition-all duration-200",
+            "rounded-full transition-all duration-200",
             currentStatus
               ? "bg-purple-600 hover:bg-purple-700 text-white"
               : "bg-gray-800 hover:bg-gray-700 text-gray-300",
@@ -115,7 +115,6 @@ export function AnimeHoverCardListButton({ animeId, initialStatus = null }: Anim
           aria-label={getStatusText(currentStatus)}
         >
           {getStatusIcon(currentStatus)}
-          <span className="ml-2">{getStatusText(currentStatus)}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-48">

@@ -1,40 +1,32 @@
-// /app/page.tsx
-import { HeroSlider } from "@/components/HeroSlider"
-import { AnimeCarousel } from "@/components/AnimeCarousel"
-import { LoadingSpinner } from "@/components/loading-spinner"
-import { TrendingUp, Star } from "lucide-react"
 import { Suspense } from "react"
-import { getHomePageData } from "@/lib/data-fetchers"
+import { getHomepageSections } from "@/lib/data-fetchers"
+import { AnimeCarouselClient } from "@/components/anime-carousel-client"
+import { HeroSlider } from "@/components/HeroSlider"
+import { Separator } from "@/components/ui/separator"
+import { SectionTitle } from "@/components/section-title"
 
 export const dynamic = "force-dynamic"
 
 export default async function HomePage() {
-  const data = await getHomePageData()
+  const sections = await getHomepageSections()
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      {/* Оборачиваем HeroSlider в контейнер, чтобы он имел те же отступы, что и основной контент */}
+    <div className="flex flex-col gap-8 pb-8">
       <div className="container mx-auto px-4">
-        <HeroSlider items={data.hero} />
+        <Suspense fallback={<div>Загрузка Hero Slider...</div>}>
+          <HeroSlider />
+        </Suspense>
       </div>
-      <main className="container mx-auto px-4 py-12 space-y-12">
-        <Suspense fallback={<LoadingSpinner />}>
-          <AnimeCarousel
-            title="Тренды сезона"
-            items={data.trending}
-            viewAllLink="/catalog?sort=updated_at"
-            icon={<TrendingUp />}
-          />
-        </Suspense>
-        <Suspense fallback={<LoadingSpinner />}>
-          <AnimeCarousel
-            title="Самое популярное"
-            items={data.popular}
-            viewAllLink="/catalog?sort=shikimori_votes"
-            icon={<Star />}
-          />
-        </Suspense>
-      </main>
+
+      {sections.map((section) => (
+        <div key={section.id} className="container mx-auto px-4">
+          <SectionTitle title={section.title} />
+          <Suspense fallback={<div>Загрузка карусели...</div>}>
+            <AnimeCarouselClient animeList={section.anime} />
+          </Suspense>
+          <Separator className="my-8" />
+        </div>
+      ))}
     </div>
   )
 }

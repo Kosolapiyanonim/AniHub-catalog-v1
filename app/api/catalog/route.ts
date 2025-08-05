@@ -1,128 +1,94 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
-
-const parseIds = (param: string | null): number[] | null => {
-  if (!param) return null
-  const ids = param
-    .split(",")
-    .map((item) => Number.parseInt(item.split("-")[0], 10))
-    .filter((id) => !isNaN(id))
-  return ids.length > 0 ? ids : null
-}
-
-export const dynamic = "force-dynamic"
+import { createClient } from "@/lib/supabase/server"
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
-  const cookieStore = cookies()
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+  const page = Number.parseInt(searchParams.get("page") || "1")
+  const limit = Number.parseInt(searchParams.get("limit") || "24")
+  const genre = searchParams.get("genre")
+  const year = searchParams.get("year")
+  const type = searchParams.get("type")
+  const status = searchParams.get("status")
+  const studio = searchParams.get("studio")
+  const tag = searchParams.get("tag")
+  const kind = searchParams.get("kind") // New filter for anime_kind
+  const search = searchParams.get("search")
+  const sort = searchParams.get("sort") || "shikimori_rating.desc"
 
-  const page = Number.parseInt(searchParams.get("page") || "1", 10)
-  const limit = Number.parseInt(searchParams.get("limit") || "25", 10)
+  const supabase = createClient()
   const offset = (page - 1) * limit
-  const sort = searchParams.get("sort") || "shikimori_votes"
-  const order = searchParams.get("order") || "desc"
 
-  try {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
+  let query = supabase.from("anime").select(
+    `
+      id,
+      shikimori_id,
+      title,
+      russian,
+      poster_url,
+      type,
+      year,
+      shikimori_rating,
+      status,
+      episodes_total,
+      duration,
+      rating_mpaa,
+      kodik_id,
+      anime_kind,
+      user_anime_lists(status)
+    `,
+    { count: "exact" },
+  )
 
-    // --- [НОВЫЙ БЛОК] СНАЧАЛА ПОЛУЧАЕМ ID ИЗ СПИСКА ПОЛЬЗОВАТЕЛЯ, ЕСЛИ ФИЛЬТР АКТИВЕН ---
-    const user_list_status = searchParams.get("user_list_status")
-    let userListIds: number[] | null = null
-
-    if (user_list_status && session) {
-      const { data: animeIdsInList, error: listError } = await supabase
-        .from("user_lists")
-        .select("anime_id")
-        .eq("user_id", session.user.id)
-        .eq("status", user_list_status)
-
-      if (listError) throw listError
-
-      if (!animeIdsInList || animeIdsInList.length === 0) {
-        // Если в списке пользователя по этому статусу ничего нет, возвращаем пустой результат
-        return NextResponse.json({ results: [], total: 0, hasMore: false })
-      }
-      // Сохраняем ID аниме из списка пользователя
-      userListIds = animeIdsInList.map((item) => item.anime_id)
-    }
-    // --- КОНЕЦ НОВОГО БЛОКА ---
-
-    // Начинаем строить основной запрос
-    let query = supabase
-      .from("animes_with_details")
-      .select(
-        "*, episodes_aired, episodes_total, anime_kind, genres:anime_genres(genres(id, name, slug)), studios:anime_studios(studios(id, name, slug))",
-        { count: "exact" },
-      )
-      .not("shikimori_id", "is", null)
-      .not("poster_url", "is", null)
-
-    // --- [ИЗМЕНЕНИЕ] СРАЗУ ПРИМЕНЯЕМ ФИЛЬТР ПО ID ИЗ СПИСКА ПОЛЬЗОВАТЕЛЯ, ЕСЛИ ОН ЕСТЬ ---
-    if (userListIds) {
-      query = query.in("id", userListIds)
-    }
-
-    // --- ПРИМЕНЯЕМ ВСЕ ФИЛЬТРЫ ---
-    const title = searchParams.get("title")
-    if (title) query = query.or(`title.ilike.%${title}%,title_orig.ilike.%${title}%`)
-
-    // ИЗМЕНЕНИЕ: Фильтруем по anime_kind
-    const kinds = searchParams.get("kinds")?.split(",")
-    if (kinds && kinds.length > 0) query = query.in("anime_kind", kinds)
-
-    const statuses = searchParams.get("statuses")?.split(",")
-    if (statuses && statuses.length > 0) query = query.in("status", statuses)
-
-    const year_from = searchParams.get("year_from")
-    if (year_from) query = query.gte("year", Number.parseInt(year_from))
-
-    const year_to = searchParams.get("year_to")
-    if (year_to) query = query.lte("year", Number.parseInt(year_to))
-
-    const isAsc = order === "asc"
-    query = query.order(sort, { ascending: isAsc, nullsFirst: false })
-    query = query.order("id", { ascending: false })
-    query = query.range(offset, offset + limit - 1)
-
-    const { data: results, count, error: queryError } = await query
-    if (queryError) throw queryError
-
-    // --- ОБРАБОТКА ДАННЫХ И ИНТЕГРАЦИЯ СПИСКОВ ---
-    // Этот код был неполным в вашем примере, я его дополнил, чтобы он работал
-    const finalResults = results?.map((anime) => ({
-      ...anime,
-      genres: anime.genres.map((g: any) => g.genres).filter(Boolean),
-      studios: anime.studios.map((s: any) => s.studios).filter(Boolean),
-    }))
-
-    if (session && finalResults && finalResults.length > 0) {
-      const resultIds = finalResults.map((r) => r.id)
-      const { data: userListsData } = await supabase
-        .from("user_lists")
-        .select("anime_id, status")
-        .eq("user_id", session.user.id)
-        .in("anime_id", resultIds)
-
-      if (userListsData) {
-        const statusMap = new Map(userListsData.map((item) => [item.anime_id, item.status]))
-        finalResults.forEach((anime: any) => {
-          anime.user_list_status = statusMap.get(anime.id) || null
-        })
-      }
-    }
-
-    return NextResponse.json({
-      results: finalResults || [],
-      total: count,
-      hasMore: count ? count > offset + limit : false,
-    })
-  } catch (error) {
-    console.error("Catalog API error:", error)
-    const message = error instanceof Error ? error.message : "Unknown error"
-    return NextResponse.json({ error: message }, { status: 500 })
+  if (genre) {
+    query = query.ilike("anime_genres.genres.name", `%${genre}%`)
   }
+  if (year) {
+    query = query.eq("year", Number.parseInt(year))
+  }
+  if (type) {
+    query = query.eq("type", type)
+  }
+  if (status) {
+    query = query.eq("status", status)
+  }
+  if (studio) {
+    query = query.ilike("anime_studios.studios.name", `%${studio}%`)
+  }
+  if (tag) {
+    query = query.ilike("anime_tags.tags.name", `%${tag}%`)
+  }
+  if (kind) {
+    // Apply new filter
+    query = query.eq("anime_kind", kind)
+  }
+  if (search) {
+    query = query.ilike("title", `%${search}%`)
+  }
+
+  // Apply sorting
+  const [sortBy, sortOrder] = sort.split(".")
+  query = query.order(sortBy, { ascending: sortOrder === "asc" })
+
+  const { data: anime, error, count } = await query.range(offset, offset + limit - 1)
+
+  if (error) {
+    console.error("Error fetching catalog:", error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  // Flatten the user_anime_lists to get the status directly for each anime
+  const formattedAnime = anime.map((item) => {
+    const user_list_status = item.user_anime_lists?.[0]?.status || null
+    const newItem = { ...item, user_list_status }
+    delete newItem.user_anime_lists
+    return newItem
+  })
+
+  return NextResponse.json({
+    data: formattedAnime,
+    count,
+    page,
+    limit,
+    totalPages: Math.ceil((count || 0) / limit),
+  })
 }

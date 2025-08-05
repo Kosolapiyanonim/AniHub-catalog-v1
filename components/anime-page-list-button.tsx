@@ -1,83 +1,146 @@
-// components/anime-page-list-button.tsx
+"use client"
 
-"use client";
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Plus, Check, Eye, Heart, Bookmark, X } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useToast } from "@/hooks/use-toast"
+import { useSupabase } from "@/components/supabase-provider"
+import { cn } from "@/lib/utils"
 
-import { useAnimeListStatus } from "@/hooks/use-anime-list-status";
-import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Bookmark, Trash2, Eye, CalendarCheck, XCircle, History, Clock, ChevronDown } from "lucide-react";
-import Link from "next/link";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Card } from "@/components/ui/card";
-
-const statuses = [
-    { key: "watching", label: "Смотрю", icon: Eye },
-    { key: "planned", label: "В планах", icon: Clock },
-    { key: "completed", label: "Просмотрено", icon: CalendarCheck },
-    { key: "rewatching", label: "Пересматриваю", icon: History },
-    { key: "on_hold", label: "Отложено", icon: Bookmark },
-    { key: "dropped", label: "Брошено", icon: XCircle },
-];
-const statusMap = new Map(statuses.map(s => [s.key, { label: s.label, icon: s.icon }]));
-
-interface Props {
-  animeId: number;
-  initialStatus?: string | null;
-  onStatusChange?: (newStatus: string | null) => void;
+interface AnimePageListButtonProps {
+  animeId: number
+  initialStatus?: string | null
 }
 
-export function AnimePageListButton({ animeId, initialStatus, onStatusChange }: Props) {
-  const { session, currentStatus, loading, handleStatusChange } = useAnimeListStatus(animeId, initialStatus, onStatusChange);
-  
-  // Если пользователь не авторизован, показываем специальный блок
-  if (!session) {
-    return (
-      <Card className="bg-slate-800 border-slate-700 text-center p-4 space-y-2">
-        <p className="text-sm text-gray-300">Войдите, чтобы добавить в список</p>
-        <div className="flex gap-2">
-          <Button asChild size="sm" className="flex-1"><Link href="/login">Войти</Link></Button>
-          <Button asChild size="sm" variant="secondary" className="flex-1"><Link href="/register">Регистрация</Link></Button>
-        </div>
-      </Card>
-    );
+export function AnimePageListButton({ animeId, initialStatus = null }: AnimePageListButtonProps) {
+  const [currentStatus, setCurrentStatus] = useState<string | null>(initialStatus)
+  const [loading, setLoading] = useState(false)
+  const { toast } = useToast()
+  const { user } = useSupabase()
+
+  const handleStatusChange = async (newStatus: string | null) => {
+    if (!user) {
+      toast({
+        title: "Необходимо войти",
+        description: "Пожалуйста, войдите, чтобы добавлять аниме в список.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await fetch("/api/lists", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ animeId, status: newStatus }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setCurrentStatus(data.status)
+        toast({
+          title: "Успех",
+          description: data.message,
+        })
+      } else {
+        toast({
+          title: "Ошибка",
+          description: data.error || "Не удалось обновить список.",
+          variant: "destructive",
+        })
+      }
+    } catch (error: any) {
+      toast({
+        title: "Ошибка",
+        description: `Произошла ошибка: ${error.message}`,
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const statusInfo = currentStatus ? statusMap.get(currentStatus) : null;
-  const CurrentIcon = statusInfo ? statusInfo.icon : Plus;
+  const getStatusIcon = (status: string | null) => {
+    switch (status) {
+      case "watching":
+        return <Eye className="mr-2 h-4 w-4" />
+      case "completed":
+        return <Check className="mr-2 h-4 w-4" />
+      case "planned":
+        return <Bookmark className="mr-2 h-4 w-4" />
+      case "dropped":
+        return <X className="mr-2 h-4 w-4" />
+      case "on_hold":
+        return <Heart className="mr-2 h-4 w-4" />
+      default:
+        return <Plus className="mr-2 h-4 w-4" />
+    }
+  }
+
+  const getStatusText = (status: string | null) => {
+    switch (status) {
+      case "watching":
+        return "Смотрю"
+      case "completed":
+        return "Просмотрено"
+      case "planned":
+        return "В планах"
+      case "dropped":
+        return "Брошено"
+      case "on_hold":
+        return "Отложено"
+      default:
+        return "Добавить в список"
+    }
+  }
 
   return (
-    <Collapsible className="w-full space-y-1">
-      <CollapsibleTrigger asChild>
-        <Button variant="outline" className="w-full justify-between" disabled={loading}>
-          <span className="flex items-center gap-2">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CurrentIcon className="h-4 w-4" />}
-            {statusInfo ? statusInfo.label : 'Добавить в список'}
-          </span>
-          <ChevronDown className="h-4 w-4 transition-transform [&[data-state=open]]:rotate-180" />
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="default"
+          className={cn(
+            "w-full transition-all duration-200",
+            currentStatus
+              ? "bg-purple-600 hover:bg-purple-700 text-white"
+              : "bg-primary hover:bg-primary/90 text-primary-foreground",
+          )}
+          disabled={loading}
+          aria-label={getStatusText(currentStatus)}
+        >
+          {getStatusIcon(currentStatus)}
+          {getStatusText(currentStatus)}
         </Button>
-      </CollapsibleTrigger>
-      <CollapsibleContent className="space-y-1 data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
-        {statuses.map((status) => (
-          <Button
-            key={status.key}
-            variant={currentStatus === status.key ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => handleStatusChange(status.key)}
-            className="w-full justify-start"
-          >
-            <status.icon className="mr-2 h-4 w-4" />{status.label}
-          </Button>
-        ))}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-48">
+        <DropdownMenuItem onClick={() => handleStatusChange("watching")}>
+          <Eye className="mr-2 h-4 w-4" /> Смотрю
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleStatusChange("completed")}>
+          <Check className="mr-2 h-4 w-4" /> Просмотрено
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleStatusChange("planned")}>
+          <Bookmark className="mr-2 h-4 w-4" /> В планах
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleStatusChange("on_hold")}>
+          <Heart className="mr-2 h-4 w-4" /> Отложено
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleStatusChange("dropped")}>
+          <X className="mr-2 h-4 w-4" /> Брошено
+        </DropdownMenuItem>
         {currentStatus && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleStatusChange("remove")}
-            className="w-full justify-start text-red-500 hover:!text-red-500 hover:!bg-red-500/10"
-          >
-            <Trash2 className="mr-2 h-4 w-4" />Удалить из списка
-          </Button>
+          <>
+            <DropdownMenuItem onClick={() => handleStatusChange(null)}>
+              <X className="mr-2 h-4 w-4" /> Удалить из списка
+            </DropdownMenuItem>
+          </>
         )}
-      </CollapsibleContent>
-    </Collapsible>
-  );
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
 }

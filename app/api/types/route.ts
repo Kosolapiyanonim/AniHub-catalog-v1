@@ -1,22 +1,14 @@
-// /app/api/types/route.ts
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
-
-export const dynamic = 'force-dynamic';
+import { NextResponse } from "next/server"
+import { createClient } from "@/lib/supabase/server"
 
 export async function GET() {
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+  const supabase = createClient()
+  const { data: types, error } = await supabase.from("anime").select("type").distinct("type")
 
-  try {
-    // Эта функция запрашивает все уникальные значения из колонки 'type'
-    const { data, error } = await supabase.rpc('get_distinct_types');
-    if (error) throw error;
-    // data вернется в виде [{type: 'tv_series'}, {type: 'movie'}, ...]
-    return NextResponse.json(data.map(item => item.type));
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+  if (error) {
+    console.error("Error fetching types:", error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
+
+  return NextResponse.json(types.map((t) => t.type).filter(Boolean))
 }

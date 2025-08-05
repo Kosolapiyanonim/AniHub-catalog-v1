@@ -1,8 +1,8 @@
-// /components/catalog-filters.tsx
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "./ui/checkbox"
 import { Label } from "./ui/label"
 import { useSupabase } from "@/components/supabase-provider"
+import { useDebounce } from "@/hooks/use-debounce"
+import { X } from "lucide-react"
 
 type FilterItem = { id: number; name: string; slug: string }
 export interface FiltersState {
@@ -53,38 +55,133 @@ interface CatalogFiltersProps {
 }
 
 export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const { session } = useSupabase()
   const [filters, setFilters] = useState(initialFilters)
   const [genres, setGenres] = useState<FilterItem[]>([])
   const [studios, setStudios] = useState<FilterItem[]>([])
   const [tags, setTags] = useState<FilterItem[]>([])
+  const [kinds, setKinds] = useState<string[]>([]) // State for anime_kind
+
+  const [selectedGenre, setSelectedGenre] = useState(searchParams.get("genre") || "")
+  const [selectedYear, setSelectedYear] = useState(searchParams.get("year") || "")
+  const [selectedType, setSelectedType] = useState(searchParams.get("type") || "")
+  const [selectedStatus, setSelectedStatus] = useState(searchParams.get("status") || "")
+  const [selectedStudio, setSelectedStudio] = useState(searchParams.get("studio") || "")
+  const [selectedTag, setSelectedTag] = useState(searchParams.get("tag") || "")
+  const [selectedKind, setSelectedKind] = useState(searchParams.get("kind") || "") // State for selected anime_kind
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "")
+  const [sortBy, setSortBy] = useState(searchParams.get("sort") || "shikimori_rating.desc")
+
+  const debouncedSearchTerm = useDebounce(searchTerm, 500)
+
+  const fetchFilters = useCallback(async () => {
+    const [genresRes, studiosRes, tagsRes] = await Promise.all([
+      fetch("/api/genres"),
+      fetch("/api/studios"),
+      fetch("/api/tags"),
+    ])
+    if (genresRes.ok) setGenres(await genresRes.json())
+    if (studiosRes.ok) setStudios(await studiosRes.json())
+    if (tagsRes.ok) setTags(await tagsRes.json())
+    // Hardcode anime_kind options for now, as there's no API for it yet
+    setKinds(["tv", "movie", "ova", "ona", "special", "music", "tv_special"])
+  }, [])
 
   useEffect(() => {
     setFilters(initialFilters)
   }, [initialFilters])
 
   useEffect(() => {
-    const fetchFilterData = async () => {
-      try {
-        const [genresRes, studiosRes, tagsRes] = await Promise.all([
-          fetch("/api/genres"),
-          fetch("/api/studios"),
-          fetch("/api/tags"),
-        ])
-        if (genresRes.ok) setGenres(await genresRes.json())
-        if (studiosRes.ok) setStudios(await studiosRes.json())
-        if (tagsRes.ok) setTags(await tagsRes.json())
-      } catch (error) {
-        console.error("Failed to fetch filter data", error)
-      }
+    fetchFilters()
+  }, [fetchFilters])
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("page", "1") // Reset to first page on filter change
+
+    if (selectedGenre) params.set("genre", selectedGenre)
+    else params.delete("genre")
+
+    if (selectedYear) params.set("year", selectedYear)
+    else params.delete("year")
+
+    if (selectedType) params.set("type", selectedType)
+    else params.delete("type")
+
+    if (selectedStatus) params.set("status", selectedStatus)
+    else params.delete("status")
+
+    if (selectedStudio) params.set("studio", selectedStudio)
+    else params.delete("studio")
+
+    if (selectedTag) params.set("tag", selectedTag)
+    else params.delete("tag")
+
+    if (selectedKind)
+      params.set("kind", selectedKind) // Add kind to params
+    else params.delete("kind")
+
+    if (debouncedSearchTerm) params.set("search", debouncedSearchTerm)
+    else params.delete("search")
+
+    if (sortBy) params.set("sort", sortBy)
+    else params.delete("sort")
+
+    router.push(`/catalog?${params.toString()}`)
+  }, [
+    selectedGenre,
+    selectedYear,
+    selectedType,
+    selectedStatus,
+    selectedStudio,
+    selectedTag,
+    selectedKind, // Add to dependency array
+    debouncedSearchTerm,
+    sortBy,
+    router,
+    searchParams,
+  ])
+
+  const clearFilter = (filterName: string) => {
+    switch (filterName) {
+      case "genre":
+        setSelectedGenre("")
+        break
+      case "year":
+        setSelectedYear("")
+        break
+      case "type":
+        setSelectedType("")
+        break
+      case "status":
+        setSelectedStatus("")
+        break
+      case "studio":
+        setSelectedStudio("")
+        break
+      case "tag":
+        setSelectedTag("")
+        break
+      case "kind": // Clear kind filter
+        setSelectedKind("")
+        break
+      case "search":
+        setSearchTerm("")
+        break
+      case "sort":
+        setSortBy("shikimori_rating.desc")
+        break
+      default:
+        break
     }
-    fetchFilterData()
-  }, [])
+  }
 
   const handleApply = () => onApply(filters)
   const handleReset = () => onApply(DEFAULT_FILTERS)
 
-  // Вспомогательный компонент для группы чекбо��сов
+  // Вспомогательный компонент для группы чекбосов
   const CheckboxGroup = ({
     items,
     selected,
@@ -139,17 +236,27 @@ export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps)
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Поиск по названию */}
-        <div>
-          <Label htmlFor="title-search" className="sr-only">
-            Поиск по названию
-          </Label>
-          <Input
-            id="title-search"
-            placeholder="Название аниме..."
-            value={filters.title}
-            onChange={(e) => setFilters((prev) => ({ ...prev, title: e.target.value }))}
-            className="bg-slate-700 border-slate-600 text-white placeholder:text-gray-400"
-          />
+        <div className="flex flex-col space-y-1.5">
+          <Label htmlFor="search">Поиск по названию</Label>
+          <div className="relative">
+            <Input
+              id="search"
+              placeholder="Найти аниме..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pr-8 bg-slate-700 border-slate-600 text-white placeholder:text-gray-400"
+            />
+            {searchTerm && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-auto p-1"
+                onClick={() => clearFilter("search")}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Сортировка */}
@@ -157,7 +264,7 @@ export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps)
           <Label htmlFor="sort-by" className="text-gray-300">
             Сортировать по
           </Label>
-          <Select value={filters.sort} onValueChange={(val) => setFilters((prev) => ({ ...prev, sort: val }))}>
+          <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-full bg-slate-700 border-slate-600 text-white">
               <SelectValue placeholder="Выберите опцию" />
             </SelectTrigger>

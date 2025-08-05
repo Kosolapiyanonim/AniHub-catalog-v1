@@ -1,123 +1,38 @@
-AniHub - Платформа для просмотра аниме
-AniHub — это современное веб-приложение, созданное для просмотра аниме, формирования комьюнити и предоставления пользователям богатого функционала для взаимодействия с контентом. Платформа построена на передовом технологическом стеке, ориентирована на высокую производительность, SEO-оптимизацию и превосходный пользовательский опыт.
+# AniHub Catalog
 
-🚀 Ключевые особенности
-Каталог аниме: Обширная база аниме с возможностью продвинутой фильтрации и сортировки.
+This is the frontend for the AniHub anime catalog, built with Next.js, Tailwind CSS, and Supabase.
 
-"Живой" поиск: Умный поиск по базе данных с выпадающим меню и предпросмотром результатов в реальном времени.
+## Getting Started
 
-Персонализация: Пользовательские списки ("смотрю", "в планах", "просмотрено"), подписки на обновления и персонализированные секции на главной странице.
+First, run the development server:
 
-Продвинутый плеер: Страница просмотра с возможностью выбора озвучек watch page.tsx, components player-client.tsx].
+\`\`\`bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+\`\`\`
 
-Система аутентификации: Регистрация и вход через Email/пароль, а также через OAuth-провайдеры (Google, Spotify).
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-Панель управления парсером: Внутренний инструмент для управления процессом синхронизации данных с внешними источниками.
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-Адаптивный дизайн: Корректное отображение на всех устройствах, от десктопов до мобильных телефонов.
+This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
 
-🛠️ Технологический стек
-Проект построен с использованием современных и производительных технологий:
+## Learn More
 
-Фреймворк: Next.js 14 (App Router)
+To learn more about Next.js, take a look at the following resources:
 
-Язык: TypeScript
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-База данных и аутентификация: Supabase
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
 
-UI-библиотека: Shadcn/UI на базе Radix UI и Tailwind CSS
+## Deploy on Vercel
 
-Управление состоянием на клиенте: Zustand
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-button) from the creators of Next.js.
 
-Работа с серверными данными (Client-side fetching): TanStack Query (React Query)
-
-Формы: React Hook Form с Zod для валидации
-
-Карусели: Embla Carousel
-
-Деплоймент: Vercel
-
-📂 Структура проекта
-Проект имеет логическую и масштабируемую структуру, основанную на принципах Next.js App Router.
-
-/
-├── app/                  # Основная директория с роутингом и страницами
-│   ├── (main)/           # Группа роутов для основных страниц
-│   │   ├── anime/[id]/   # Детальная страница аниме и страница просмотра
-│   │   ├── catalog/      # Страница каталога
-│   │   ├── popular/      # Страница с популярными аниме
-│   │   └── page.tsx      # Главная страница
-│   ├── admin/parser/     # Страница управления парсером
-│   ├── api/              # API-маршруты (бэкенд)
-│   │   ├── anime/        # API для получения аниме
-│   │   ├── catalog/      # API для фильтрации каталога
-│   │   ├── parse-latest/ # API для обновления данных
-│   │   └── ...           # Другие API-маршруты
-│   ├── layout.tsx        # Корневой макет приложения
-│   └── globals.css       # Глобальные стили
-├── components/           # React-компоненты
-│   ├── ui/               # Базовые UI-компоненты от Shadcn/UI
-│   ├── anime-card.tsx    # Карточка аниме
-│   ├── anime-carousel.tsx# Карусель с аниме
-│   ├── catalog-filters.tsx # Компонент фильтров для каталога
-│   ├── header.tsx        # Шапка сайта
-│   └── ...               # Другие кастомные компоненты
-├── lib/                  # Вспомогательные функции и утилиты
-│   ├── data-fetchers.ts  # Функции для получения данных на сервере
-│   ├── parser-utils.ts   # Логика обработки данных от Kodik API
-│   ├── supabase/         # Клиенты для работы с Supabase
-│   └── types.ts          # TypeScript типы и интерфейсы
-├── hooks/                # Кастомные React хуки
-└── middleware.ts         # Middleware для обновления сессии Supabase
-🧠 Архитектура и логика
-Бэкенд
-Бэкенд построен на базе Next.js API Routes и полностью инкапсулирует логику взаимодействия с базой данных и внешними сервисами.
-
-Двойная стратегия данных:
-
-Собственная база (Supabase): Используется для хранения основной информации об аниме, данных пользователей, списков и подписок. Это обеспечивает высокую скорость и отказоустойчивость.
-
-Внешний источник (Kodik API): Служит источником для наполнения и регулярного обновления базы данных.
-
-Парсинг и синхронизация:
-
-app/api/full-parser/route.ts: Скрипт для полной синхронизации, который проходит по всем страницам Kodik API и загружает данные в Supabase.
-
-app/api/parse-latest/route.ts: Инкрементальный парсер, который запрашивает только последние обновления, что значительно быстрее и эффективнее.
-
-lib/parser-utils.ts: Здесь находится ключевая логика трансформации данных из формата Kodik в формат таблиц Supabase и обработки связей (жанры, студии).
-
-Ключевые API-маршруты:
-
-app/api/catalog/route.ts: Мощный маршрут для фильтрации каталога. Принимает множество параметров (сортировка, жанры, годы, статус в списке пользователя) и строит сложный запрос к базе данных.
-
-app/api/homepage-sections/route.ts: Эффективно собирает все данные для главной страницы за один запрос, используя Promise.all для параллельного выполнения подзапросов.
-
-app/api/anime/[id]/route.ts: Отдает полную информацию о конкретном аниме, включая связанные тайтлы и все доступные озвучки.
-
-app/api/search/route.ts: Реализует полнотекстовый поиск по базе данных, используя ts_vector для максимальной релевантности и скорости.
-
-Фронтенд
-Фронтенд использует гибридный подход Next.js, сочетая серверные и клиентские компоненты для оптимальной производительности.
-
-Рендеринг:
-
-Серверные компоненты (RSC): Главная страница (app/page.tsx) и страницы просмотра (watch/page.tsx) являются серверными, что обеспечивает быструю первую загрузку (FCP) и отличное SEO.
-
-Клиентские компоненты ("use client"): Интерактивные страницы, такие как каталог (catalog/page.tsx) и детальная страница аниме (anime/[id]/page.tsx), а также все компоненты, использующие хуки (useState, useEffect), рендерятся на клиенте.
-
-Получение данных:
-
-На сервере: lib/data-fetchers.ts используется для прямого получения данных из Supabase в серверных компонентах.
-
-На клиенте: TanStack Query (React Query) управляет запросами к API-маршрутам. Это обеспечивает кэширование, автоматическое обновление данных и управление состояниями загрузки/ошибки.
-
-Ключевые компоненты:
-
-components/catalog-filters.tsx: Управляет сложным состоянием фильтров, синхронизирует его с URL и вызывает API для обновления списка аниме.
-
-components/AnimeListPopover.tsx: Улучшает UX, позволяя пользователю взаимодействовать со своим списком (добавить, изменить статус) во всплывающем окне при наведении на карточку аниме.
-
-components/header.tsx: Динамически изменяется в зависимости от статуса аутентификации пользователя, содержит навигацию и меню.
-
-components/providers.tsx: Центральный файл, который "оборачивает" всё приложение и предоставляет контексты для тем, Supabase, TanStack Query и уведомлений.
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.

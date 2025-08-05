@@ -1,63 +1,117 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import Hls from "hls.js"
+import { useState, useEffect, useRef } from "react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
+import { AspectRatio } from "@/components/ui/aspect-ratio"
 
-interface PlayerClientProps {
-  src: string
-  poster?: string
+interface Translation {
+  id: string
+  title: string
+  player_url: string
+  episodes_count: number
 }
 
-export function PlayerClient({ src, poster }: PlayerClientProps) {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const [error, setError] = useState<string | null>(null)
+interface PlayerClientProps {
+  translations: Translation[]
+  initialTranslationId?: string
+}
+
+export function PlayerClient({ translations, initialTranslationId }: PlayerClientProps) {
+  const [selectedTranslation, setSelectedTranslation] = useState<Translation | undefined>(undefined)
+  const [selectedEpisode, setSelectedEpisode] = useState<number>(1)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
 
   useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
-
-    setError(null) // Reset error on new src
-
-    if (Hls.isSupported()) {
-      const hls = new Hls()
-      hls.loadSource(src)
-      hls.attachMedia(video)
-      hls.on(Hls.Events.ERROR, (event, data) => {
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              setError("Ошибка сети при загрузке видео. Попробуйте обновить страницу.")
-              break
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              setError("Ошибка медиа-плеера. Возможно, видео повреждено или не поддерживается.")
-              break
-            default:
-              setError("Произошла неизвестная ошибка при воспроизведении видео.")
-              break
-          }
-          console.error("HLS fatal error:", data)
-        }
-      })
-      return () => {
-        hls.destroy()
-      }
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = src
-    } else {
-      setError("Ваш браузер не поддерживает воспроизведение этого видео формата.")
+    if (translations && translations.length > 0) {
+      const initial = initialTranslationId ? translations.find((t) => t.id === initialTranslationId) : translations[0]
+      setSelectedTranslation(initial)
     }
-  }, [src])
+  }, [translations, initialTranslationId])
+
+  useEffect(() => {
+    // Reset episode to 1 when translation changes
+    setSelectedEpisode(1)
+  }, [selectedTranslation])
+
+  const getPlayerUrl = () => {
+    if (!selectedTranslation) return ""
+    const url = new URL(selectedTranslation.player_url)
+    url.searchParams.set("episode", selectedEpisode.toString())
+    return url.toString()
+  }
+
+  if (!selectedTranslation && translations.length === 0) {
+    return (
+      <div className="text-center text-muted-foreground py-8">
+        <p>Нет доступных переводов для этого аниме.</p>
+      </div>
+    )
+  }
+
+  if (!selectedTranslation) {
+    return (
+      <div className="text-center text-muted-foreground py-8">
+        <p>Загрузка плеера...</p>
+      </div>
+    )
+  }
 
   return (
-    <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
-      {error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 text-white text-center p-4 z-10">
-          <p>{error}</p>
+    <div className="space-y-4">
+      <AspectRatio ratio={16 / 9}>
+        <iframe
+          ref={iframeRef}
+          src={getPlayerUrl()}
+          width="100%"
+          height="100%"
+          frameBorder="0"
+          allowFullScreen
+          className="rounded-lg"
+        ></iframe>
+      </AspectRatio>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="translation-select">Перевод</Label>
+          <Select
+            value={selectedTranslation.id}
+            onValueChange={(value) => setSelectedTranslation(translations.find((t) => t.id === value))}
+          >
+            <SelectTrigger id="translation-select">
+              <SelectValue placeholder="Выберите перевод" />
+            </SelectTrigger>
+            <SelectContent>
+              {translations.map((t) => (
+                <SelectItem key={t.id} value={t.id}>
+                  {t.title} ({t.episodes_count} эп.)
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      )}
-      <video ref={videoRef} className="w-full h-full object-contain" controls poster={poster} autoPlay playsInline>
-        Ваш браузер не поддерживает тег video.
-      </video>
+
+        <div>
+          <Label htmlFor="episode-select">Эпизод</Label>
+          <Select
+            value={selectedEpisode.toString()}
+            onValueChange={(value) => setSelectedEpisode(Number.parseInt(value))}
+            disabled={!selectedTranslation || selectedTranslation.episodes_count === 0}
+          >
+            <SelectTrigger id="episode-select">
+              <SelectValue placeholder="Выберите эпизод" />
+            </SelectTrigger>
+            <SelectContent>
+              {selectedTranslation &&
+                Array.from({ length: selectedTranslation.episodes_count }, (_, i) => (
+                  <SelectItem key={i + 1} value={(i + 1).toString()}>
+                    Эпизод {i + 1}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
     </div>
   )
 }

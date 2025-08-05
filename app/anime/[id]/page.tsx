@@ -1,161 +1,126 @@
-// app/anime/[id]/page.tsx
+import { Suspense } from "react"
+import Image from "next/image"
+import { notFound } from "next/navigation"
+import { getAnimeById, getAnimeTranslations } from "@/lib/data-fetchers"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Plus } from "lucide-react"
+import { AnimePageListButton } from "@/components/anime-page-list-button"
+import { PlayerClient } from "@/components/player-client"
+import { Separator } from "@/components/ui/separator"
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
+import { AnimeCarousel } from "@/components/AnimeCarousel"
+import { AnimeCard } from "@/components/anime-card"
 
-"use client";
-
-import { useState, useEffect, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Image from "next/image";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Star, Play } from "lucide-react";
-import { LoadingSpinner } from "@/components/loading-spinner";
-import { AnimeCarousel } from "@/components/AnimeCarousel";
-import { SubscribeButton } from "@/components/SubscribeButton";
-// --- [ИЗМЕНЕНИЕ] Импортируем правильную кнопку для этой страницы ---
-import { AnimePageListButton } from "@/components/anime-page-list-button";
-
-// Интерфейсы данных
-interface RelatedAnime {
-  id: number;
-  shikimori_id: string;
-  title: string;
-  poster_url?: string | null;
-  relation_type_formatted: string;
-}
-interface AnimeData {
-  id: number;
-  shikimori_id: string;
-  title: string;
-  poster_url?: string;
-  description?: string;
-  shikimori_rating?: number;
-  genres: { id: number; name: string; slug: string }[];
-  tags: { id: number; name: string; slug: string }[];
-  related: RelatedAnime[];
-  user_list_status?: string | null;
-}
-
-export default function AnimePage() {
-  const params = useParams();
-  const router = useRouter();
-  const [anime, setAnime] = useState<AnimeData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const animeId = params.id as string;
-
-  useEffect(() => {
-    const fetchAnime = async () => {
-      if (!animeId) return;
-      setLoading(true);
-      try {
-        const response = await fetch(`/api/anime/${animeId}`);
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Ошибка загрузки аниме");
-        }
-        const data = await response.json();
-        setAnime(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Неизвестная ошибка");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAnime();
-  }, [animeId]);
-
-  const handleStatusUpdate = useCallback((newStatus: string | null) => {
-    if (anime) {
-      setAnime(prevAnime => prevAnime ? { ...prevAnime, user_list_status: newStatus } : null);
-    }
-  }, [anime]);
-
-  if (loading) {
-    return <div className="min-h-screen bg-slate-900 flex items-center justify-center"><LoadingSpinner size="lg" /></div>;
+export default async function AnimePage({ params }: { params: { id: string } }) {
+  const animeId = Number.parseInt(params.id)
+  if (isNaN(animeId)) {
+    notFound()
   }
-  if (error) {
-    return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-center p-4"><div><h1 className="text-2xl font-bold text-white mb-4">Ошибка</h1><p className="text-gray-400 mb-6">{error}</p><Button onClick={() => router.back()} variant="outline"><ArrowLeft className="w-4 h-4 mr-2" />Назад</Button></div></div>;
-  }
+
+  const anime = await getAnimeById(animeId)
+
   if (!anime) {
-    return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-center p-4"><div><h1 className="text-2xl font-bold text-white mb-4">Аниме не найдено</h1><Button onClick={() => router.back()} variant="outline"><ArrowLeft className="w-4 h-4 mr-2" />Назад</Button></div></div>;
+    notFound()
   }
+
+  const translations = await getAnimeTranslations(anime.kodik_id)
+
+  const genres = anime.anime_genres?.map((ag) => ag.genres?.name).filter(Boolean) || []
+  const studios = anime.anime_studios?.map((as) => as.studios?.name).filter(Boolean) || []
 
   return (
-    <div className="min-h-screen bg-slate-900 pt-20">
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Левая колонка */}
-          <aside className="lg:col-span-1">
-            <div className="sticky top-24 space-y-4">
-              <div className="aspect-[3/4] relative rounded-lg overflow-hidden bg-slate-800">
-                <Image src={anime.poster_url || "/placeholder.svg"} alt={anime.title} fill className="object-cover" priority />
-                <Button variant="secondary" size="sm" className="absolute top-2 right-2 flex items-center gap-1 opacity-80 hover:opacity-100">
-                    <Star className="w-4 h-4" /> Оценить
-                </Button>
-              </div>
-              <div className="flex items-center gap-2">
-                <Link href={`/anime/${animeId}/watch`} className="w-full">
-                  <Button className="w-full bg-purple-600 hover:bg-purple-700"><Play className="w-4 h-4 mr-2" />Смотреть</Button>
-                </Link>
-                <SubscribeButton animeId={anime.id} />
-              </div>
-              {/* --- [ИЗМЕНЕНИЕ] Используем правильную кнопку для этой страницы --- */}
-              <AnimePageListButton
-                animeId={anime.id}
-                initialStatus={anime.user_list_status}
-                onStatusChange={handleStatusUpdate}
-              />
+    <div className="container mx-auto px-4 py-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-1">
+          <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden shadow-lg">
+            <Image
+              src={anime.poster_url || "/placeholder.svg?height=600&width=400&query=anime poster"}
+              alt={anime.title || "Anime poster"}
+              fill
+              className="object-cover"
+              priority
+            />
+          </div>
+          <div className="mt-4 flex flex-col gap-2">
+            <AnimePageListButton animeId={anime.id} initialStatus={anime.user_list_status} />
+            <Button variant="secondary" className="w-full">
+              <Plus className="mr-2 h-4 w-4" /> Добавить в список
+            </Button>
+          </div>
+        </div>
+
+        <div className="lg:col-span-2">
+          <h1 className="text-4xl font-bold mb-2">{anime.title}</h1>
+          <p className="text-xl text-muted-foreground mb-4">{anime.russian}</p>
+
+          <div className="flex flex-wrap gap-2 mb-4">
+            {anime.type && <Badge variant="outline">{anime.type}</Badge>}
+            {anime.year && <Badge variant="outline">{anime.year}</Badge>}
+            {anime.episodes_total && <Badge variant="outline">{anime.episodes_total} эп.</Badge>}
+            {anime.shikimori_rating && <Badge variant="outline">Рейтинг: {anime.shikimori_rating}</Badge>}
+            {anime.status && <Badge variant="outline">{anime.status}</Badge>}
+          </div>
+
+          <p className="text-muted-foreground mb-4">{anime.description}</p>
+
+          <div className="grid grid-cols-2 gap-4 text-sm mb-6">
+            <div>
+              <h3 className="font-semibold">Жанры:</h3>
+              <p>{genres.join(", ") || "Не указаны"}</p>
             </div>
-          </aside>
+            <div>
+              <h3 className="font-semibold">Студии:</h3>
+              <p>{studios.join(", ") || "Не указаны"}</p>
+            </div>
+            <div>
+              <h3 className="font-semibold">Продолжительность серии:</h3>
+              <p>{anime.duration || "Не указана"}</p>
+            </div>
+            <div>
+              <h3 className="font-semibold">Возрастной рейтинг:</h3>
+              <p>{anime.rating_mpaa || "Не указан"}</p>
+            </div>
+          </div>
 
-          {/* Правая колонка */}
-          <main className="lg:col-span-3 space-y-12">
-            <section>
-              <div className="flex items-start justify-between">
-                  <h1 className="text-3xl md:text-4xl font-bold text-white pr-4">{anime.title}</h1>
-                  <a href={`https://shikimori.one/animes/${anime.shikimori_id}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 pt-2 shrink-0 text-gray-300 hover:text-white">
-                      {anime.shikimori_rating && <span className="font-bold text-lg">{anime.shikimori_rating}</span>}
-                      <Image src="/shikimori-logo.svg" alt="Shikimori" width={20} height={20} />
-                  </a>
-              </div>
-              <div className="flex items-center gap-2 mt-4">
-                <Button variant="outline" disabled>Смотреть вместе (скоро)</Button>
-              </div>
-            </section>
+          <Separator className="my-6" />
 
-            <section>
-                <h2 className="text-xl font-bold text-white mb-3">О тайтле</h2>
-                <div className="prose prose-invert max-w-none text-gray-300" dangerouslySetInnerHTML={{ __html: anime.description || "Описание отсутствует." }} />
-                <div className="flex flex-wrap gap-2 mt-4">
-                    {anime.genres.map(g => (<Link href={`/catalog?genres=${g.id}-${g.slug}`} key={g.id}><Badge variant="outline" className="border-purple-500 text-purple-300 hover:bg-purple-500/10 cursor-pointer">{g.name}</Badge></Link>))}
-                    {anime.tags.map(t => (<Link href={`/catalog?tags=${t.id}-${t.slug}`} key={t.id}><Badge variant="secondary">{t.name}</Badge></Link>))}
-                </div>
-            </section>
-
-            {anime.related && anime.related.length > 0 && (
-              <section>
-                <h2 className="text-xl font-bold text-white mb-4">Связанное</h2>
-                <AnimeCarousel items={anime.related} />
-              </section>
-            )}
-            
-            <section>
-                <h2 className="text-xl font-bold text-white mb-4">Отзывы</h2>
-                <div className="bg-slate-800 border border-slate-700 rounded-lg p-8 text-center text-gray-500">
-                    <p>Раздел в разработке.</p>
-                </div>
-            </section>
-            <section>
-                <h2 className="text-xl font-bold text-white mb-4">Обсуждение</h2>
-                <div className="bg-slate-800 border border-slate-700 rounded-lg p-8 text-center text-gray-500">
-                    <p>Комментарии к аниме скоро появятся!</p>
-                </div>
-            </section>
-          </main>
+          <h2 className="text-2xl font-bold mb-4">Смотреть аниме</h2>
+          {translations && translations.length > 0 ? (
+            <Suspense fallback={<div>Загрузка плеера...</div>}>
+              <PlayerClient translations={translations} />
+            </Suspense>
+          ) : (
+            <div className="text-center text-muted-foreground py-8">
+              <p>Извините, для этого аниме пока нет доступных переводов.</p>
+              <p>Попробуйте проверить позже или выберите другое аниме.</p>
+            </div>
+          )}
         </div>
       </div>
+
+      {anime.related_anime && anime.related_anime.length > 0 && (
+        <div className="mt-12">
+          <h2 className="text-3xl font-bold mb-6">Похожие аниме</h2>
+          <ScrollArea className="w-full whitespace-nowrap rounded-md border">
+            <div className="flex w-max space-x-4 p-4">
+              {anime.related_anime.map((related) => (
+                <div key={related.id} className="inline-block w-[180px]">
+                  <AnimeCard anime={related.anime_by_related_id} />
+                </div>
+              ))}
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+        </div>
+      )}
+
+      {anime.similar_anime && anime.similar_anime.length > 0 && (
+        <div className="mt-12">
+          <h2 className="text-3xl font-bold mb-6">Вам также может понравиться</h2>
+          <AnimeCarousel title="" animeList={anime.similar_anime.map((s) => s.anime_by_similar_id)} />
+        </div>
+      )}
     </div>
-  );
+  )
 }

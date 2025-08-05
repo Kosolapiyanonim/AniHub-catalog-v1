@@ -2,19 +2,26 @@
 
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import { AnimeCard } from "./anime-card"
 import { Button } from "@/components/ui/button"
 import { TrendingUp, Star, Calendar } from "lucide-react"
 import Link from "next/link"
+import { cn } from "@/lib/utils"
 
 // Упрощенный интерфейс
 interface Anime {
-  id: number;
-  shikimori_id: string;
+  id: number
+  shikimori_id: string
 }
 
-export function AnimeGrid() {
+interface AnimeGridProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode
+}
+
+export function AnimeGrid({ children, className, ...props }: AnimeGridProps) {
   const [popularAnime, setPopularAnime] = useState<Anime[]>([])
   const [topRatedAnime, setTopRatedAnime] = useState<Anime[]>([])
   const [newestAnime, setNewestAnime] = useState<Anime[]>([])
@@ -30,7 +37,7 @@ export function AnimeGrid() {
           fetch("/api/catalog?limit=8&sort=shikimori_rating"),
           fetch("/api/catalog?limit=8&sort=year"),
         ])
-        
+
         const [popularData, topRatedData, newestData] = await Promise.all([
           popularResponse.json(),
           topRatedResponse.json(),
@@ -51,26 +58,30 @@ export function AnimeGrid() {
 
   if (loading) {
     return (
-        <div className="space-y-16">
-            {/* Скелетный загрузчик для секций */}
-            <div className="space-y-8">
-                <div className="h-8 w-1/3 bg-slate-800 rounded-md animate-pulse" />
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-                    {Array.from({ length: 6 }).map((_, i) => <div key={i} className="aspect-[2/3] bg-slate-800 rounded-lg animate-pulse" />)}
-                </div>
-            </div>
-            <div className="space-y-8">
-                <div className="h-8 w-1/3 bg-slate-800 rounded-md animate-pulse" />
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
-                    {Array.from({ length: 4 }).map((_, i) => <div key={i} className="aspect-[2/3] bg-slate-800 rounded-lg animate-pulse" />)}
-                </div>
-            </div>
+      <div className="space-y-16">
+        {/* Скелетный загрузчик для секций */}
+        <div className="space-y-8">
+          <div className="h-8 w-1/3 bg-slate-800 rounded-md animate-pulse" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="aspect-[2/3] bg-slate-800 rounded-lg animate-pulse" />
+            ))}
+          </div>
         </div>
+        <div className="space-y-8">
+          <div className="h-8 w-1/3 bg-slate-800 rounded-md animate-pulse" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="aspect-[2/3] bg-slate-800 rounded-lg animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </div>
     )
   }
 
   return (
-    <div className="space-y-16">
+    <div className={cn("space-y-16", className)} {...props}>
       {/* Популярные аниме */}
       <section>
         <div className="flex items-center justify-between mb-8">

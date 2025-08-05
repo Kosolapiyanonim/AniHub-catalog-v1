@@ -1,18 +1,20 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, XCircle, User, Mail, Calendar, Shield } from "lucide-react"
 import type { User as SupabaseUser } from "@supabase/auth-helpers-nextjs"
+import { useSupabase } from "@/components/supabase-provider"
+import { useToast } from "@/components/ui/use-toast"
 
 export function TestAuth() {
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [connectionStatus, setConnectionStatus] = useState<"checking" | "connected" | "error">("checking")
-  const supabase = createClientComponentClient()
+  const { supabase } = useSupabase()
+  const { toast } = useToast()
 
   useEffect(() => {
     const checkConnection = async () => {
@@ -63,6 +65,38 @@ export function TestAuth() {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString("ru-RU")
+  }
+
+  const handleLoginWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${location.origin}/auth/callback`,
+      },
+    })
+    if (error) {
+      toast({
+        title: "Ошибка входа через Google",
+        description: error.message,
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleLoginWithGithub = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "github",
+      options: {
+        redirectTo: `${location.origin}/auth/callback`,
+      },
+    })
+    if (error) {
+      toast({
+        title: "Ошибка входа через GitHub",
+        description: error.message,
+        variant: "destructive",
+      })
+    }
   }
 
   return (
@@ -170,6 +204,10 @@ export function TestAuth() {
                 <Button variant="outline" asChild>
                   <a href="/register">Регистрация</a>
                 </Button>
+              </div>
+              <div className="flex gap-4">
+                <Button onClick={handleLoginWithGoogle}>Войти через Google</Button>
+                <Button onClick={handleLoginWithGithub}>Войти через GitHub</Button>
               </div>
             </div>
           )}

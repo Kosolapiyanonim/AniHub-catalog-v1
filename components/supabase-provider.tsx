@@ -1,50 +1,53 @@
-// /components/supabase-provider.tsx
-"use client";
+"use client"
 
-import { createContext, useContext, useEffect, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import type { SupabaseClient, Session } from "@supabase/supabase-js";
+import type React from "react"
 
-type SupabaseContextType = {
-  supabase: SupabaseClient;
-  session: Session | null;
-};
+import { createContext, useContext, useEffect, useState } from "react"
+import { createClient } from "@/lib/supabase/client"
+import type { SupabaseClient, User } from "@supabase/supabase-js"
 
-const SupabaseContext = createContext<SupabaseContextType | null>(null);
+interface SupabaseContextType {
+  supabase: SupabaseClient
+  user: User | null
+}
 
-export function SupabaseProvider({ children }: { children: React.ReactNode }) {
-  const [supabase] = useState(() => createClientComponentClient());
-  const [session, setSession] = useState<Session | null>(null);
+const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined)
+
+export default function SupabaseProvider({ children }: { children: React.ReactNode }) {
+  const [supabase] = useState(() => createClient())
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    const getInitialSession = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      setUser(user)
+      setLoading(false)
     }
-    getInitialSession();
+    getUser()
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null)
+    })
 
     return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase]);
+      authListener.unsubscribe()
+    }
+  }, [supabase])
 
-  return (
-    <SupabaseContext.Provider value={{ supabase, session }}>
-      {children}
-    </SupabaseContext.Provider>
-  );
+  if (loading) {
+    return null // Or a loading spinner
+  }
+
+  return <SupabaseContext.Provider value={{ supabase, user }}>{children}</SupabaseContext.Provider>
 }
 
 export const useSupabase = () => {
-  const context = useContext(SupabaseContext);
-  if (context === null) {
-    throw new Error("useSupabase must be used within a SupabaseProvider");
+  const context = useContext(SupabaseContext)
+  if (context === undefined) {
+    throw new Error("useSupabase must be used within a SupabaseProvider")
   }
-  return context;
-};
+  return context
+}

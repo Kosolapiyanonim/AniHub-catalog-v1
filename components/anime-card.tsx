@@ -7,6 +7,9 @@ import { AnimeListPopover } from './AnimeListPopover';
 import { AnimeCardListButton } from './anime-card-list-button';
 <<<<<<< HEAD
 import { Progress } from './ui/progress'; // <-- [ИЗМЕНЕНИЕ] Импортируем прогресс-бар
+=======
+import { ProgressBar } from './ui/progress-bar'; // <-- [ИЗМЕНЕНИЕ] Импортируем прогресс-бар
+>>>>>>> parent of 5192222 (Update anime-card.tsx)
 
 const formatAnimeType = (type: string | null | undefined): string => {
     if (!type) return '';

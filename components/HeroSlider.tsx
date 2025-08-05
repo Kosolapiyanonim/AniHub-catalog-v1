@@ -1,7 +1,14 @@
 "use client"
 
-import { useRef, useState } from "react"
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
+import { useRef, useState, useEffect } from "react"
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+  type CarouselApi,
+} from "@/components/ui/carousel"
 import Autoplay from "embla-carousel-autoplay"
 import Image from "next/image"
 import Link from "next/link"
@@ -18,6 +25,22 @@ export function HeroSlider({ items }: HeroSliderProps) {
   const plugin = useRef(Autoplay({ delay: 7000, stopOnInteraction: true }))
   const validItems = items?.filter(Boolean) as Anime[]
   const [isFullscreen, setIsFullscreen] = useState(true)
+  const [api, setApi] = useState<CarouselApi>()
+  const [current, setCurrent] = useState(0)
+  const [count, setCount] = useState(0)
+
+  useEffect(() => {
+    if (!api) {
+      return
+    }
+
+    setCount(api.scrollSnapList().length)
+    setCurrent(api.selectedScrollSnap() + 1)
+
+    api.on("select", () => {
+      setCurrent(api.selectedScrollSnap() + 1)
+    })
+  }, [api])
 
   if (!validItems || validItems.length === 0) {
     return (
@@ -33,30 +56,29 @@ export function HeroSlider({ items }: HeroSliderProps) {
     <div
       className={`relative w-full ${isFullscreen ? "h-screen" : "h-[70vh] min-h-[500px]"} overflow-hidden ${!isFullscreen ? "container mx-auto px-4" : ""}`}
     >
-      {/* Кнопка переключения режима */}
+      {/* Кнопка переключения режима - только на десктопе */}
       <Button
         onClick={() => setIsFullscreen(!isFullscreen)}
-        className="absolute top-4 right-4 z-50 bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm rounded-full w-10 h-10 p-0 transition-all duration-300 hover:scale-110"
+        className="hidden md:flex absolute top-4 right-4 z-50 bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm rounded-full w-10 h-10 p-0 transition-all duration-300 hover:scale-110"
         size="sm"
       >
         {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
       </Button>
 
       <Carousel
+        setApi={setApi}
         className="w-full h-full"
         opts={{
           loop: true,
-          duration: 30, // Увеличиваем длительность анимации для плавности
+          duration: 30,
           dragFree: false,
-          containScroll: "trimSnaps", // Предотвращает показ частей соседних слайдов
+          containScroll: "trimSnaps",
         }}
         plugins={[plugin.current]}
         onMouseEnter={plugin.current.stop}
         onMouseLeave={plugin.current.reset}
       >
         <CarouselContent className="flex h-full -ml-0">
-          {" "}
-          {/* Убираем отрицательный отступ */}
           {validItems.map((anime, index) => {
             const backgroundImageUrl =
               anime.background_image_url || anime.poster_url || "/placeholder.svg?height=1080&width=1920"
@@ -85,26 +107,23 @@ export function HeroSlider({ items }: HeroSliderProps) {
 
             return (
               <CarouselItem key={anime.id} className="w-full min-w-full pl-0 pr-0 overflow-hidden h-full">
-                {" "}
-                {/* Убираем все отступы */}
-                {/* --- МОБИЛЬНАЯ АДАПТАЦИЯ --- */}
-                <div
-                  className={`md:hidden relative w-full ${isFullscreen ? "h-screen" : "h-[70vh] min-h-[500px]"} ${!isFullscreen ? "rounded-lg overflow-hidden" : ""}`}
-                >
+                {/* --- МОБИЛЬНАЯ АДАПТАЦИЯ (только полноэкранный режим) --- */}
+                <div className="md:hidden relative w-full h-screen">
                   <div className="absolute inset-0 z-0">
                     <Image
                       src={backgroundImageUrl || "/placeholder.svg"}
                       alt={`Фон для ${anime.title}`}
                       fill
-                      className={`object-cover transition-transform duration-1000 ease-in-out ${!isFullscreen ? "rounded-lg" : ""}`}
+                      className="object-cover transition-transform duration-1000 ease-in-out"
                       priority={index === 0}
                       sizes="100vw"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/50 to-transparent"></div>
-                    <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-slate-900 to-transparent"></div>
+                    {/* Усиленный градиент для лучшей читаемости */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-slate-900/20"></div>
+                    <div className="absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t from-slate-900 via-slate-900/80 to-transparent"></div>
                   </div>
 
-                  <div className="relative z-10 h-full w-full flex flex-col justify-end p-4 sm:p-6 pb-8">
+                  <div className="relative z-10 h-full w-full flex flex-col justify-end p-4 sm:p-6 pb-20">
                     <div className="text-white mb-6">
                       <Badge
                         variant="secondary"
@@ -138,15 +157,13 @@ export function HeroSlider({ items }: HeroSliderProps) {
                       </div>
 
                       {anime.description && (
-                        <p
-                          className={`text-gray-300 mb-3 ${getDescriptionLines()} text-[0.7rem] sm:text-xs opacity-90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]`}
-                        >
+                        <p className="text-gray-300 mb-3 line-clamp-3 text-[0.7rem] sm:text-xs opacity-90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
                           {anime.description}
                         </p>
                       )}
                     </div>
 
-                    <div className="flex flex-col items-center gap-3">
+                    <div className="flex flex-col items-center gap-4">
                       <div className="relative w-28 h-42 sm:w-32 sm:h-48 rounded-lg overflow-hidden shadow-xl ring-1 ring-white/20">
                         {anime.poster_url ? (
                           <Image
@@ -188,6 +205,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
                   </div>
                 </div>
                 {/* --- КОНЕЦ МОБИЛЬНОЙ АДАПТАЦИИ --- */}
+
                 {/* --- ДЕСКТОПНАЯ ВЕРСИЯ --- */}
                 <div
                   className={`hidden md:block relative w-full ${isFullscreen ? "h-screen" : "h-[70vh] min-h-[500px]"} ${!isFullscreen ? "rounded-lg overflow-hidden" : ""}`}
@@ -203,8 +221,9 @@ export function HeroSlider({ items }: HeroSliderProps) {
                         sizes="(max-width: 1200px) 50vw, 50vw"
                       />
                     </div>
-                    <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-slate-900/70 to-transparent"></div>
-                    <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-slate-900 to-transparent"></div>
+                    {/* Усиленный градиент для лучшей читаемости */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-slate-900/75 to-slate-900/30"></div>
+                    <div className="absolute bottom-0 left-0 right-0 h-2/5 bg-gradient-to-t from-slate-900 via-slate-900/80 to-transparent"></div>
                   </div>
 
                   <div className="relative z-10 h-full w-full flex flex-row items-center p-8 lg:p-12 xl:p-16">
@@ -325,6 +344,22 @@ export function HeroSlider({ items }: HeroSliderProps) {
         <CarouselNext className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm w-10 h-10 rounded-full shadow-lg transition-all duration-300 hover:scale-110" />
         {/* --- КОНЕЦ СТРЕЛОЧЕК ДЛЯ ДЕСКТОПА --- */}
       </Carousel>
+
+      {/* --- ИНТЕРАКТИВНЫЕ ИНДИКАТОРЫ СЛАЙДОВ --- */}
+      {count > 1 && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex gap-2">
+          {Array.from({ length: count }).map((_, index) => (
+            <button
+              key={index}
+              onClick={() => api?.scrollTo(index)}
+              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                index + 1 === current ? "bg-white scale-125 shadow-lg" : "bg-white/40 hover:bg-white/60 hover:scale-110"
+              }`}
+              aria-label={`Перейти к слайду ${index + 1}`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

@@ -3,12 +3,19 @@ import { createClient } from "@/lib/supabase/server"
 
 export async function GET() {
   const supabase = createClient()
-  const { data: types, error } = await supabase.from("anime").select("type").distinct("type")
 
-  if (error) {
-    console.error("Error fetching types:", error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  try {
+    const { data, error } = await supabase.from("types").select("name")
+
+    if (error) {
+      console.error("Error fetching types:", error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    const types = data.map((t) => t.name)
+    return NextResponse.json(types)
+  } catch (error) {
+    console.error("Unexpected error:", error)
+    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 })
   }
-
-  return NextResponse.json(types.map((t) => t.type).filter(Boolean))
 }

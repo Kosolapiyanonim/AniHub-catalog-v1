@@ -1,25 +1,22 @@
-// /app/api/parse-latest/route.ts
-
 import { NextResponse } from "next/server"
-import { parseLatestAnime } from "@/lib/parser-utils"
+import { parseAndSaveAnime } from "@/lib/parser-utils"
 
-export const dynamic = "force-dynamic"
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const page = Number.parseInt(searchParams.get("page") || "1")
 
-export async function POST(request: Request) {
   try {
-    const { count, offset, force } = await request.json()
-    console.log(`Starting parsing latest anime: count=${count}, offset=${offset}, force=${force}`)
+    const success = await parseAndSaveAnime(page)
 
-    const result = await parseLatestAnime(count, offset, force)
-    console.log("Finished parsing latest anime.")
-
-    return NextResponse.json({
-      message: "Latest anime parsing initiated",
-      parsedCount: result.parsedCount,
-      skippedCount: result.skippedCount,
-    })
-  } catch (error: any) {
-    console.error("Error during latest anime parsing:", error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    if (success) {
+      return NextResponse.json({
+        message: `Successfully parsed and saved anime from page ${page}`,
+      })
+    } else {
+      return NextResponse.json({ error: `Failed to parse or save anime from page ${page}` }, { status: 500 })
+    }
+  } catch (error) {
+    console.error("Error during parsing:", error)
+    return NextResponse.json({ error: "An unexpected error occurred during parsing" }, { status: 500 })
   }
 }

@@ -1,74 +1,42 @@
-"use client"
-
-import Link from "next/link"
 import Image from "next/image"
-import { AnimeListPopover } from "./AnimeListPopover"
+import Link from "next/link"
+import { Badge } from "@/components/ui/badge"
 import { AnimeCardListButton } from "./anime-card-list-button"
-import { Progress } from "./ui/progress" // <-- [ИЗМЕНЕНИЕ] Импортируем прогресс-бар
-
-const formatAnimeType = (type: string | null | undefined): string => {
-  if (!type) return ""
-  const typeMap: { [key: string]: string } = {
-    tv_series: "Сериал",
-    movie: "Фильм",
-    ova: "OVA",
-    ona: "ONA",
-    special: "Спешл",
-    "anime-serial": "Аниме сериал",
-    anime: "Полнометражное",
-  }
-  return typeMap[type.toLowerCase()] || type
-}
+import type { Anime } from "@/lib/types"
 
 interface AnimeCardProps {
-  anime: any
+  anime: Anime
   priority?: boolean
-  onStatusChange?: (animeId: number, newStatus: string | null) => void
 }
 
-export function AnimeCard({ anime, priority = false, onStatusChange }: AnimeCardProps) {
-  if (!anime || !anime.shikimori_id) {
-    return null
-  }
-
-  // --- [ИЗМЕНЕНИЕ] Вычисляем прогресс, если он есть ---
-  const progressPercent = anime.progress && anime.episodes_total ? (anime.progress / anime.episodes_total) * 100 : null
-
+export function AnimeCard({ anime, priority = false }: AnimeCardProps) {
   return (
-    <AnimeListPopover anime={anime} onStatusChange={onStatusChange}>
-      <Link href={`/anime/${anime.shikimori_id}`} className="block group">
-        <div className="aspect-[2/3] overflow-hidden rounded-lg bg-slate-800 relative">
-          <AnimeCardListButton
-            animeId={anime.id}
-            initialStatus={anime.user_list_status}
-            onStatusChange={(newStatus) => onStatusChange?.(anime.id, newStatus)}
-          />
-          {anime.poster_url ? (
-            <Image
-              src={anime.poster_url || "/placeholder.svg"}
-              alt={anime.title}
-              fill
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
-              priority={priority}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-slate-500 text-xs p-2">Постер отсутствует</div>
+    <div className="group relative overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-transform duration-300 hover:-translate-y-1">
+      <Link href={`/anime/${anime.id}`} className="absolute inset-0 z-10" prefetch={false}>
+        <span className="sr-only">View {anime.title}</span>
+      </Link>
+      <Image
+        src={anime.poster_url || "/placeholder.svg?height=300&width=200&text=Anime+Poster"}
+        alt={anime.title || "Anime Poster"}
+        width={200}
+        height={300}
+        className="h-60 w-full object-cover transition-transform duration-300 group-hover:scale-105 sm:h-72 md:h-80 lg:h-96"
+        priority={priority}
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent p-3 flex flex-col justify-end">
+        <h3 className="text-lg font-semibold text-white line-clamp-2">{anime.title}</h3>
+        <div className="flex flex-wrap gap-1 mt-1">
+          {anime.year && (
+            <Badge variant="secondary" className="bg-purple-500 text-white">
+              {anime.year}
+            </Badge>
           )}
-          {/* --- [ИЗМЕНЕНИЕ] Отображаем прогресс-бар, если он есть --- */}
-          {progressPercent !== null && (
-            <Progress value={progressPercent} className="absolute bottom-0 left-0 w-full h-1 rounded-none" />
-          )}
+          {anime.type && <Badge variant="secondary">{anime.type}</Badge>}
         </div>
         <div className="mt-2">
-          <h3 className="text-sm font-medium text-white truncate group-hover:text-purple-400">{anime.title}</h3>
-          <p className="text-xs text-slate-400">
-            {formatAnimeType(anime.type)}
-            {anime.year && anime.type ? " • " : ""}
-            {anime.year}
-          </p>
+          <AnimeCardListButton animeId={anime.id} />
         </div>
-      </Link>
-    </AnimeListPopover>
+      </div>
+    </div>
   )
 }

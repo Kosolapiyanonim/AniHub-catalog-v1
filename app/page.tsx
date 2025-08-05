@@ -1,32 +1,38 @@
 import { Suspense } from "react"
-import { getHomepageSections } from "@/lib/data-fetchers"
-import { AnimeCarouselClient } from "@/components/anime-carousel-client"
 import { HeroSlider } from "@/components/HeroSlider"
-import { Separator } from "@/components/ui/separator"
-import { SectionTitle } from "@/components/section-title"
-
-export const dynamic = "force-dynamic"
+import { AnimeCarousel } from "@/components/AnimeCarousel"
+import { getHomepageSections } from "@/lib/data-fetchers"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Flame, Clock, Sparkles } from "lucide-react"
 
 export default async function HomePage() {
-  const sections = await getHomepageSections()
+  const { heroSlider, popular, recentlyUpdated, new: newAnime } = await getHomepageSections()
 
   return (
-    <div className="flex flex-col gap-8 pb-8">
-      <div className="container mx-auto px-4">
-        <Suspense fallback={<div>Загрузка Hero Slider...</div>}>
-          <HeroSlider />
+    <div className="flex flex-col min-h-screen">
+      <div className="container mx-auto px-0 md:px-4">
+        <Suspense fallback={<Skeleton className="w-full h-[400px] md:h-[500px] lg:h-[600px] rounded-lg" />}>
+          <HeroSlider animeList={heroSlider || []} />
         </Suspense>
       </div>
 
-      {sections.map((section) => (
-        <div key={section.id} className="container mx-auto px-4">
-          <SectionTitle title={section.title} />
-          <Suspense fallback={<div>Загрузка карусели...</div>}>
-            <AnimeCarouselClient animeList={section.anime} />
-          </Suspense>
-          <Separator className="my-8" />
-        </div>
-      ))}
+      <div className="container mx-auto px-4 py-8 md:py-12 space-y-12">
+        <Suspense fallback={<Skeleton className="w-full h-64" />}>
+          <AnimeCarousel title="Популярное" animeList={popular || []} icon={<Flame className="w-7 h-7" />} />
+        </Suspense>
+
+        <Suspense fallback={<Skeleton className="w-full h-64" />}>
+          <AnimeCarousel
+            title="Недавно обновлено"
+            animeList={recentlyUpdated || []}
+            icon={<Clock className="w-7 h-7" />}
+          />
+        </Suspense>
+
+        <Suspense fallback={<Skeleton className="w-full h-64" />}>
+          <AnimeCarousel title="Новинки" animeList={newAnime || []} icon={<Sparkles className="w-7 h-7" />} />
+        </Suspense>
+      </div>
     </div>
   )
 }

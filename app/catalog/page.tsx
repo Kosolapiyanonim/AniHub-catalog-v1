@@ -1,78 +1,67 @@
 import { Suspense } from "react"
-import { getCatalogData } from "@/lib/data-fetchers"
 import { AnimeGrid } from "@/components/anime-grid"
-import { AnimeCard } from "@/components/anime-card"
 import { CatalogFilters } from "@/components/catalog-filters"
-import { PaginationComponent } from "@/components/ui/pagination"
-import { Separator } from "@/components/ui/separator"
+import { getCatalogAnime } from "@/lib/data-fetchers"
+import { PaginationControls } from "@/components/pagination-controls"
+import { Skeleton } from "@/components/ui/skeleton"
 
-export const dynamic = "force-dynamic"
-
-export default async function CatalogPage({
-  searchParams,
-}: {
+interface CatalogPageProps {
   searchParams: {
     page?: string
-    genre?: string
-    year?: string
-    type?: string
-    status?: string
-    studio?: string
-    tag?: string
-    kind?: string // New search param for anime_kind
+    limit?: string
+    genres?: string
+    years?: string
+    statuses?: string
+    types?: string
+    studios?: string
+    tags?: string
     search?: string
     sort?: string
+    order?: string
+    anime_kind?: string // New search param
   }
-}) {
-  const page = Number.parseInt(searchParams.page || "1")
-  const limit = 24 // Number of items per page
+}
 
-  const { data, count, totalPages } = await getCatalogData({
-    page,
-    limit,
-    genre: searchParams.genre,
-    year: searchParams.year,
-    type: searchParams.type,
-    status: searchParams.status,
-    studio: searchParams.studio,
-    tag: searchParams.tag,
-    kind: searchParams.kind, // Pass new search param
-    search: searchParams.search,
-    sort: searchParams.sort,
-  })
+export default async function CatalogPage({ searchParams }: CatalogPageProps) {
+  const page = Number.parseInt(searchParams.page || "1")
+  const limit = Number.parseInt(searchParams.limit || "24")
+  const filters = {
+    genres: searchParams.genres?.split(",").filter(Boolean) || [],
+    years: searchParams.years?.split(",").filter(Boolean) || [],
+    statuses: searchParams.statuses?.split(",").filter(Boolean) || [],
+    types: searchParams.types?.split(",").filter(Boolean) || [],
+    studios: searchParams.studios?.split(",").filter(Boolean) || [],
+    tags: searchParams.tags?.split(",").filter(Boolean) || [],
+    search: searchParams.search || "",
+    sort: searchParams.sort || "shikimori_rating",
+    order: searchParams.order || "desc",
+    anime_kind: searchParams.anime_kind || "", // Pass new filter
+  }
+
+  const { anime, total } = await getCatalogAnime(page, limit, filters)
+  const totalPages = Math.ceil(total / limit)
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold mb-8 text-center">Каталог Аниме</h1>
+    <div className="container mx-auto px-4 py-8 md:py-12">
+      <h1 className="text-3xl md:text-4xl font-bold mb-8 text-center">Каталог Аниме</h1>
 
-      <Suspense fallback={<div>Загрузка фильтров...</div>}>
-        <CatalogFilters />
-      </Suspense>
+      <div className="mb-8">
+        <Suspense fallback={<Skeleton className="h-20 w-full" />}>
+          <CatalogFilters currentFilters={filters} />
+        </Suspense>
+      </div>
 
-      <Separator className="my-8" />
-
-      {data && data.length > 0 ? (
+      {anime.length === 0 ? (
+        <div className="text-center text-muted-foreground text-lg">
+          По вашему запросу ничего не найдено. Попробуйте изменить фильтры.
+        </div>
+      ) : (
         <>
-          <AnimeGrid>
-            {data.map((anime) => (
-              <AnimeCard key={anime.id} anime={anime} />
-            ))}
-          </AnimeGrid>
-
+          <AnimeGrid animeList={anime} />
           <div className="mt-8 flex justify-center">
-            <PaginationComponent
-              currentPage={page}
-              totalPages={totalPages}
-              baseUrl="/catalog"
-              searchParams={searchParams}
-            />
+            <PaginationControls currentPage={page} totalPages={totalPages} />
           </div>
         </>
-      ) : (
-        <div className="text-center text-muted-foreground py-16">
-          <p className="text-xl">По вашему запросу ничего не найдено.</p>
-          <p className="text-md mt-2">Попробуйте изменить фильтры или поисковый запрос.</p>
-        </div>
       )}
     </div>
   )

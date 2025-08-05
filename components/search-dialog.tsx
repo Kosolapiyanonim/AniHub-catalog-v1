@@ -1,129 +1,93 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
+import { useState, useEffect, useCallback } from "react"
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
 import { Search } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { useDebounce } from "@/hooks/use-debounce"
+import { searchAnime } from "@/lib/meilisearch-client"
 import { useSearchStore } from "@/hooks/use-search-store"
-import Link from "next/link"
-import Image from "next/image"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { cn } from "@/lib/utils"
-
-interface SearchResult {
-  id: number
-  shikimori_id: number
-  title: string
-  russian: string
-  poster_url: string
-  type: string
-  year: number
-  shikimori_rating: number
-}
+import type { Anime } from "@/lib/types"
 
 export function SearchDialog() {
-  const { isSearchDialogOpen, closeSearchDialog } = useSearchStore()
-  const [searchTerm, setSearchTerm] = useState("")
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+  const router = useRouter()
+  const { searchDialogOpen, closeSearchDialog } = useSearchStore()
+  const [query, setQuery] = useState("")
+  const debouncedQuery = useDebounce(query, 300)
+  const [results, setResults] = useState<Anime[]>([])
   const [loading, setLoading] = useState(false)
-  const debouncedSearchTerm = useDebounce(searchTerm, 300)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    if (isSearchDialogOpen) {
-      // Focus the input when the dialog opens
-      setTimeout(() => {
-        inputRef.current?.focus()
-      }, 100) // Small delay to ensure dialog is rendered
-    } else {
-      // Clear search term and results when dialog closes
-      setSearchTerm("")
-      setSearchResults([])
-    }
-  }, [isSearchDialogOpen])
 
   useEffect(() => {
     const fetchResults = async () => {
-      if (debouncedSearchTerm.trim() === "") {
-        setSearchResults([])
-        setLoading(false)
+      if (debouncedQuery.trim() === "") {
+        setResults([])
         return
       }
-
       setLoading(true)
       try {
-        const response = await fetch(`/api/search?q=${encodeURIComponent(debouncedSearchTerm)}&limit=10`)
-        const data = await response.json()
-        if (response.ok) {
-          setSearchResults(data.results)
-        } else {
-          console.error("Error fetching search results:", data.error)
-          setSearchResults([])
-        }
+        const searchResults = await searchAnime(debouncedQuery, 10)
+        setResults(searchResults)
       } catch (error) {
-        console.error("Failed to fetch search results:", error)
-        setSearchResults([])
+        console.error("Error fetching search results:", error)
+        setResults([])
       } finally {
         setLoading(false)
       }
     }
-
     fetchResults()
-  }, [debouncedSearchTerm])
+  }, [debouncedQuery])
 
-  const handleResultClick = () => {
-    closeSearchDialog()
-  }
+  const handleSelect = useCallback(
+    (id: number) => {
+      router.push(`/anime/${id}`)
+      closeSearchDialog()
+      setQuery("")
+      setResults([])
+    },
+    [router, closeSearchDialog],
+  )
 
   return (
-    <Dialog open={isSearchDialogOpen} onOpenChange={closeSearchDialog}>
-      <DialogContent className="p-0 max-w-lg w-full">
-        <div className="relative flex items-center border-b px-4">
-          <Search className="absolute left-4 h-4 w-4 text-muted-foreground" />
-          <Input
-            ref={inputRef}
-            placeholder="Поиск аниме..."
-            className="w-full pl-10 pr-4 py-3 text-base border-none focus-visible:ring-0 focus-visible:ring-offset-0"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <ScrollArea className={cn("max-h-[400px]", searchResults.length > 0 ? "py-2" : "py-0")}>
-          {loading && searchTerm.trim() !== "" && (
-            <div className="p-4 text-center text-muted-foreground">Загрузка...</div>
-          )}
-          {!loading && searchTerm.trim() !== "" && searchResults.length === 0 && (
-            <div className="p-4 text-center text-muted-foreground">Ничего не найдено.</div>
-          )}
-          {searchResults.length > 0 && (
-            <div className="grid gap-2">
-              {searchResults.map((anime) => (
-                <Link
-                  key={anime.id}
-                  href={`/anime/${anime.shikimori_id}`}
-                  className="flex items-center gap-3 p-2 hover:bg-accent rounded-md transition-colors"
-                  onClick={handleResultClick}
-                >
-                  <Image
-                    src={anime.poster_url || "/placeholder.svg?height=64&width=42&query=anime poster"}
-                    alt={anime.title || "Anime poster"}
-                    width={42}
-                    height={64}
-                    className="rounded-sm object-cover aspect-[2/3]"
+    <CommandDialog open={searchDialogOpen} onOpenChange={closeSearchDialog}>
+      <CommandInput
+        placeholder="Поиск аниме..."
+        value={query}
+        onValueChange={setQuery}
+        leftIcon={<Search className="h-4 w-4 text-muted-foreground" />}
+      />
+      <CommandList>
+        {loading && query.trim() !== "" && <CommandEmpty>Загрузка результатов...</CommandEmpty>}
+        {!loading && query.trim() !== "" && results.length === 0 && <CommandEmpty>Ничего не найдено.</CommandEmpty>}
+        {results.length > 0 && (
+          <CommandGroup heading="Результаты поиска">
+            {results.map((anime) => (
+              <CommandItem
+                key={anime.id}
+                value={anime.title}
+                onSelect={() => handleSelect(anime.id)}
+                className="flex items-center gap-2"
+              >
+                {anime.poster_url && (
+                  <img
+                    src={anime.poster_url || "/placeholder.svg"}
+                    alt={anime.title}
+                    className="h-8 w-8 object-cover rounded-sm"
                   />
-                  <div className="flex-1">
-                    <p className="font-medium text-sm line-clamp-1">{anime.russian || anime.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {anime.type} • {anime.year} • Рейтинг: {anime.shikimori_rating}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
+                )}
+                <span>{anime.title}</span>
+                {anime.year && <span className="text-xs text-muted-foreground">({anime.year})</span>}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+      </CommandList>
+    </CommandDialog>
   )
 }

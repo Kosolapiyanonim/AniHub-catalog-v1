@@ -16,7 +16,6 @@ const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined
 export default function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const [supabase] = useState(() => createClient())
   const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const getUser = async () => {
@@ -24,22 +23,19 @@ export default function SupabaseProvider({ children }: { children: React.ReactNo
         data: { user },
       } = await supabase.auth.getUser()
       setUser(user)
-      setLoading(false)
     }
     getUser()
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user || null)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user ?? null)
     })
 
     return () => {
-      authListener.unsubscribe()
+      subscription.unsubscribe()
     }
   }, [supabase])
-
-  if (loading) {
-    return null // Or a loading spinner
-  }
 
   return <SupabaseContext.Provider value={{ supabase, user }}>{children}</SupabaseContext.Provider>
 }

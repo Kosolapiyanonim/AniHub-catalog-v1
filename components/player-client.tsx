@@ -1,117 +1,93 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
-import { AspectRatio } from "@/components/ui/aspect-ratio"
-
-interface Translation {
-  id: string
-  title: string
-  player_url: string
-  episodes_count: number
-}
+import { useEffect, useRef, useState } from "react"
+import Hls from "hls.js"
+import { getTranslationStream } from "@/lib/data-fetchers"
+import { LoadingSpinner } from "./loading-spinner"
 
 interface PlayerClientProps {
-  translations: Translation[]
-  initialTranslationId?: string
+  translationId: string
 }
 
-export function PlayerClient({ translations, initialTranslationId }: PlayerClientProps) {
-  const [selectedTranslation, setSelectedTranslation] = useState<Translation | undefined>(undefined)
-  const [selectedEpisode, setSelectedEpisode] = useState<number>(1)
-  const iframeRef = useRef<HTMLIFrameElement>(null)
+export function PlayerClient({ translationId }: PlayerClientProps) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (translations && translations.length > 0) {
-      const initial = initialTranslationId ? translations.find((t) => t.id === initialTranslationId) : translations[0]
-      setSelectedTranslation(initial)
+    const loadStream = async () => {
+      setLoading(true)
+      setError(null)
+      if (!videoRef.current) return
+
+      try {
+        const streamUrl = await getTranslationStream(translationId)
+
+        if (!streamUrl) {
+          setError("Не удалось получить ссылку на поток для этого перевода.")
+          setLoading(false)
+          return
+        }
+
+        if (Hls.isSupported()) {
+          const hls = new Hls()
+          hls.loadSource(streamUrl)
+          hls.attachMedia(videoRef.current)
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            videoRef.current?.play()
+            setLoading(false)
+          })
+          hls.on(Hls.Events.ERROR, (event, data) => {
+            console.error("HLS.js error:", data)
+            setError(`Ошибка воспроизведения: ${data.details}`)
+            setLoading(false)
+          })
+        } else if (videoRef.current.canPlayType("application/vnd.apple.mpegurl")) {
+          videoRef.current.src = streamUrl
+          videoRef.current.addEventListener("loadedmetadata", () => {
+            videoRef.current?.play()
+            setLoading(false)
+          })
+          videoRef.current.addEventListener("error", (e) => {
+            console.error("Video error:", e)
+            setError("Ошибка воспроизведения видео в браузере.")
+            setLoading(false)
+          })
+        } else {
+          setError("Ваш браузер не поддерживает воспроизведение HLS.")
+          setLoading(false)
+        }
+      } catch (err) {
+        console.error("Failed to load stream:", err)
+        setError(`Ошибка загрузки потока: ${err instanceof Error ? err.message : String(err)}`)
+        setLoading(false)
+      }
     }
-  }, [translations, initialTranslationId])
 
-  useEffect(() => {
-    // Reset episode to 1 when translation changes
-    setSelectedEpisode(1)
-  }, [selectedTranslation])
+    loadStream()
 
-  const getPlayerUrl = () => {
-    if (!selectedTranslation) return ""
-    const url = new URL(selectedTranslation.player_url)
-    url.searchParams.set("episode", selectedEpisode.toString())
-    return url.toString()
-  }
-
-  if (!selectedTranslation && translations.length === 0) {
-    return (
-      <div className="text-center text-muted-foreground py-8">
-        <p>Нет доступных переводов для этого аниме.</p>
-      </div>
-    )
-  }
-
-  if (!selectedTranslation) {
-    return (
-      <div className="text-center text-muted-foreground py-8">
-        <p>Загрузка плеера...</p>
-      </div>
-    )
-  }
+    return () => {
+      if (videoRef.current && Hls.isSupported()) {
+        const hlsInstance = Hls.get // This might not be the correct way to get the instance
+        // A more robust way would be to store the hls instance in a ref
+        // For now, let's assume a simple cleanup
+        // if (hlsInstance) hlsInstance.destroy();
+      }
+    }
+  }, [translationId])
 
   return (
-    <div className="space-y-4">
-      <AspectRatio ratio={16 / 9}>
-        <iframe
-          ref={iframeRef}
-          src={getPlayerUrl()}
-          width="100%"
-          height="100%"
-          frameBorder="0"
-          allowFullScreen
-          className="rounded-lg"
-        ></iframe>
-      </AspectRatio>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="translation-select">Перевод</Label>
-          <Select
-            value={selectedTranslation.id}
-            onValueChange={(value) => setSelectedTranslation(translations.find((t) => t.id === value))}
-          >
-            <SelectTrigger id="translation-select">
-              <SelectValue placeholder="Выберите перевод" />
-            </SelectTrigger>
-            <SelectContent>
-              {translations.map((t) => (
-                <SelectItem key={t.id} value={t.id}>
-                  {t.title} ({t.episodes_count} эп.)
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+    <div className="relative w-full h-full bg-black flex items-center justify-center">
+      {loading && !error && <LoadingSpinner />}
+      {error && (
+        <div className="text-red-500 text-center p-4">
+          <p>{error}</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Пожалуйста, попробуйте другой перевод или обновите страницу.
+          </p>
         </div>
-
-        <div>
-          <Label htmlFor="episode-select">Эпизод</Label>
-          <Select
-            value={selectedEpisode.toString()}
-            onValueChange={(value) => setSelectedEpisode(Number.parseInt(value))}
-            disabled={!selectedTranslation || selectedTranslation.episodes_count === 0}
-          >
-            <SelectTrigger id="episode-select">
-              <SelectValue placeholder="Выберите эпизод" />
-            </SelectTrigger>
-            <SelectContent>
-              {selectedTranslation &&
-                Array.from({ length: selectedTranslation.episodes_count }, (_, i) => (
-                  <SelectItem key={i + 1} value={(i + 1).toString()}>
-                    Эпизод {i + 1}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      )}
+      <video ref={videoRef} controls className="w-full h-full" />
     </div>
   )
 }

@@ -1,16 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/components/ui/use-toast"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
+import { ParserControl } from "@/components/parser-control"
+import { ApiStatus } from "@/components/api-status"
 
-export default function ParserPage() {
+export default function AdminParserPage() {
   const [url, setUrl] = useState("")
   const [output, setOutput] = useState("")
   const [loading, setLoading] = useState(false)
@@ -141,123 +136,28 @@ export default function ParserPage() {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-6">Панель управления парсером</h1>
-
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Выбор типа парсинга</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Select value={parserType} onValueChange={setParserType}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Выберите тип парсинга" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="single">Парсинг одной страницы</SelectItem>
-              <SelectItem value="latest">Парсинг последних аниме</SelectItem>
-              <SelectItem value="full">Полный парсинг</SelectItem>
-            </SelectContent>
-          </Select>
-        </CardContent>
-      </Card>
-
-      {parserType === "single" && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Парсинг одной страницы</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid w-full items-center gap-4">
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="url">URL страницы аниме</Label>
-                <Input
-                  id="url"
-                  placeholder="Например: https://kodik.info/anime/..."
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  disabled={loading}
-                />
-              </div>
-              <Button onClick={handleParseSinglePage} disabled={loading}>
-                {loading ? "Парсинг..." : "Спарсить страницу"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {parserType === "latest" && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Парсинг последних аниме</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid w-full items-center gap-4">
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="count">Количество аниме для парсинга</Label>
-                <Input
-                  id="count"
-                  type="number"
-                  value={parseLatestCount}
-                  onChange={(e) => setParseLatestCount(Number(e.target.value))}
-                  disabled={loading}
-                />
-              </div>
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="offset">Смещение (offset)</Label>
-                <Input
-                  id="offset"
-                  type="number"
-                  value={parseLatestOffset}
-                  onChange={(e) => setParseLatestOffset(Number(e.target.value))}
-                  disabled={loading}
-                />
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="force-parse"
-                  checked={parseLatestForce}
-                  onCheckedChange={(checked) => setParseLatestForce(Boolean(checked))}
-                  disabled={loading}
-                />
-                <Label htmlFor="force-parse">Принудительный парсинг (обновить существующие)</Label>
-              </div>
-              <Button onClick={handleParseLatest} disabled={loading}>
-                {loading ? "Парсинг..." : "Спарсить последние"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {parserType === "full" && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Полный парсинг</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Запускает полный парсинг всех доступных аниме. Это может занять много времени.
-            </p>
-            <Button onClick={handleFullParse} disabled={loading}>
-              {loading ? "Запуск..." : "Запустить полный парсинг"}
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Вывод парсера</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            className="min-h-[300px] font-mono text-xs"
-            value={output}
-            readOnly
-            placeholder="Здесь будет отображаться вывод парсера..."
-          />
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <ParserControl
+          url={url}
+          setUrl={setUrl}
+          output={output}
+          setOutput={setOutput}
+          loading={loading}
+          setLoading={setLoading}
+          parserType={parserType}
+          setParserType={setParserType}
+          parseLatestCount={parseLatestCount}
+          setParseLatestCount={setParseLatestCount}
+          parseLatestOffset={parseLatestOffset}
+          setParseLatestOffset={setParseLatestOffset}
+          parseLatestForce={parseLatestForce}
+          setParseLatestForce={setParseLatestForce}
+          handleParseSinglePage={handleParseSinglePage}
+          handleParseLatest={handleParseLatest}
+          handleFullParse={handleFullParse}
+        />
+        <ApiStatus />
+      </div>
     </div>
   )
 }

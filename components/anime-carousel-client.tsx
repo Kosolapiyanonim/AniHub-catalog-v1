@@ -1,28 +1,27 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { AnimeCarousel } from "@/components/AnimeCarousel"
-import { LoadingSpinner } from "@/components/loading-spinner"
+import dynamic from "next/dynamic"
+import { Skeleton } from "@/components/ui/skeleton"
 import type { Anime } from "@/lib/types"
+import { Flame, Clock, Sparkles } from "lucide-react"
+
+const DynamicAnimeCarousel = dynamic(() => import("./AnimeCarousel").then((mod) => mod.AnimeCarousel), {
+  ssr: false,
+  loading: () => <Skeleton className="w-full h-64" />,
+})
 
 interface AnimeCarouselClientProps {
+  title: string
   animeList: Anime[]
+  type: "popular" | "recentlyUpdated" | "new"
 }
 
-export function AnimeCarouselClient({ animeList }: AnimeCarouselClientProps) {
-  const [isClient, setIsClient] = useState(false)
+const icons = {
+  popular: <Flame className="w-7 h-7" />,
+  recentlyUpdated: <Clock className="w-7 h-7" />,
+  new: <Sparkles className="w-7 h-7" />,
+}
 
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
-
-  if (!isClient) {
-    return (
-      <div className="flex justify-center items-center h-48">
-        <LoadingSpinner />
-      </div>
-    )
-  }
-
-  return <AnimeCarousel title="" animeList={animeList} />
+export function AnimeCarouselClient({ title, animeList, type }: AnimeCarouselClientProps) {
+  return <DynamicAnimeCarousel title={title} animeList={animeList} icon={icons[type]} />
 }

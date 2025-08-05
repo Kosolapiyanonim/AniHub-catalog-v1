@@ -5,90 +5,62 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const page = Number.parseInt(searchParams.get("page") || "1")
   const limit = Number.parseInt(searchParams.get("limit") || "24")
-  const genre = searchParams.get("genre")
-  const year = searchParams.get("year")
-  const type = searchParams.get("type")
-  const status = searchParams.get("status")
-  const studio = searchParams.get("studio")
-  const tag = searchParams.get("tag")
-  const kind = searchParams.get("kind") // New filter for anime_kind
-  const search = searchParams.get("search")
-  const sort = searchParams.get("sort") || "shikimori_rating.desc"
+  const genres = searchParams.get("genres")?.split(",") || []
+  const years = searchParams.get("years")?.split(",") || []
+  const statuses = searchParams.get("statuses")?.split(",") || []
+  const types = searchParams.get("types")?.split(",") || []
+  const studios = searchParams.get("studios")?.split(",") || []
+  const tags = searchParams.get("tags")?.split(",") || []
+  const search = searchParams.get("search") || ""
+  const sort = searchParams.get("sort") || "shikimori_rating"
+  const order = searchParams.get("order") || "desc"
+  const animeKind = searchParams.get("anime_kind") || "" // New filter parameter
 
-  const supabase = createClient()
   const offset = (page - 1) * limit
+  const supabase = createClient()
 
-  let query = supabase.from("anime").select(
-    `
-      id,
-      shikimori_id,
-      title,
-      russian,
-      poster_url,
-      type,
-      year,
-      shikimori_rating,
-      status,
-      episodes_total,
-      duration,
-      rating_mpaa,
-      kodik_id,
-      anime_kind,
-      user_anime_lists(status)
-    `,
-    { count: "exact" },
-  )
+  try {
+    let query = supabase.from("anime").select("*", { count: "exact" })
 
-  if (genre) {
-    query = query.ilike("anime_genres.genres.name", `%${genre}%`)
-  }
-  if (year) {
-    query = query.eq("year", Number.parseInt(year))
-  }
-  if (type) {
-    query = query.eq("type", type)
-  }
-  if (status) {
-    query = query.eq("status", status)
-  }
-  if (studio) {
-    query = query.ilike("anime_studios.studios.name", `%${studio}%`)
-  }
-  if (tag) {
-    query = query.ilike("anime_tags.tags.name", `%${tag}%`)
-  }
-  if (kind) {
-    // Apply new filter
-    query = query.eq("anime_kind", kind)
-  }
-  if (search) {
-    query = query.ilike("title", `%${search}%`)
-  }
+    if (search) {
+      query = query.ilike("title", `%${search}%`)
+    }
 
-  // Apply sorting
-  const [sortBy, sortOrder] = sort.split(".")
-  query = query.order(sortBy, { ascending: sortOrder === "asc" })
+    if (genres.length > 0) {
+      query = query.contains("genres", genres)
+    }
+    if (years.length > 0) {
+      query = query.in("year", years.map(Number))
+    }
+    if (statuses.length > 0) {
+      query = query.in("status", statuses)
+    }
+    if (types.length > 0) {
+      query = query.in("type", types)
+    }
+    if (studios.length > 0) {
+      query = query.contains("studios", studios)
+    }
+    if (tags.length > 0) {
+      query = query.contains("tags", tags)
+    }
+    if (animeKind) {
+      query = query.eq("anime_kind", animeKind) // Apply new filter
+    }
 
-  const { data: anime, error, count } = await query.range(offset, offset + limit - 1)
+    query = query.order(sort, { ascending: order === "asc" })
+    query = query.range(offset, offset + limit - 1)
 
-  if (error) {
-    console.error("Error fetching catalog:", error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    const { data: anime, error, count } = await query
+
+    if (error) {
+      console.error("Error fetching catalog:", error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ anime, total: count })
+  } catch (error) {
+    console.error("Unexpected error:", error)
+    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 })
   }
-
-  // Flatten the user_anime_lists to get the status directly for each anime
-  const formattedAnime = anime.map((item) => {
-    const user_list_status = item.user_anime_lists?.[0]?.status || null
-    const newItem = { ...item, user_list_status }
-    delete newItem.user_anime_lists
-    return newItem
-  })
-
-  return NextResponse.json({
-    data: formattedAnime,
-    count,
-    page,
-    limit,
-    totalPages: Math.ceil((count || 0) / limit),
-  })
 }

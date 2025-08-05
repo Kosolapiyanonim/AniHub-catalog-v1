@@ -1,78 +1,117 @@
-// /app/api/lists/route.ts
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 
-export const dynamic = "force-dynamic"
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const userId = searchParams.get("userId")
+  const animeId = searchParams.get("animeId")
 
-export async function POST(request: Request) {
   const supabase = createClient()
-  const { animeId, status } = await request.json()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  if (!userId) {
+    return NextResponse.json({ error: "User ID is required" }, { status: 400 })
   }
 
   try {
-    // Check if an entry already exists for this user and anime
-    const { data: existingEntry, error: fetchError } = await supabase
-      .from("user_anime_lists")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("anime_id", animeId)
-      .single()
-
-    if (fetchError && fetchError.code !== "PGRST116") {
-      // PGRST116 means no rows found
-      console.error("Error checking existing entry:", fetchError)
-      return NextResponse.json({ error: fetchError.message }, { status: 500 })
-    }
-
-    let result
-    if (existingEntry) {
-      if (status === null) {
-        // If status is null, delete the entry
-        const { data, error } = await supabase
-          .from("user_anime_lists")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("anime_id", animeId)
-        result = data
-        if (error) throw error
-        return NextResponse.json({ message: "Anime removed from list", status: null })
-      } else {
-        // Update existing entry
-        const { data, error } = await supabase
-          .from("user_anime_lists")
-          .update({ status, updated_at: new Date().toISOString() })
-          .eq("user_id", user.id)
-          .eq("anime_id", animeId)
-          .select()
-          .single()
-        result = data
-        if (error) throw error
-        return NextResponse.json({ message: "Anime list status updated", status: result.status })
-      }
-    } else {
-      if (status === null) {
-        // If no existing entry and status is null, do nothing
-        return NextResponse.json({ message: "No entry to remove", status: null })
-      }
-      // Insert new entry
+    if (animeId) {
+      // Get status for a specific anime for a user
       const { data, error } = await supabase
         .from("user_anime_lists")
-        .insert({ user_id: user.id, anime_id: animeId, status })
-        .select()
+        .select("status")
+        .eq("user_id", userId)
+        .eq("anime_id", animeId)
         .single()
-      result = data
-      if (error) throw error
-      return NextResponse.json({ message: "Anime added to list", status: result.status })
+
+      if (error && error.code !== "PGRST116") {
+        // PGRST116 means "no rows found", which is fine
+        console.error("Error fetching anime list status:", error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+
+      return NextResponse.json({ status: data?.status || null })
+    } else {
+      // Get all lists for a user
+      const { data, error } = await supabase
+        .from("user_anime_lists")
+        .select("status, anime_id, anime(*)") // Fetch related anime data
+        .eq("user_id", userId)
+
+      if (error) {
+        console.error("Error fetching user lists:", error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+
+      // Group anime by status
+      const lists: { [key: string]: any[] } = {
+        watching: [],
+        planned: [],
+        completed: [],
+        dropped: [],
+        on_hold: [],
+      }
+
+      data.forEach((item) => {
+        if (item.status && lists[item.status]) {
+          lists[item.status].push(item.anime)
+        }
+      })
+
+      return NextResponse.json(lists)
     }
-  } catch (error: any) {
-    console.error("Error updating anime list:", error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error) {
+    console.error("Unexpected error:", error)
+    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 })
+  }
+}
+
+export async function POST(request: Request) {
+  const { userId, animeId, status } = await request.json()
+  const supabase = createClient()
+
+  if (!userId || !animeId || !status) {
+    return NextResponse.json({ error: "User ID, Anime ID, and Status are required" }, { status: 400 })
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("user_anime_lists")
+      .upsert({ user_id: userId, anime_id: animeId, status: status }, { onConflict: "user_id,anime_id" })
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error adding/updating anime to list:", error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json(data, { status: 200 })
+  } catch (error) {
+    console.error("Unexpected error:", error)
+    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const userId = searchParams.get("userId")
+  const animeId = searchParams.get("animeId")
+  const supabase = createClient()
+
+  if (!userId || !animeId) {
+    return NextResponse.json({ error: "User ID and Anime ID are required" }, { status: 400 })
+  }
+
+  try {
+    const { error } = await supabase.from("user_anime_lists").delete().eq("user_id", userId).eq("anime_id", animeId)
+
+    if (error) {
+      console.error("Error deleting anime from list:", error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ message: "Successfully removed" }, { status: 200 })
+  } catch (error) {
+    console.error("Unexpected error:", error)
+    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 })
   }
 }

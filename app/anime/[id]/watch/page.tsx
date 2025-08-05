@@ -5,18 +5,7 @@ import { createClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
 import { Suspense } from "react"
 import { getAnimeById, getAnimeTranslations } from "@/lib/data-fetchers"
-import {
-  ArrowLeft,
-  Play,
-  Settings,
-  Volume2,
-  Maximize,
-  MoreHorizontal,
-  Star,
-  Clock,
-  Users,
-  Calendar,
-} from "lucide-react"
+import { ArrowLeft, Settings, MoreHorizontal, Star, Clock, Users, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
@@ -27,10 +16,11 @@ import { PlayerClient } from "@/components/player-client"
 export default async function WatchPage({
   params,
   searchParams,
-}: { params: { id: string }; searchParams: { translation_id?: string } }) {
+}: { params: { id: string }; searchParams: { translationId?: string } }) {
   const cookieStore = cookies()
   const supabase = createClient(cookieStore)
   const animeId = Number.parseInt(params.id)
+  const translationId = searchParams.translationId
 
   if (isNaN(animeId)) {
     notFound()
@@ -63,35 +53,24 @@ export default async function WatchPage({
   }
 
   const translations = await getAnimeTranslations(anime.kodik_id)
+  const selectedTranslation = translations?.find((t) => t.id === translationId)
 
-  const initialTranslationId =
-    searchParams.translation_id || (translations && translations.length > 0 ? translations[0].id : undefined)
+  if (!selectedTranslation && translations && translations.length > 0) {
+    // Redirect to the first available translation if none is selected or invalid
+    return notFound() // Or redirect, depending on desired behavior
+  }
 
-  if (!translations || translations.length === 0) {
+  if (!selectedTranslation) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm max-w-md w-full">
-              <CardContent className="p-8 text-center">
-                <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Play className="w-8 h-8 text-slate-400" />
-                </div>
-                <h2 className="text-xl font-bold text-white mb-2">Озвучки не найдены</h2>
-                <p className="text-slate-400 mb-6">К сожалению, для этого аниме пока нет доступных плееров.</p>
-                <Link href={`/anime/${params.id}`}>
-                  <Button
-                    variant="outline"
-                    className="border-slate-600 text-slate-300 hover:bg-slate-700 bg-transparent"
-                  >
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Вернуться к описанию
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+      <div className="container mx-auto p-4 text-center">
+        <h1 className="text-3xl font-bold mb-4">Нет доступных переводов</h1>
+        <p className="text-muted-foreground mb-6">К сожалению, для этого аниме пока нет доступных переводов.</p>
+        <Link href={`/anime/${anime.id}`}>
+          <Button>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Вернуться к странице аниме
+          </Button>
+        </Link>
       </div>
     )
   }
@@ -104,7 +83,7 @@ export default async function WatchPage({
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <Link
-                href={`/anime/${params.id}`}
+                href={`/anime/${anime.id}`}
                 className="flex items-center space-x-2 text-slate-300 hover:text-white transition-colors p-2 rounded-lg hover:bg-slate-800"
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -141,50 +120,42 @@ export default async function WatchPage({
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+      <div className="container mx-auto px-4 py-6 md:py-12">
+        <div className="flex items-center justify-between mb-6">
+          <Link href={`/anime/${anime.id}`} passHref>
+            <Button variant="ghost">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Вернуться к {anime.title}
+            </Button>
+          </Link>
+          <h1 className="text-2xl md:text-3xl font-bold text-center flex-grow">
+            {anime.title} - {selectedTranslation.title}
+          </h1>
+        </div>
+        <div className="aspect-video w-full rounded-lg overflow-hidden bg-black">
+          <Suspense fallback={<div>Загрузка плеера...</div>}>
+            <PlayerClient translationId={selectedTranslation.id} />
+          </Suspense>
+        </div>
+
+        {translations && translations.length > 1 && (
+          <div className="mt-8">
+            <h2 className="text-xl font-bold mb-4">Другие переводы:</h2>
+            <div className="flex flex-wrap gap-2">
+              {translations.map((translation) => (
+                <Link key={translation.id} href={`/anime/${anime.id}/watch?translationId=${translation.id}`} passHref>
+                  <Button variant={translation.id === selectedTranslation.id ? "default" : "outline"}>
+                    {translation.title} ({translation.type})
+                  </Button>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mt-8">
           {/* Основной плеер */}
           <div className="xl:col-span-3 space-y-6">
-            {/* Видео плеер */}
-            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm overflow-hidden">
-              <CardContent className="p-0">
-                <div className="aspect-video bg-black relative group">
-                  <Suspense fallback={<div>Загрузка плеера...</div>}>
-                    <PlayerClient
-                      translations={translations}
-                      initialTranslationId={initialTranslationId}
-                      poster={animeData.poster_url || undefined}
-                    />
-                  </Suspense>
-
-                  {/* Контролы плеера (overlay) */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="absolute bottom-4 left-4 right-4">
-                      <div className="flex items-center justify-between text-white">
-                        <div className="flex items-center space-x-3">
-                          <Button size="sm" variant="ghost" className="text-white hover:bg-white/20">
-                            <Play className="w-4 h-4" />
-                          </Button>
-                          <Button size="sm" variant="ghost" className="text-white hover:bg-white/20">
-                            <Volume2 className="w-4 h-4" />
-                          </Button>
-                          <span className="text-sm">00:00 / 24:00</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Button size="sm" variant="ghost" className="text-white hover:bg-white/20">
-                            <Settings className="w-4 h-4" />
-                          </Button>
-                          <Button size="sm" variant="ghost" className="text-white hover:bg-white/20">
-                            <Maximize className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Информация об эпизоде */}
             <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
               <CardContent className="p-6">
@@ -212,7 +183,7 @@ export default async function WatchPage({
                   </div>
                   <div className="flex items-center">
                     <Users className="w-4 h-4 mr-1" />
-                    {translations[0]?.title || "Неизвестно"}
+                    {selectedTranslation?.title || "Неизвестно"}
                   </div>
                 </div>
 

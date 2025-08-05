@@ -1,28 +1,49 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Plus, Check, Eye, Heart, Bookmark, X } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { Plus, Check, Minus } from "lucide-react"
 import { useSupabase } from "@/components/supabase-provider"
-import type { Anime } from "@/lib/types"
+import { useToast } from "@/hooks/use-toast"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 interface AnimeListPopoverProps {
-  anime: Anime
-  children: React.ReactNode
-  onStatusChange?: (animeId: number, newStatus: string | null) => void
+  animeId: number
 }
 
-export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListPopoverProps) {
-  const [currentStatus, setCurrentStatus] = useState<string | null>(anime.user_list_status || null)
-  const [loading, setLoading] = useState(false)
+export function AnimeListPopover({ animeId }: AnimeListPopoverProps) {
+  const { user, supabase } = useSupabase()
   const { toast } = useToast()
-  const { user } = useSupabase()
+  const [currentStatus, setCurrentStatus] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const handleStatusChange = async (newStatus: string | null) => {
+  useEffect(() => {
+    const fetchStatus = async () => {
+      if (!user) {
+        setLoading(false)
+        return
+      }
+      setLoading(true)
+      try {
+        const response = await fetch(`/api/lists?userId=${user.id}&animeId=${animeId}`)
+        const data = await response.json()
+        if (response.ok) {
+          setCurrentStatus(data.status)
+        } else {
+          console.error("Failed to fetch list status:", data.error)
+          setCurrentStatus(null)
+        }
+      } catch (error) {
+        console.error("Error fetching list status:", error)
+        setCurrentStatus(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchStatus()
+  }, [user, animeId, supabase])
+
+  const handleAddToList = async (status: string) => {
     if (!user) {
       toast({
         title: "Необходимо войти",
@@ -39,29 +60,27 @@ export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListP
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ animeId: anime.id, status: newStatus }),
+        body: JSON.stringify({ userId: user.id, animeId, status }),
       })
 
-      const data = await response.json()
-
       if (response.ok) {
-        setCurrentStatus(data.status)
-        onStatusChange?.(anime.id, data.status)
+        setCurrentStatus(status)
         toast({
-          title: "Успех",
-          description: data.message,
+          title: "Успешно",
+          description: `Аниме добавлено в список "${status}".`,
         })
       } else {
+        const errorData = await response.json()
         toast({
           title: "Ошибка",
-          description: data.error || "Не удалось обновить список.",
+          description: errorData.error || "Не удалось добавить аниме в список.",
           variant: "destructive",
         })
       }
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Ошибка",
-        description: `Произошла ошибка: ${error.message}`,
+        description: "Произошла ошибка при добавлении аниме в список.",
         variant: "destructive",
       })
     } finally {
@@ -69,20 +88,37 @@ export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListP
     }
   }
 
-  const getStatusIcon = (status: string | null) => {
-    switch (status) {
-      case "watching":
-        return <Eye className="h-4 w-4" />
-      case "completed":
-        return <Check className="h-4 w-4" />
-      case "planned":
-        return <Bookmark className="h-4 w-4" />
-      case "dropped":
-        return <X className="h-4 w-4" />
-      case "on_hold":
-        return <Heart className="h-4 w-4" />
-      default:
-        return <Plus className="h-4 w-4" />
+  const handleRemoveFromList = async () => {
+    if (!user) return
+
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/lists?userId=${user.id}&animeId=${animeId}`, {
+        method: "DELETE",
+      })
+
+      if (response.ok) {
+        setCurrentStatus(null)
+        toast({
+          title: "Успешно",
+          description: "Аниме удалено из списка.",
+        })
+      } else {
+        const errorData = await response.json()
+        toast({
+          title: "Ошибка",
+          description: errorData.error || "Не удалось удалить аниме из списка.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Произошла ошибка при удалении аниме из списка.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -90,10 +126,10 @@ export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListP
     switch (status) {
       case "watching":
         return "Смотрю"
+      case "planned":
+        return "Запланировано"
       case "completed":
         return "Просмотрено"
-      case "planned":
-        return "В планах"
       case "dropped":
         return "Брошено"
       case "on_hold":
@@ -104,62 +140,41 @@ export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListP
   }
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>{children}</PopoverTrigger>
-      <PopoverContent className="w-48 p-0">
-        <div className="flex flex-col">
-          <Button
-            variant="ghost"
-            className="justify-start"
-            onClick={() => handleStatusChange("watching")}
-            disabled={loading}
-          >
-            <Eye className="mr-2 h-4 w-4" /> Смотрю
-          </Button>
-          <Button
-            variant="ghost"
-            className="justify-start"
-            onClick={() => handleStatusChange("completed")}
-            disabled={loading}
-          >
-            <Check className="mr-2 h-4 w-4" /> Просмотрено
-          </Button>
-          <Button
-            variant="ghost"
-            className="justify-start"
-            onClick={() => handleStatusChange("planned")}
-            disabled={loading}
-          >
-            <Bookmark className="mr-2 h-4 w-4" /> В планах
-          </Button>
-          <Button
-            variant="ghost"
-            className="justify-start"
-            onClick={() => handleStatusChange("on_hold")}
-            disabled={loading}
-          >
-            <Heart className="mr-2 h-4 w-4" /> Отложено
-          </Button>
-          <Button
-            variant="ghost"
-            className="justify-start"
-            onClick={() => handleStatusChange("dropped")}
-            disabled={loading}
-          >
-            <X className="mr-2 h-4 w-4" /> Брошено
-          </Button>
-          {currentStatus && (
-            <Button
-              variant="ghost"
-              className="justify-start text-destructive hover:text-destructive"
-              onClick={() => handleStatusChange(null)}
-              disabled={loading}
-            >
-              <X className="mr-2 h-4 w-4" /> Удалить из списка
-            </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant={currentStatus ? "default" : "outline"}
+          size="sm"
+          className="flex items-center gap-1"
+          disabled={loading}
+        >
+          {loading ? (
+            "Загрузка..."
+          ) : currentStatus ? (
+            <>
+              <Check className="h-4 w-4" /> {getStatusText(currentStatus)}
+            </>
+          ) : (
+            <>
+              <Plus className="h-4 w-4" /> {getStatusText(currentStatus)}
+            </>
           )}
-        </div>
-      </PopoverContent>
-    </Popover>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <DropdownMenuItem onClick={() => handleAddToList("watching")}>Смотрю</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleAddToList("planned")}>Запланировано</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleAddToList("completed")}>Просмотрено</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleAddToList("dropped")}>Брошено</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleAddToList("on_hold")}>Отложено</DropdownMenuItem>
+        {currentStatus && (
+          <>
+            <DropdownMenuItem onClick={handleRemoveFromList} className="text-red-500">
+              <Minus className="h-4 w-4 mr-2" /> Удалить из списка
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

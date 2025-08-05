@@ -1,263 +1,97 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { CheckCircle, XCircle, User, Mail, Calendar, Shield } from "lucide-react"
-import type { User as SupabaseUser } from "@supabase/auth-helpers-nextjs"
-import { useSupabase } from "@/components/supabase-provider"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { useState } from "react"
+import { createClient } from "@/lib/supabase/client"
 import { useToast } from "@/components/ui/use-toast"
 
-export function TestAuth() {
-  const [user, setUser] = useState<SupabaseUser | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [connectionStatus, setConnectionStatus] = useState<"checking" | "connected" | "error">("checking")
-  const { supabase } = useSupabase()
+export function TestAuthComponent() {
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const supabase = createClient()
   const { toast } = useToast()
 
-  useEffect(() => {
-    const checkConnection = async () => {
-      try {
-        const { data, error } = await supabase.from("profiles").select("count").limit(1)
-        if (error) {
-          console.error("Supabase connection error:", error)
-          setConnectionStatus("error")
-        } else {
-          setConnectionStatus("connected")
-        }
-      } catch (error) {
-        console.error("Connection test failed:", error)
-        setConnectionStatus("error")
-      }
-    }
-
-    const getUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      setUser(user)
-      setLoading(false)
-    }
-
-    checkConnection()
-    getUser()
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state changed:", event, session?.user?.email)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [supabase])
-
-  const testSignOut = async () => {
-    try {
-      await supabase.auth.signOut()
-      console.log("Sign out successful")
-    } catch (error) {
-      console.error("Sign out error:", error)
-    }
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString("ru-RU")
-  }
-
-  const handleLoginWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
+  const handleSignUp = async () => {
+    setLoading(true)
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
       options: {
-        redirectTo: `${location.origin}/auth/callback`,
+        emailRedirectTo: `${location.origin}/auth/callback`,
       },
     })
     if (error) {
       toast({
-        title: "Ошибка входа через Google",
+        title: "Ошибка регистрации",
         description: error.message,
         variant: "destructive",
       })
+    } else {
+      toast({
+        title: "Успешная регистрация",
+        description: "Проверьте свою электронную почту для подтверждения.",
+      })
     }
+    setLoading(false)
   }
 
-  const handleLoginWithGithub = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "github",
-      options: {
-        redirectTo: `${location.origin}/auth/callback`,
-      },
+  const handleSignIn = async () => {
+    setLoading(true)
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
     })
     if (error) {
       toast({
-        title: "Ошибка входа через GitHub",
+        title: "Ошибка входа",
         description: error.message,
         variant: "destructive",
       })
+    } else {
+      toast({
+        title: "Успешный вход",
+        description: "Вы успешно вошли в систему.",
+      })
     }
+    setLoading(false)
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold mb-2">Тестирование системы аутентификации</h1>
-        <p className="text-muted-foreground">Проверка подключения к Supabase и состояния пользователя</p>
+    <div className="space-y-4 p-4 border rounded-lg">
+      <h2 className="text-2xl font-bold">Тестовые операции аутентификации</h2>
+      <div className="space-y-2">
+        <Label htmlFor="test-email">Email</Label>
+        <Input
+          id="test-email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="test@example.com"
+          disabled={loading}
+        />
       </div>
-
-      {/* Connection Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            {connectionStatus === "connected" ? (
-              <CheckCircle className="h-5 w-5 text-green-500" />
-            ) : connectionStatus === "error" ? (
-              <XCircle className="h-5 w-5 text-red-500" />
-            ) : (
-              <div className="h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            )}
-            Статус подключения к Supabase
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Badge
-            variant={
-              connectionStatus === "connected" ? "default" : connectionStatus === "error" ? "destructive" : "secondary"
-            }
-          >
-            {connectionStatus === "connected"
-              ? "Подключено"
-              : connectionStatus === "error"
-                ? "Ошибка подключения"
-                : "Проверка..."}
-          </Badge>
-        </CardContent>
-      </Card>
-
-      {/* User Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Статус пользователя
-          </CardTitle>
-          <CardDescription>Информация о текущем пользователе в системе</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center gap-2">
-              <div className="h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              <span>Загрузка...</span>
-            </div>
-          ) : user ? (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Badge variant="default">Авторизован</Badge>
-                <Button variant="outline" size="sm" onClick={testSignOut}>
-                  Выйти (тест)
-                </Button>
-              </div>
-
-              <div className="grid gap-3">
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">Email:</span>
-                  <span>{user.email}</span>
-                </div>
-
-                {user.user_metadata?.full_name && (
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">Имя:</span>
-                    <span>{user.user_metadata.full_name}</span>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">Создан:</span>
-                  <span>{formatDate(user.created_at)}</span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">ID:</span>
-                  <span className="font-mono text-sm">{user.id}</span>
-                </div>
-
-                {user.app_metadata?.provider && (
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">Провайдер:</span>
-                    <Badge variant="outline">{user.app_metadata.provider}</Badge>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <Badge variant="secondary">Не авторизован</Badge>
-              <div className="flex gap-2">
-                <Button asChild>
-                  <a href="/login">Войти</a>
-                </Button>
-                <Button variant="outline" asChild>
-                  <a href="/register">Регистрация</a>
-                </Button>
-              </div>
-              <div className="flex gap-4">
-                <Button onClick={handleLoginWithGoogle}>Войти через Google</Button>
-                <Button onClick={handleLoginWithGithub}>Войти через GitHub</Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Test Instructions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Инструкции по тестированию</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <h4 className="font-medium">1. Тест регистрации:</h4>
-            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-              <li>
-                Перейдите на{" "}
-                <a href="/register" className="text-primary hover:underline">
-                  /register
-                </a>
-              </li>
-              <li>Заполните форму регистрации</li>
-              <li>Проверьте email для подтверждения</li>
-              <li>Вернитесь сюда для проверки статуса</li>
-            </ul>
-          </div>
-
-          <div className="space-y-2">
-            <h4 className="font-medium">2. Тест входа:</h4>
-            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-              <li>
-                Перейдите на{" "}
-                <a href="/login" className="text-primary hover:underline">
-                  /login
-                </a>
-              </li>
-              <li>Войдите с созданными данными</li>
-              <li>Проверьте изменения в шапке сайта</li>
-            </ul>
-          </div>
-
-          <div className="space-y-2">
-            <h4 className="font-medium">3. Тест OAuth (требует настройки):</h4>
-            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-              <li>В Supabase Dashboard включите Google/Spotify провайдеры</li>
-              <li>Попробуйте войти через социальные сети</li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-2">
+        <Label htmlFor="test-password">Пароль</Label>
+        <Input
+          id="test-password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="••••••••"
+          disabled={loading}
+        />
+      </div>
+      <div className="flex gap-2">
+        <Button onClick={handleSignUp} disabled={loading}>
+          {loading ? "Регистрация..." : "Зарегистрироваться"}
+        </Button>
+        <Button onClick={handleSignIn} disabled={loading}>
+          {loading ? "Вход..." : "Войти"}
+        </Button>
+      </div>
     </div>
   )
 }

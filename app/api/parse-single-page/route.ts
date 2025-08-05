@@ -3,9 +3,34 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import type { KodikAnimeData } from "@/lib/types"
-import { transformToAnimeRecord, processAllRelationsForAnime, parseSingleAnimePage } from "@/lib/parser-utils"
+import {
+  transformToAnimeRecord,
+  processAllRelationsForAnime,
+  parseSingleAnimePage,
+  parseAndSaveAnime,
+} from "@/lib/parser-utils"
 
 export const dynamic = "force-dynamic"
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const page = Number.parseInt(searchParams.get("page") || "1")
+
+  try {
+    const success = await parseAndSaveAnime(page)
+
+    if (success) {
+      return NextResponse.json({
+        message: `Successfully parsed and saved anime from page ${page}`,
+      })
+    } else {
+      return NextResponse.json({ error: `Failed to parse or save anime from page ${page}` }, { status: 500 })
+    }
+  } catch (error) {
+    console.error("Error during parsing:", error)
+    return NextResponse.json({ error: "An unexpected error occurred during parsing" }, { status: 500 })
+  }
+}
 
 export async function POST(request: Request) {
   try {

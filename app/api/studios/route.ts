@@ -3,12 +3,19 @@ import { createClient } from "@/lib/supabase/server"
 
 export async function GET() {
   const supabase = createClient()
-  const { data: studios, error } = await supabase.from("studios").select("name").order("name", { ascending: true })
 
-  if (error) {
-    console.error("Error fetching studios:", error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  try {
+    const { data, error } = await supabase.from("studios").select("name")
+
+    if (error) {
+      console.error("Error fetching studios:", error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    const studios = data.map((s) => s.name)
+    return NextResponse.json(studios)
+  } catch (error) {
+    console.error("Unexpected error:", error)
+    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 })
   }
-
-  return NextResponse.json(studios.map((s) => s.name))
 }

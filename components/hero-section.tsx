@@ -1,35 +1,31 @@
+import Image from "next/image"
 import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Play } from "lucide-react"
 
 export function HeroSection() {
   return (
-    <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
-      <div className="container px-4 md:px-6">
-        <div className="flex flex-col items-center space-y-4 text-center">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl/none">
-              Откройте для себя мир аниме
-            </h1>
-            <p className="mx-auto max-w-[700px] text-gray-200 md:text-xl">
-              Смотрите любимые аниме сериалы и фильмы в высоком качестве, где угодно и когда угодно.
-            </p>
-          </div>
-          <div className="space-x-4">
-            <Link
-              href="/catalog"
-              className="inline-flex h-9 items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-medium text-purple-600 shadow transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:pointer-events-none disabled:opacity-50"
-              prefetch={false}
-            >
-              Начать просмотр
-            </Link>
-            <Link
-              href="#"
-              className="inline-flex h-9 items-center justify-center rounded-md border border-white bg-transparent px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white disabled:pointer-events-none disabled:opacity-50"
-              prefetch={false}
-            >
-              Узнать больше
-            </Link>
-          </div>
-        </div>
+    <section className="relative w-full h-[500px] md:h-[600px] lg:h-[700px] flex items-center justify-center text-center">
+      <Image
+        src="/placeholder.svg?height=700&width=1200&text=Hero+Background"
+        alt="Hero Background"
+        fill
+        style={{ objectFit: "cover" }}
+        className="brightness-50"
+        priority
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+      <div className="relative z-10 text-white px-4">
+        <h1 className="text-4xl md:text-6xl font-bold mb-4 drop-shadow-lg">Смотри любимое аниме онлайн</h1>
+        <p className="text-lg md:text-xl mb-8 max-w-2xl mx-auto drop-shadow-md">
+          Откройте для себя огромную коллекцию аниме сериалов и фильмов в высоком качестве.
+        </p>
+        <Link href="/catalog" passHref>
+          <Button size="lg" className="bg-purple-600 hover:bg-purple-700 text-white">
+            <Play className="mr-2 h-5 w-5" />
+            Начать просмотр
+          </Button>
+        </Link>
       </div>
     </section>
   )

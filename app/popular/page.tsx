@@ -1,55 +1,38 @@
-import { getCatalogData } from "@/lib/data-fetchers"
 import { AnimeGrid } from "@/components/anime-grid"
-import { AnimeCard } from "@/components/anime-card"
-import { PaginationComponent } from "@/components/ui/pagination"
-import { Separator } from "@/components/ui/separator"
+import { getCatalogAnime } from "@/lib/data-fetchers"
+import { PaginationControls } from "@/components/pagination-controls"
 
-export const dynamic = "force-dynamic"
-
-export default async function PopularPage({
-  searchParams,
-}: {
+interface PopularPageProps {
   searchParams: {
     page?: string
+    limit?: string
   }
-}) {
-  const page = Number.parseInt(searchParams.page || "1")
-  const limit = 24 // Number of items per page
+}
 
-  const { data, count, totalPages } = await getCatalogData({
-    page,
-    limit,
-    sort: "shikimori_rating.desc", // Default sort for popular page
+export default async function PopularPage({ searchParams }: PopularPageProps) {
+  const page = Number.parseInt(searchParams.page || "1")
+  const limit = Number.parseInt(searchParams.limit || "24")
+
+  // Fetch popular anime by default sorting by shikimori_rating in descending order
+  const { anime, total } = await getCatalogAnime(page, limit, {
+    sort: "shikimori_rating",
+    order: "desc",
   })
+  const totalPages = Math.ceil(total / limit)
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold mb-8 text-center">Популярное Аниме</h1>
+    <div className="container mx-auto px-4 py-8 md:py-12">
+      <h1 className="text-3xl md:text-4xl font-bold mb-8 text-center">Популярное Аниме</h1>
 
-      <Separator className="my-8" />
-
-      {data && data.length > 0 ? (
+      {anime.length === 0 ? (
+        <div className="text-center text-muted-foreground text-lg">Популярное аниме не найдено.</div>
+      ) : (
         <>
-          <AnimeGrid>
-            {data.map((anime) => (
-              <AnimeCard key={anime.id} anime={anime} />
-            ))}
-          </AnimeGrid>
-
+          <AnimeGrid animeList={anime} />
           <div className="mt-8 flex justify-center">
-            <PaginationComponent
-              currentPage={page}
-              totalPages={totalPages}
-              baseUrl="/popular"
-              searchParams={searchParams}
-            />
+            <PaginationControls currentPage={page} totalPages={totalPages} />
           </div>
         </>
-      ) : (
-        <div className="text-center text-muted-foreground py-16">
-          <p className="text-xl">По вашему запросу ничего не найдено.</p>
-          <p className="text-md mt-2">Попробуйте изменить фильтры или поисковый запрос.</p>
-        </div>
       )}
     </div>
   )

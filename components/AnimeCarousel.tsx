@@ -1,3 +1,4 @@
+import type React from "react"
 import { AnimeCard } from "@/components/anime-card"
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
 import { SectionTitle } from "@/components/section-title"
@@ -6,16 +7,17 @@ import type { Anime } from "@/lib/types"
 interface AnimeCarouselProps {
   title: string
   animeList: Anime[]
+  icon?: React.ReactNode
 }
 
-export function AnimeCarousel({ title, animeList }: AnimeCarouselProps) {
+export function AnimeCarousel({ title, animeList, icon }: AnimeCarouselProps) {
   if (!animeList || animeList.length === 0) {
     return null
   }
 
   return (
     <div className="space-y-6">
-      {title && <SectionTitle title={title} />}
+      {title && <SectionTitle title={title} icon={icon} />}
       <Carousel
         opts={{
           align: "start",

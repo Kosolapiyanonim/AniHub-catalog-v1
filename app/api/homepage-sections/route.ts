@@ -5,72 +5,62 @@ export async function GET() {
   const supabase = createClient()
 
   try {
-    const { data: sections, error } = await supabase
-      .from("homepage_sections")
-      .select(
-        `
-        id,
-        title,
-        order,
-        anime_ids
-      `,
-      )
-      .order("order", { ascending: true })
+    // Fetch 10 popular anime (e.g., by shikimori_rating)
+    const { data: popularAnime, error: popularError } = await supabase
+      .from("anime")
+      .select("*")
+      .order("shikimori_rating", { ascending: false })
+      .limit(10)
 
-    if (error) {
-      console.error("Error fetching homepage sections:", error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    if (popularError) {
+      console.error("Error fetching popular anime:", popularError)
+      return NextResponse.json({ error: popularError.message }, { status: 500 })
     }
 
-    const sectionsWithAnime = await Promise.all(
-      sections.map(async (section) => {
-        if (section.anime_ids && section.anime_ids.length > 0) {
-          const { data: animeList, error: animeError } = await supabase
-            .from("anime")
-            .select(
-              `
-              id,
-              shikimori_id,
-              title,
-              russian,
-              poster_url,
-              type,
-              year,
-              shikimori_rating,
-              status,
-              episodes_total,
-              duration,
-              rating_mpaa,
-              kodik_id,
-              anime_kind,
-              user_anime_lists(status)
-            `,
-            )
-            .in("id", section.anime_ids)
-            .order("shikimori_rating", { ascending: false }) // Example sorting
+    // Fetch 10 recently updated anime (e.g., by updated_at)
+    const { data: recentlyUpdatedAnime, error: updatedError } = await supabase
+      .from("anime")
+      .select("*")
+      .order("updated_at", { ascending: false })
+      .limit(10)
 
-          if (animeError) {
-            console.error(`Error fetching anime for section ${section.id}:`, animeError)
-            return { ...section, anime: [] }
-          }
+    if (updatedError) {
+      console.error("Error fetching recently updated anime:", updatedError)
+      return NextResponse.json({ error: updatedError.message }, { status: 500 })
+    }
 
-          // Flatten the user_anime_lists to get the status directly for each anime
-          const formattedAnime = animeList.map((item) => {
-            const user_list_status = item.user_anime_lists?.[0]?.status || null
-            const newItem = { ...item, user_list_status }
-            delete newItem.user_anime_lists
-            return newItem
-          })
+    // Fetch 10 new anime (e.g., by created_at)
+    const { data: newAnime, error: newError } = await supabase
+      .from("anime")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(10)
 
-          return { ...section, anime: formattedAnime }
-        }
-        return { ...section, anime: [] }
-      }),
-    )
+    if (newError) {
+      console.error("Error fetching new anime:", newError)
+      return NextResponse.json({ error: newError.message }, { status: 500 })
+    }
 
-    return NextResponse.json(sectionsWithAnime)
-  } catch (error: any) {
+    // Fetch 10 random anime for the hero slider
+    const { data: heroSliderAnime, error: heroError } = await supabase
+      .from("anime")
+      .select("*")
+      .limit(5) // Limit to 5 for the slider
+      .order("id", { ascending: true }) // Order by ID to get a consistent "random" set for demo
+
+    if (heroError) {
+      console.error("Error fetching hero slider anime:", heroError)
+      return NextResponse.json({ error: heroError.message }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      heroSlider: heroSliderAnime,
+      popular: popularAnime,
+      recentlyUpdated: recentlyUpdatedAnime,
+      new: newAnime,
+    })
+  } catch (error) {
     console.error("Unexpected error:", error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 })
   }
 }

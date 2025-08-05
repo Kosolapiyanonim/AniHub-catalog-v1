@@ -1,381 +1,502 @@
 "use client"
 
-import type React from "react"
 import { useState, useEffect, useCallback } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { SlidersHorizontal } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "./ui/checkbox"
-import { Label } from "./ui/label"
-import { useSupabase } from "@/components/supabase-provider"
+import { Badge } from "@/components/ui/badge"
+import { X, Search, Filter, ChevronDown } from "lucide-react"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
 import { useDebounce } from "@/hooks/use-debounce"
-import { X } from "lucide-react"
-
-type FilterItem = { id: number; name: string; slug: string }
-export interface FiltersState {
-  title: string
-  sort: string
-  year_from: string
-  year_to: string
-  genres: string[]
-  genres_exclude: string[]
-  studios: string[]
-  studios_exclude: string[]
-  kinds: string[] // <-- ИЗМЕНЕНИЕ: types заменен на kinds
-  statuses: string[]
-  user_list_status: string
-}
-
-export const DEFAULT_FILTERS: FiltersState = {
-  title: "",
-  sort: "shikimori_votes", // <-- ИЗМЕНЕНИЕ: Установлено значение по умолчанию
-  year_from: "",
-  year_to: "",
-  genres: [],
-  genres_exclude: [],
-  studios: [],
-  studios_exclude: [],
-  kinds: [], // <-- ИЗМЕНЕНИЕ
-  statuses: [],
-  user_list_status: "", // <-- ИЗМЕНЕНИЕ: Установлено значение по умолчанию
-}
-
-// Список возможных типов, которые приходят от Kodik
-const animeKinds = ["tv", "movie", "ova", "ona", "special"]
-const animeStatuses = ["released", "ongoing", "anons"]
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { getGenres, getYears, getStatuses, getTypes, getStudios, getTags } from "@/lib/data-fetchers"
 
 interface CatalogFiltersProps {
-  initialFilters: FiltersState
-  onApply: (filters: FiltersState) => void
+  currentFilters: {
+    genres: string[]
+    years: string[]
+    statuses: string[]
+    types: string[]
+    studios: string[]
+    tags: string[]
+    search: string
+    sort: string
+    order: string
+    anime_kind: string // New filter
+  }
 }
 
-export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps) {
+export function CatalogFilters({ currentFilters }: CatalogFiltersProps) {
   const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
-  const { session } = useSupabase()
-  const [filters, setFilters] = useState(initialFilters)
-  const [genres, setGenres] = useState<FilterItem[]>([])
-  const [studios, setStudios] = useState<FilterItem[]>([])
-  const [tags, setTags] = useState<FilterItem[]>([])
-  const [kinds, setKinds] = useState<string[]>([]) // State for anime_kind
 
-  const [selectedGenre, setSelectedGenre] = useState(searchParams.get("genre") || "")
-  const [selectedYear, setSelectedYear] = useState(searchParams.get("year") || "")
-  const [selectedType, setSelectedType] = useState(searchParams.get("type") || "")
-  const [selectedStatus, setSelectedStatus] = useState(searchParams.get("status") || "")
-  const [selectedStudio, setSelectedStudio] = useState(searchParams.get("studio") || "")
-  const [selectedTag, setSelectedTag] = useState(searchParams.get("tag") || "")
-  const [selectedKind, setSelectedKind] = useState(searchParams.get("kind") || "") // State for selected anime_kind
-  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "")
-  const [sortBy, setSortBy] = useState(searchParams.get("sort") || "shikimori_rating.desc")
+  const [genres, setGenres] = useState<string[]>([])
+  const [years, setYears] = useState<string[]>([])
+  const [statuses, setStatuses] = useState<string[]>([])
+  const [types, setTypes] = useState<string[]>([])
+  const [studios, setStudios] = useState<string[]>([])
+  const [tags, setTags] = useState<string[]>([])
+
+  const [selectedGenres, setSelectedGenres] = useState<string[]>(currentFilters.genres)
+  const [selectedYears, setSelectedYears] = useState<string[]>(currentFilters.years)
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(currentFilters.statuses)
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(currentFilters.types)
+  const [selectedStudios, setSelectedStudios] = useState<string[]>(currentFilters.studios)
+  const [selectedTags, setSelectedTags] = useState<string[]>(currentFilters.tags)
+  const [searchTerm, setSearchTerm] = useState(currentFilters.search)
+  const [sortBy, setSortBy] = useState(currentFilters.sort || "shikimori_rating") // Default value set
+  const [sortOrder, setSortOrder] = useState(currentFilters.order || "desc") // Default value set
+  const [selectedAnimeKind, setSelectedAnimeKind] = useState<string>(currentFilters.anime_kind) // State for new filter
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500)
 
-  const fetchFilters = useCallback(async () => {
-    const [genresRes, studiosRes, tagsRes] = await Promise.all([
-      fetch("/api/genres"),
-      fetch("/api/studios"),
-      fetch("/api/tags"),
-    ])
-    if (genresRes.ok) setGenres(await genresRes.json())
-    if (studiosRes.ok) setStudios(await studiosRes.json())
-    if (tagsRes.ok) setTags(await tagsRes.json())
-    // Hardcode anime_kind options for now, as there's no API for it yet
-    setKinds(["tv", "movie", "ova", "ona", "special", "music", "tv_special"])
+  useEffect(() => {
+    const fetchFilterOptions = async () => {
+      setGenres(await getGenres())
+      setYears(await getYears())
+      setStatuses(await getStatuses())
+      setTypes(await getTypes())
+      setStudios(await getStudios())
+      setTags(await getTags())
+    }
+    fetchFilterOptions()
   }, [])
 
   useEffect(() => {
-    setFilters(initialFilters)
-  }, [initialFilters])
-
-  useEffect(() => {
-    fetchFilters()
-  }, [fetchFilters])
-
-  useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString())
-    params.set("page", "1") // Reset to first page on filter change
-
-    if (selectedGenre) params.set("genre", selectedGenre)
-    else params.delete("genre")
-
-    if (selectedYear) params.set("year", selectedYear)
-    else params.delete("year")
-
-    if (selectedType) params.set("type", selectedType)
-    else params.delete("type")
-
-    if (selectedStatus) params.set("status", selectedStatus)
-    else params.delete("status")
-
-    if (selectedStudio) params.set("studio", selectedStudio)
-    else params.delete("studio")
-
-    if (selectedTag) params.set("tag", selectedTag)
-    else params.delete("tag")
-
-    if (selectedKind)
-      params.set("kind", selectedKind) // Add kind to params
-    else params.delete("kind")
-
-    if (debouncedSearchTerm) params.set("search", debouncedSearchTerm)
-    else params.delete("search")
-
-    if (sortBy) params.set("sort", sortBy)
-    else params.delete("sort")
-
-    router.push(`/catalog?${params.toString()}`)
+    applyFilters()
   }, [
-    selectedGenre,
-    selectedYear,
-    selectedType,
-    selectedStatus,
-    selectedStudio,
-    selectedTag,
-    selectedKind, // Add to dependency array
     debouncedSearchTerm,
+    selectedGenres,
+    selectedYears,
+    selectedStatuses,
+    selectedTypes,
+    selectedStudios,
+    selectedTags,
     sortBy,
-    router,
-    searchParams,
-  ])
+    sortOrder,
+    selectedAnimeKind,
+  ]) // Add new filter to dependencies
 
-  const clearFilter = (filterName: string) => {
-    switch (filterName) {
-      case "genre":
-        setSelectedGenre("")
-        break
-      case "year":
-        setSelectedYear("")
-        break
-      case "type":
-        setSelectedType("")
-        break
-      case "status":
-        setSelectedStatus("")
-        break
-      case "studio":
-        setSelectedStudio("")
-        break
-      case "tag":
-        setSelectedTag("")
-        break
-      case "kind": // Clear kind filter
-        setSelectedKind("")
-        break
-      case "search":
-        setSearchTerm("")
-        break
-      case "sort":
-        setSortBy("shikimori_rating.desc")
-        break
-      default:
-        break
-    }
-  }
-
-  const handleApply = () => onApply(filters)
-  const handleReset = () => onApply(DEFAULT_FILTERS)
-
-  // Вспомогательный компонент для группы чекбосов
-  const CheckboxGroup = ({
-    items,
-    selected,
-    onChange,
-  }: { items: string[]; selected: string[]; onChange: (newSelected: string[]) => void }) => {
-    const handleCheckboxChange = (item: string, isChecked: boolean) => {
-      if (isChecked) {
-        onChange([...selected, item])
+  const createQueryString = useCallback(
+    (name: string, value: string | string[]) => {
+      const params = new URLSearchParams(searchParams.toString())
+      if (Array.isArray(value)) {
+        if (value.length > 0) {
+          params.set(name, value.join(","))
+        } else {
+          params.delete(name)
+        }
       } else {
-        onChange(selected.filter((s) => s !== item))
+        if (value) {
+          params.set(name, value)
+        } else {
+          params.delete(name)
+        }
       }
-    }
-
-    return (
-      <div className="grid grid-cols-2 gap-2">
-        {items.map((item) => (
-          <div key={item} className="flex items-center space-x-2">
-            <Checkbox
-              id={`filter-${item}`}
-              checked={selected.includes(item)}
-              onCheckedChange={(checked) => handleCheckboxChange(item, !!checked)}
-            />
-            <Label htmlFor={`filter-${item}`} className="capitalize text-gray-300">
-              {item}
-            </Label>
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  // Вспомогательный компонент для секции фильтра
-  const FilterSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <AccordionItem value={title.toLowerCase().replace(/\s/g, "-")}>
-      <AccordionTrigger className="text-white hover:no-underline">{title}</AccordionTrigger>
-      <AccordionContent className="pt-2">{children}</AccordionContent>
-    </AccordionItem>
+      params.set("page", "1") // Reset to first page on filter change
+      return params.toString()
+    },
+    [searchParams],
   )
 
+  const applyFilters = useCallback(() => {
+    const params = new URLSearchParams()
+    if (debouncedSearchTerm) params.set("search", debouncedSearchTerm)
+    if (selectedGenres.length > 0) params.set("genres", selectedGenres.join(","))
+    if (selectedYears.length > 0) params.set("years", selectedYears.join(","))
+    if (selectedStatuses.length > 0) params.set("statuses", selectedStatuses.join(","))
+    if (selectedTypes.length > 0) params.set("types", selectedTypes.join(","))
+    if (selectedStudios.length > 0) params.set("studios", selectedStudios.join(","))
+    if (selectedTags.length > 0) params.set("tags", selectedTags.join(","))
+    if (sortBy) params.set("sort", sortBy)
+    if (sortOrder) params.set("order", sortOrder)
+    if (selectedAnimeKind) params.set("anime_kind", selectedAnimeKind) // Apply new filter
+
+    params.set("page", "1") // Always reset to page 1 when filters change
+    params.set("limit", currentFilters.limit || "24") // Keep current limit
+
+    router.push(`${pathname}?${params.toString()}`)
+  }, [
+    debouncedSearchTerm,
+    selectedGenres,
+    selectedYears,
+    selectedStatuses,
+    selectedTypes,
+    selectedStudios,
+    selectedTags,
+    sortBy,
+    sortOrder,
+    selectedAnimeKind, // Add new filter to dependencies
+    router,
+    pathname,
+    currentFilters.limit,
+  ])
+
+  const toggleFilter = (filterType: string, value: string) => {
+    let newSelection: string[]
+    switch (filterType) {
+      case "genres":
+        newSelection = selectedGenres.includes(value)
+          ? selectedGenres.filter((item) => item !== value)
+          : [...selectedGenres, value]
+        setSelectedGenres(newSelection)
+        break
+      case "years":
+        newSelection = selectedYears.includes(value)
+          ? selectedYears.filter((item) => item !== value)
+          : [...selectedYears, value]
+        setSelectedYears(newSelection)
+        break
+      case "statuses":
+        newSelection = selectedStatuses.includes(value)
+          ? selectedStatuses.filter((item) => item !== value)
+          : [...selectedStatuses, value]
+        setSelectedStatuses(newSelection)
+        break
+      case "types":
+        newSelection = selectedTypes.includes(value)
+          ? selectedTypes.filter((item) => item !== value)
+          : [...selectedTypes, value]
+        setSelectedTypes(newSelection)
+        break
+      case "studios":
+        newSelection = selectedStudios.includes(value)
+          ? selectedStudios.filter((item) => item !== value)
+          : [...selectedStudios, value]
+        setSelectedStudios(newSelection)
+        break
+      case "tags":
+        newSelection = selectedTags.includes(value)
+          ? selectedTags.filter((item) => item !== value)
+          : [...selectedTags, value]
+        setSelectedTags(newSelection)
+        break
+    }
+  }
+
+  const clearAllFilters = () => {
+    setSelectedGenres([])
+    setSelectedYears([])
+    setSelectedStatuses([])
+    setSelectedTypes([])
+    setSelectedStudios([])
+    setSelectedTags([])
+    setSearchTerm("")
+    setSortBy("shikimori_rating")
+    setSortOrder("desc")
+    setSelectedAnimeKind("") // Clear new filter
+    router.push(pathname)
+  }
+
+  const activeFiltersCount =
+    selectedGenres.length +
+    selectedYears.length +
+    selectedStatuses.length +
+    selectedTypes.length +
+    selectedStudios.length +
+    selectedTags.length +
+    (searchTerm ? 1 : 0) +
+    (sortBy !== "shikimori_rating" || sortOrder !== "desc" ? 1 : 0) +
+    (selectedAnimeKind ? 1 : 0) // Count new filter
+
   return (
-    <Card className="sticky top-20 bg-slate-800 border-slate-700">
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle className="flex items-center gap-2 text-white">
-            <SlidersHorizontal className="w-5 h-5" />
-            Фильтры
-          </CardTitle>
-          <Button onClick={handleReset} variant="ghost" size="sm" className="text-gray-400 hover:text-white">
-            Сбросить
-          </Button>
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-grow">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Поиск по названию..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 pr-4 py-2 w-full"
+          />
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Поиск по названию */}
-        <div className="flex flex-col space-y-1.5">
-          <Label htmlFor="search">Поиск по названию</Label>
-          <div className="relative">
-            <Input
-              id="search"
-              placeholder="Найти аниме..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pr-8 bg-slate-700 border-slate-600 text-white placeholder:text-gray-400"
-            />
-            {searchTerm && (
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="flex items-center gap-2 bg-transparent">
+              <Filter className="h-4 w-4" />
+              Фильтры
+              {activeFiltersCount > 0 && <Badge className="ml-1">{activeFiltersCount}</Badge>}
+              <ChevronDown className="h-4 w-4 ml-auto" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[300px] p-0" align="end">
+            <ScrollArea className="h-[400px]">
+              <div className="p-4">
+                <h4 className="font-medium text-sm mb-3">Сортировка</h4>
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Сортировать по" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="shikimori_rating">Рейтинг</SelectItem>
+                      <SelectItem value="episodes">Эпизоды</SelectItem>
+                      <SelectItem value="aired_on">Дата выхода</SelectItem>
+                      <SelectItem value="title">Название</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={sortOrder} onValueChange={setSortOrder}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Порядок" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="desc">По убыванию</SelectItem>
+                      <SelectItem value="asc">По возрастанию</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <h4 className="font-medium text-sm mb-3">Тип аниме</h4>
+                <Select value={selectedAnimeKind} onValueChange={setSelectedAnimeKind}>
+                  <SelectTrigger className="w-full mb-4">
+                    <SelectValue placeholder="Выберите тип" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Все</SelectItem>
+                    <SelectItem value="tv">TV</SelectItem>
+                    <SelectItem value="movie">Фильм</SelectItem>
+                    <SelectItem value="ova">OVA</SelectItem>
+                    <SelectItem value="ona">ONA</SelectItem>
+                    <SelectItem value="special">Спешл</SelectItem>
+                    <SelectItem value="music">Музыка</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Accordion type="multiple" className="w-full">
+                  <AccordionItem value="genres">
+                    <AccordionTrigger className="text-sm font-medium">Жанры</AccordionTrigger>
+                    <AccordionContent>
+                      <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2">
+                        {genres.map((genre) => (
+                          <div key={genre} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`genre-${genre}`}
+                              checked={selectedGenres.includes(genre)}
+                              onCheckedChange={() => toggleFilter("genres", genre)}
+                            />
+                            <Label htmlFor={`genre-${genre}`}>{genre}</Label>
+                          </div>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="years">
+                    <AccordionTrigger className="text-sm font-medium">Годы</AccordionTrigger>
+                    <AccordionContent>
+                      <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2">
+                        {years.map((year) => (
+                          <div key={year} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`year-${year}`}
+                              checked={selectedYears.includes(year)}
+                              onCheckedChange={() => toggleFilter("years", year)}
+                            />
+                            <Label htmlFor={`year-${year}`}>{year}</Label>
+                          </div>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="statuses">
+                    <AccordionTrigger className="text-sm font-medium">Статусы</AccordionTrigger>
+                    <AccordionContent>
+                      <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2">
+                        {statuses.map((status) => (
+                          <div key={status} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`status-${status}`}
+                              checked={selectedStatuses.includes(status)}
+                              onCheckedChange={() => toggleFilter("statuses", status)}
+                            />
+                            <Label htmlFor={`status-${status}`}>{status}</Label>
+                          </div>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="types">
+                    <AccordionTrigger className="text-sm font-medium">Типы</AccordionTrigger>
+                    <AccordionContent>
+                      <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2">
+                        {types.map((type) => (
+                          <div key={type} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`type-${type}`}
+                              checked={selectedTypes.includes(type)}
+                              onCheckedChange={() => toggleFilter("types", type)}
+                            />
+                            <Label htmlFor={`type-${type}`}>{type}</Label>
+                          </div>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="studios">
+                    <AccordionTrigger className="text-sm font-medium">Студии</AccordionTrigger>
+                    <AccordionContent>
+                      <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2">
+                        {studios.map((studio) => (
+                          <div key={studio} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`studio-${studio}`}
+                              checked={selectedStudios.includes(studio)}
+                              onCheckedChange={() => toggleFilter("studios", studio)}
+                            />
+                            <Label htmlFor={`studio-${studio}`}>{studio}</Label>
+                          </div>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="tags">
+                    <AccordionTrigger className="text-sm font-medium">Теги</AccordionTrigger>
+                    <AccordionContent>
+                      <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2">
+                        {tags.map((tag) => (
+                          <div key={tag} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`tag-${tag}`}
+                              checked={selectedTags.includes(tag)}
+                              onCheckedChange={() => toggleFilter("tags", tag)}
+                            />
+                            <Label htmlFor={`tag-${tag}`}>{tag}</Label>
+                          </div>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+
+                <div className="mt-4">
+                  <Button variant="outline" className="w-full bg-transparent" onClick={clearAllFilters}>
+                    <X className="h-4 w-4 mr-2" />
+                    Сбросить все
+                  </Button>
+                </div>
+              </div>
+            </ScrollArea>
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      {(selectedGenres.length > 0 ||
+        selectedYears.length > 0 ||
+        selectedStatuses.length > 0 ||
+        selectedTypes.length > 0 ||
+        selectedStudios.length > 0 ||
+        selectedTags.length > 0 ||
+        searchTerm ||
+        selectedAnimeKind) && ( // Display new filter in active badges
+        <div className="flex flex-wrap gap-2 mt-4">
+          {searchTerm && (
+            <Badge variant="secondary">
+              Поиск: {searchTerm}
+              <Button variant="ghost" size="icon" className="h-4 w-4 ml-1" onClick={() => setSearchTerm("")}>
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          )}
+          {selectedAnimeKind && (
+            <Badge variant="secondary">
+              Тип: {selectedAnimeKind}
+              <Button variant="ghost" size="icon" className="h-4 w-4 ml-1" onClick={() => setSelectedAnimeKind("")}>
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          )}
+          {selectedGenres.map((genre) => (
+            <Badge key={genre} variant="secondary">
+              {genre}
               <Button
                 variant="ghost"
-                size="sm"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-auto p-1"
-                onClick={() => clearFilter("search")}
+                size="icon"
+                className="h-4 w-4 ml-1"
+                onClick={() => toggleFilter("genres", genre)}
               >
-                <X className="h-4 w-4" />
+                <X className="h-3 w-3" />
               </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Сортировка */}
-        <div className="space-y-2">
-          <Label htmlFor="sort-by" className="text-gray-300">
-            Сортировать по
-          </Label>
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-full bg-slate-700 border-slate-600 text-white">
-              <SelectValue placeholder="Выберите опцию" />
-            </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700 text-white">
-              <SelectItem value="shikimori_votes">Популярности</SelectItem>
-              <SelectItem value="year">Году выпуска</SelectItem>
-              <SelectItem value="shikimori_rating">Рейтингу</SelectItem>
-              <SelectItem value="title">Названию</SelectItem>
-              <SelectItem value="updated_at_kodik">Обновлению</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <Button onClick={handleApply} className="w-full bg-primary hover:bg-primary/90 text-white">
-          Применить
-        </Button>
-
-        <Accordion type="multiple" className="w-full" defaultValue={["user_list_status", "genres"]}>
-          {/* Фильтр по типу (anime_kind) */}
-          <FilterSection title="Тип">
-            <CheckboxGroup
-              items={animeKinds}
-              selected={filters.kinds}
-              onChange={(val) => setFilters((prev) => ({ ...prev, kinds: val }))}
-            />
-          </FilterSection>
-
-          {/* Фильтр по статусу */}
-          <FilterSection title="Статус">
-            <CheckboxGroup
-              items={animeStatuses}
-              selected={filters.statuses}
-              onChange={(val) => setFilters((prev) => ({ ...prev, statuses: val }))}
-            />
-          </FilterSection>
-
-          {/* Фильтр по годам */}
-          <FilterSection title="Год">
-            <div className="flex gap-2">
-              <Input
-                type="number"
-                placeholder="От"
-                value={filters.year_from}
-                onChange={(e) => setFilters((prev) => ({ ...prev, year_from: e.target.value }))}
-                className="w-1/2 bg-slate-700 border-slate-600 text-white placeholder:text-gray-400"
-              />
-              <Input
-                type="number"
-                placeholder="До"
-                value={filters.year_to}
-                onChange={(e) => setFilters((prev) => ({ ...prev, year_to: e.target.value }))}
-                className="w-1/2 bg-slate-700 border-slate-600 text-white placeholder:text-gray-400"
-              />
-            </div>
-          </FilterSection>
-
-          {/* Фильтр по жанрам */}
-          <FilterSection title="Жанры">
-            <ScrollArea className="h-[200px] pr-4">
-              <CheckboxGroup
-                items={genres.map((g) => g.name)}
-                selected={filters.genres}
-                onChange={(val) => setFilters((prev) => ({ ...prev, genres: val }))}
-              />
-            </ScrollArea>
-          </FilterSection>
-
-          {/* Фильтр по студиям */}
-          <FilterSection title="Студии">
-            <ScrollArea className="h-[200px] pr-4">
-              <CheckboxGroup
-                items={studios.map((s) => s.name)}
-                selected={filters.studios}
-                onChange={(val) => setFilters((prev) => ({ ...prev, studios: val }))}
-              />
-            </ScrollArea>
-          </FilterSection>
-
-          {/* Фильтр по тегам (если применимо) */}
-          {/* <FilterSection title="Теги">
-            <ScrollArea className="h-[200px] pr-4">
-              <CheckboxGroup
-                items={tags.map(t => t.name)}
-                selected={filters.tags}
-                onChange={val => setFilters(prev => ({ ...prev, tags: val }))}
-              />
-            </ScrollArea>
-          </FilterSection> */}
-
-          {session && (
-            <FilterSection title="Мой список">
-              <Select
-                value={filters.user_list_status}
-                onValueChange={(val) => setFilters((prev) => ({ ...prev, user_list_status: val }))}
+            </Badge>
+          ))}
+          {selectedYears.map((year) => (
+            <Badge key={year} variant="secondary">
+              {year}
+              <Button variant="ghost" size="icon" className="h-4 w-4 ml-1" onClick={() => toggleFilter("years", year)}>
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          ))}
+          {selectedStatuses.map((status) => (
+            <Badge key={status} variant="secondary">
+              {status}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-4 w-4 ml-1"
+                onClick={() => toggleFilter("statuses", status)}
               >
-                <SelectTrigger className="w-full bg-slate-700 border-slate-600 text-white">
-                  <SelectValue placeholder="Выберите статус" />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700 text-white">
-                  <SelectItem value="all">Все</SelectItem> {/* <-- ИЗМЕНЕНИЕ: Значение не пустое */}
-                  <SelectItem value="watching">Смотрю</SelectItem>
-                  <SelectItem value="planned">Запланировано</SelectItem>
-                  <SelectItem value="completed">Просмотрено</SelectItem>
-                  <SelectItem value="dropped">Брошено</SelectItem>
-                  <SelectItem value="on_hold">Отложено</SelectItem>
-                </SelectContent>
-              </Select>
-            </FilterSection>
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          ))}
+          {selectedTypes.map((type) => (
+            <Badge key={type} variant="secondary">
+              {type}
+              <Button variant="ghost" size="icon" className="h-4 w-4 ml-1" onClick={() => toggleFilter("types", type)}>
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          ))}
+          {selectedStudios.map((studio) => (
+            <Badge key={studio} variant="secondary">
+              {studio}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-4 w-4 ml-1"
+                onClick={() => toggleFilter("studios", studio)}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          ))}
+          {selectedTags.map((tag) => (
+            <Badge key={tag} variant="secondary">
+              {tag}
+              <Button variant="ghost" size="icon" className="h-4 w-4 ml-1" onClick={() => toggleFilter("tags", tag)}>
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          ))}
+          {(sortBy !== "shikimori_rating" || sortOrder !== "desc") && (
+            <Badge variant="secondary">
+              Сортировка: {sortBy} ({sortOrder === "asc" ? "возр." : "убыв."})
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-4 w-4 ml-1"
+                onClick={() => {
+                  setSortBy("shikimori_rating")
+                  setSortOrder("desc")
+                }}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
           )}
-        </Accordion>
-      </CardContent>
-    </Card>
+        </div>
+      )}
+    </div>
   )
 }

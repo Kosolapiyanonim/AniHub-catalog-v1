@@ -6,15 +6,16 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { toast } from "sonner"
 
 export default function TestApiPage() {
-  const [apiResponse, setApiResponse] = useState("")
+  const [apiResponse, setApiResponse] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [animeId, setAnimeId] = useState("")
 
   const testApi = async (endpoint: string, method = "GET", body?: any) => {
     setLoading(true)
-    setApiResponse("Loading...")
+    setApiResponse(null)
     try {
       const options: RequestInit = { method }
       if (body) {
@@ -24,8 +25,15 @@ export default function TestApiPage() {
       const response = await fetch(endpoint, options)
       const data = await response.json()
       setApiResponse(JSON.stringify(data, null, 2))
+      if (data.status === "ok") {
+        toast.success("API Test Successful!")
+      } else {
+        toast.error("API Test Failed!", { description: data.message })
+      }
     } catch (error: any) {
+      console.error("Error testing API:", error)
       setApiResponse(`Error: ${error.message}`)
+      toast.error("An unexpected error occurred during API test.")
     } finally {
       setLoading(false)
     }
@@ -34,6 +42,26 @@ export default function TestApiPage() {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-6">Тестирование API</h1>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Проверить подключение к Supabase API</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-4">
+            Нажмите кнопку ниже, чтобы проверить, правильно ли настроено подключение к Supabase API.
+          </p>
+          <Button onClick={() => testApi("/api/test")} disabled={loading}>
+            {loading ? "Тестирование..." : "Запустить тест API"}
+          </Button>
+          {apiResponse && (
+            <div className="mt-4">
+              <h3 className="text-lg font-semibold mb-2">Ответ API:</h3>
+              <Textarea value={apiResponse} readOnly rows={10} className="font-mono text-sm bg-muted p-2 rounded-md" />
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
         <Card>
@@ -209,20 +237,6 @@ export default function TestApiPage() {
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Ответ API</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            className="min-h-[300px] font-mono text-xs"
-            value={apiResponse}
-            readOnly
-            placeholder="Здесь будет отображаться ответ API..."
-          />
-        </CardContent>
-      </Card>
     </div>
   )
 }

@@ -6,9 +6,8 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Toaster } from "@/components/ui/toaster"
-import { Suspense } from "react"
 import SupabaseProvider from "@/components/supabase-provider"
-import { ErrorBoundary } from "@/components/error-boundary"
+import { Suspense } from "react"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -29,15 +28,11 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <SupabaseProvider>
-            <div className="flex flex-col min-h-screen">
-              <Header />
-              <main className="flex-1">
-                <ErrorBoundary>
-                  <Suspense fallback={<div>Загрузка...</div>}>{children}</Suspense>
-                </ErrorBoundary>
-              </main>
-              <Footer />
-            </div>
+            <Header />
+            <main className="flex-grow pt-16">
+              <Suspense fallback={<div>Загрузка...</div>}>{children}</Suspense>
+            </main>
+            <Footer />
             <Toaster />
           </SupabaseProvider>
         </ThemeProvider>

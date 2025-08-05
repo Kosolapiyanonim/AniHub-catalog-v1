@@ -135,7 +135,7 @@ importers:
         specifier: 4.1.0
         version: 4.1.0
       dotenv:
-        specifier: ^17.2.1
+        specifier: latest
         version: 17.2.1
       embla-carousel:
         specifier: latest
@@ -150,11 +150,11 @@ importers:
         specifier: ^16.11.0
         version: 16.11.0
       graphql-request:
-        specifier: ^7.2.0
+        specifier: latest
         version: 7.2.0(graphql@16.11.0)
       hls.js:
         specifier: latest
-        version: 1.6.7
+        version: 1.6.8
       immer:
         specifier: latest
         version: 10.1.1
@@ -187,7 +187,7 @@ importers:
         version: 3.0.4(react-dom@18.0.0(react@18.0.0))(react@18.0.0)
       recharts:
         specifier: latest
-        version: 3.1.0(@types/react@18.0.0)(react-dom@18.0.0(react@18.0.0))(react-is@18.3.1)(react@18.0.0)(redux@5.0.1)
+        version: 3.1.1(@types/react@18.0.0)(react-dom@18.0.0(react@18.0.0))(react-is@18.3.1)(react@18.0.0)(redux@5.0.1)
       sonner:
         specifier: latest
         version: 2.0.7(react-dom@18.0.0(react@18.0.0))(react@18.0.0)
@@ -1914,8 +1914,8 @@ packages:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
     engines: {node: '>= 0.4'}
 
-  hls.js@1.6.7:
-    resolution: {integrity: sha512-QW2fnwDGKGc9DwQUGLbmMOz8G48UZK7PVNJPcOUql1b8jubKx4/eMHNP5mGqr6tYlJNDG1g10Lx2U/qPzL6zwQ==}
+  hls.js@1.6.8:
+    resolution: {integrity: sha512-oifhtMNYRpB1VmzH/hWd4NXziMJ1hCeA15XG1ET4jh6u4khXsYsqqvpEFWmNWS+8J6tbsv10wYq5ZiY21HG2Gg==}
 
   immer@10.1.1:
     resolution: {integrity: sha512-s2MPrmjovJcoMaHtx6K11Ra7oD05NT97w1IC5zpMkT6Atjr7H8LjaDd81iIxUYpMKSRRNMJE703M1Fhr/TctHw==}
@@ -2265,8 +2265,8 @@ packages:
     resolution: {integrity: sha512-hOS089on8RduqdbhvQ5Z37A0ESjsqz6qnRcffsMU3495FuTdqSm+7bhJ29JvIOsBDEEnan5DPu9t3To9VRlMzA==}
     engines: {node: '>=8.10.0'}
 
-  recharts@3.1.0:
-    resolution: {integrity: sha512-NqAqQcGBmLrfDs2mHX/bz8jJCQtG2FeXfE0GqpZmIuXIjkpIwj8sd9ad0WyvKiBKPd8ZgNG0hL85c8sFDwascw==}
+  recharts@3.1.1:
+    resolution: {integrity: sha512-PVA2gdAiTPaPj+56BV5qVfkuPxhqXBhWKnu7r+7WYsczCWHkSrZcE224GLOAWjUMj+cYTkYfGYV2WC2qdJtvcQ==}
     engines: {node: '>=18'}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
@@ -4201,7 +4201,7 @@ snapshots:
     dependencies:
       function-bind: 1.1.2
 
-  hls.js@1.6.7: {}
+  hls.js@1.6.8: {}
 
   immer@10.1.1: {}
 
@@ -4500,7 +4500,7 @@ snapshots:
     dependencies:
       picomatch: 2.3.1
 
-  recharts@3.1.0(@types/react@18.0.0)(react-dom@18.0.0(react@18.0.0))(react-is@18.3.1)(react@18.0.0)(redux@5.0.1):
+  recharts@3.1.1(@types/react@18.0.0)(react-dom@18.0.0(react@18.0.0))(react-is@18.3.1)(react@18.0.0)(redux@5.0.1):
     dependencies:
       '@reduxjs/toolkit': 2.8.2(react-redux@9.2.0(@types/react@18.0.0)(react@18.0.0)(redux@5.0.1))(react@18.0.0)
       clsx: 2.1.1

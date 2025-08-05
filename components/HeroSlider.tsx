@@ -13,7 +13,7 @@ import Autoplay from "embla-carousel-autoplay"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Play, Info, Star, Clapperboard, Calendar, Maximize, Minimize } from "lucide-react"
+import { Play, Info, Star, Clapperboard, Calendar, Maximize, Minimize } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
 import type { Anime } from "@/lib/types"
 
@@ -345,10 +345,10 @@ export function HeroSlider({ items }: HeroSliderProps) {
         {/* --- КОНЕЦ СТРЕЛОЧЕК ДЛЯ ДЕСКТОПА --- */}
       </Carousel>
 
-      {/* --- ИНТЕРАКТИВНЫЕ ИНДИКАТОРЫ СЛАЙДОВ --- */}
-      {count > 1 && (
+      {/* --- ИНТЕРАКТИВНЫЕ ИНДИКАТОРЫ СЛАЙДОВ (показываются всегда) --- */}
+      {validItems.length > 0 && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex gap-2">
-          {Array.from({ length: count }).map((_, index) => (
+          {validItems.map((_, index) => (
             <button
               key={index}
               onClick={() => api?.scrollTo(index)}

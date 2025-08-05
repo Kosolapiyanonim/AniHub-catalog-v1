@@ -8,7 +8,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Play, Info, Star, Clapperboard, Calendar } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import type { Anime } from "@/lib/types" // Используем обновленный тип Anime
+import type { Anime } from "@/lib/types"
 
 interface HeroSliderProps {
   items?: Anime[] | null
@@ -70,8 +70,8 @@ export function HeroSlider({ items }: HeroSliderProps) {
                     <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-slate-900 to-transparent"></div>
                   </div>
 
-                  <div className="relative z-10 h-full w-full flex flex-col justify-between p-4 sm:p-6">
-                    <div className="text-white">
+                  <div className="relative z-10 h-full w-full flex flex-col justify-end p-4 sm:p-6 pb-8">
+                    <div className="text-white mb-6">
                       <Badge
                         variant="secondary"
                         className="mb-2 text-[0.6rem] sm:text-xs bg-white/10 text-purple-300 border border-purple-500/30 backdrop-blur-sm"
@@ -278,16 +278,10 @@ export function HeroSlider({ items }: HeroSliderProps) {
           })}
         </CarouselContent>
 
-        {/* --- СТРЕЛОЧКИ СПРАВА, РЯДОМ --- */}
-        {/* Оберточный div для центрирования по вертикали и позиционирования справа */}
-        <div className="absolute inset-y-0 right-0 flex items-center justify-end pr-2 sm:pr-4 md:pr-6 pointer-events-none">
-          {/* Контейнер для кнопок, который получает pointer-events */}
-          <div className="flex flex-col gap-1 sm:gap-2 pointer-events-auto">
-            <CarouselPrevious className="relative bg-gradient-to-r from-white/25 to-white/15 hover:from-white/35 hover:to-white/25 text-white border border-white/30 backdrop-blur-[6px] w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl" />
-            <CarouselNext className="relative bg-gradient-to-r from-white/25 to-white/15 hover:from-white/35 hover:to-white/25 text-white border border-white/30 backdrop-blur-[6px] w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl" />
-          </div>
-        </div>
-        {/* --- КОНЕЦ СТРЕЛОЧЕК СПРАВА --- */}
+        {/* --- СТРЕЛОЧКИ ДЛЯ ДЕСКТОПА --- */}
+        <CarouselPrevious className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm w-10 h-10 rounded-full shadow-lg transition-all duration-300 hover:scale-110" />
+        <CarouselNext className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm w-10 h-10 rounded-full shadow-lg transition-all duration-300 hover:scale-110" />
+        {/* --- КОНЕЦ СТРЕЛОЧЕК ДЛЯ ДЕСКТОПА --- */}
       </Carousel>
     </div>
   )

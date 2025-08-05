@@ -2,7 +2,7 @@
 import { HeroSlider } from "@/components/HeroSlider"
 import { AnimeCarousel } from "@/components/AnimeCarousel"
 import { LoadingSpinner } from "@/components/loading-spinner"
-import { TrendingUp, Star, RotateCw } from "lucide-react" // <-- Импортируем новую иконку
+import { TrendingUp, Star, RotateCw } from "lucide-react"
 import { Suspense } from "react"
 import { getHomePageData } from "@/lib/data-fetchers"
 
@@ -12,23 +12,24 @@ export default async function HomePage() {
   const data = await getHomePageData()
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      {/* Оборачиваем HeroSlider в контейнер, чтобы он имел те же отступы, что и основной контент */}
-      <div className="container mx-auto px-4">
-        <HeroSlider items={data.hero} />
-      </div>
+    <>
+      {/* HeroSlider теперь действительно вне любого контейнера с px-4 */}
+      {/* Он растягивается на 100% ширины, так как находится в div.flex-1 в layout.tsx */}
+      <div className="min-h-screen bg-slate-900">
+      <HeroSlider items={data.hero} />
+      
+      {/* Основной контент теперь ЯВНО обернут в container */}
+      {/* Этот main рендерится внутри div.flex-1 в layout.tsx, но сам добавляет контейнер */}
       <main className="container mx-auto px-4 py-12 space-y-12">
-        {/* Существующая секция "Тренды сезона" */}
         <Suspense fallback={<LoadingSpinner />}>
           <AnimeCarousel
             title="Тренды сезона"
             items={data.trending}
-            viewAllLink="/catalog?sort=shikimori_rating" // <-- Исправлено на правильную сортировку
+            viewAllLink="/catalog?sort=shikimori_rating"
             icon={<TrendingUp />}
           />
         </Suspense>
         
-        {/* Существующая секция "Самое популярное" */}
         <Suspense fallback={<LoadingSpinner />}>
           <AnimeCarousel
             title="Самое популярное"
@@ -38,16 +39,16 @@ export default async function HomePage() {
           />
         </Suspense>
 
-        {/* НОВАЯ секция "Недавно обновленные" */}
         <Suspense fallback={<LoadingSpinner />}>
           <AnimeCarousel
             title="Недавно обновленные"
-            items={data.latestUpdates} // <-- Используем новые данные
-            viewAllLink="/catalog?sort=updated_at_kodik" // <-- Ссылка на каталог с правильной сортировкой
-            icon={<RotateCw />} // <-- Используем новую иконку
+            items={data.latestUpdates}
+            viewAllLink="/catalog?sort=updated_at_kodik"
+            icon={<RotateCw />}
           />
         </Suspense>
       </main>
-    </div>
+      </div>
+    </>
   )
 }

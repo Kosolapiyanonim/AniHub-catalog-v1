@@ -2,20 +2,33 @@
 "use client"
 
 import React, { useRef } from "react";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
 import Image from "next/image";
 import Link from "next/link";
-import { Button } from "./ui/button";
-import { Play, Info, Star, Clapperboard, Calendar } from "lucide-react";
-import { Badge } from "./ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Play,
+  Info,
+  Star,
+  Clapperboard,
+  Calendar,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
-interface Anime {
+// --- Типы ---
+interface HeroAnime {
   id: number;
   shikimori_id: string;
   title: string;
   poster_url?: string | null;
-  background_image_url?: string | null; // Из Shikimori или Kodik screenshots
+  background_image_url?: string | null;
   year?: number | null;
   description?: string;
   type?: string;
@@ -26,156 +39,270 @@ interface Anime {
 }
 
 interface HeroSliderProps {
-  items?: Anime[] | null;
+  items?: HeroAnime[] | null;
 }
+// --- Конец Типов ---
 
 export function HeroSlider({ items }: HeroSliderProps) {
-  const plugin = useRef(Autoplay({ delay: 7000, stopOnInteraction: true }));
-  const validItems = items?.filter(Boolean) as Anime[];
+  const plugin = useRef(
+    Autoplay({ delay: 7000, stopOnInteraction: true })
+  );
+  const validItems = items?.filter(Boolean) as HeroAnime[];
 
   if (!validItems || validItems.length === 0) {
     return (
-      <div className="h-screen w-full bg-gradient-to-br from-slate-900 to-indigo-950 flex items-center justify-center text-white">
-        <p className="text-center text-xl">Отметьте аниме в базе для отображения в Hero-секции...</p>
+      <div className="relative w-full h-[70vh] min-h-[500px] flex items-center justify-center bg-gradient-to-br from-slate-900 to-indigo-950 text-white">
+        <p className="text-xl text-center px-4">
+          Отметьте аниме в базе для отображения в Hero-секции...
+        </p>
       </div>
     );
   }
 
   return (
-    <Carousel
-      className="w-full h-screen relative overflow-hidden"
-      opts={{ loop: validItems.length > 1 }}
-      plugins={[plugin.current]}
-      onMouseEnter={plugin.current.stop}
-      onMouseLeave={plugin.current.reset}
-    >
-      <CarouselContent className="h-full m-0">
-        {validItems.map((anime, index) => {
-          // Определяем URL фона с приоритетом
-          const backgroundImageUrl = anime.background_image_url || anime.poster_url || '/placeholder-hero-bg.jpg';
-          
-          // Логика для отображения статуса эпизодов
-          let episodeStatusText = "";
-          if (anime.episodes_total === 1 && anime.episodes_aired === 1) {
-            episodeStatusText = "Полнометражное";
-          } else if (anime.episodes_total != null && anime.episodes_aired != null) {
-            if (anime.episodes_aired < anime.episodes_total) {
-              episodeStatusText = `${anime.episodes_aired} из ${anime.episodes_total} эп.`;
-            } else {
-              episodeStatusText = `${anime.episodes_total} эп.`;
+    <div className="relative w-full overflow-hidden">
+      <Carousel
+        className="w-full"
+        opts={{ loop: true }}
+        plugins={[plugin.current]}
+        onMouseEnter={plugin.current.stop}
+        onMouseLeave={plugin.current.reset}
+      >
+        <CarouselContent className="flex">
+          {validItems.map((anime, index) => {
+            const backgroundImageUrl = anime.background_image_url || anime.poster_url || '/placeholder-hero-bg.jpg';
+            
+            let episodeStatusText = "";
+            if (anime.episodes_total === 1 && anime.episodes_aired === 1) {
+              episodeStatusText = "Полнометражное";
+            } else if (anime.episodes_total != null && anime.episodes_aired != null) {
+              if (anime.episodes_aired < anime.episodes_total) {
+                episodeStatusText = `${anime.episodes_aired} из ${anime.episodes_total} эп.`;
+              } else {
+                episodeStatusText = `${anime.episodes_total} эп.`;
+              }
+            } else if (anime.episodes_aired != null) {
+               episodeStatusText = `${anime.episodes_aired} эп.`;
             }
-          } else if (anime.episodes_aired != null) {
-             episodeStatusText = `${anime.episodes_aired} эп.`;
-          }
 
-          return (
-            <CarouselItem key={anime.id} className="h-full w-full p-0">
-              {/* Фоновое изображение, растянутое на весь экран */}
-              <div className="absolute inset-0 z-0">
-                <Image
-                  src={backgroundImageUrl}
-                  alt={`${anime.title} background`}
-                  fill
-                  className="object-cover scale-105 transition-transform duration-1000 ease-in-out"
-                  priority={index === 0}
-                  sizes="100vw"
-                />
-                {/* Многослойные оверлеи для глубины и читаемости текста */}
-                <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/40 to-slate-900/20"></div>
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent"></div>
-                <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-slate-900 to-transparent"></div>
-                {/* Небольшой затемненный оверлей по краям для эффекта "вьюпорта" */}
-                <div className="absolute inset-0 shadow-[inset_0_0_200px_50px_rgba(0,0,0,0.9)] pointer-events-none"></div>
-              </div>
+            return (
+              <CarouselItem key={anime.id} className="w-full min-w-full">
+                {/* --- МОБИЛЬНАЯ АДАПТАЦИЯ --- */}
+                <div className="md:hidden relative w-full h-[70vh] min-h-[500px]">
+                  <div className="absolute inset-0 z-0">
+                    <Image
+                      src={backgroundImageUrl}
+                      alt={`Фон для ${anime.title}`}
+                      fill
+                      className="object-cover"
+                      priority={index === 0}
+                      sizes="100vw"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/50 to-transparent"></div>
+                    <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-slate-900 to-transparent"></div>
+                  </div>
 
-              {/* Контент слайда */}
-              <div className="relative z-10 h-full w-full flex flex-col md:flex-row items-center justify-center md:justify-start p-4 sm:p-8 md:p-16 lg:p-24">
-                
-                {/* Левая часть: Информация (центрирована на мобильных) */}
-                <div className="w-full md:w-2/3 lg:w-1/2 text-center md:text-left text-white">
-                  <div className="max-w-2xl mx-auto md:mx-0">
-                    <p className="font-semibold text-purple-400 mb-2 text-sm md:text-base"># {index + 1} В центре внимания</p>
-                    <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 leading-tight">{anime.title}</h1>
-                    
-                    {/* Метаданные */}
-                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-4 gap-y-2 text-gray-300 mb-4 text-sm md:text-base">
-                      {anime.shikimori_rating && (
-                        <div className="flex items-center gap-1"><Star className="w-4 h-4 text-yellow-400 fill-current" /><span>{anime.shikimori_rating.toFixed(1)}</span></div>
+                  <div className="relative z-10 h-full w-full flex flex-col justify-between p-4 sm:p-6">
+                    <div className="text-white">
+                      <Badge variant="secondary" className="mb-2 text-[0.6rem] sm:text-xs bg-white/10 text-purple-300 border border-purple-500/30 backdrop-blur-sm">
+                        #{index + 1} В центре внимания
+                      </Badge>
+                      <h1 className="text-xl sm:text-2xl font-bold mb-2 leading-tight drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
+                        {anime.title}
+                      </h1>
+                      
+                      <div className="flex flex-wrap items-center gap-2 text-gray-300 mb-2 text-[0.65rem] sm:text-xs">
+                        {anime.shikimori_rating && (
+                          <div className="flex items-center gap-1">
+                            <Star className="w-3 h-3 text-yellow-400 fill-current" />
+                            <span>{anime.shikimori_rating.toFixed(1)}</span>
+                          </div>
+                        )}
+                        {anime.year && (
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            <span>{anime.year}</span>
+                          </div>
+                        )}
+                        {episodeStatusText && (
+                          <div className="flex items-center gap-1">
+                            <Clapperboard className="w-3 h-3" />
+                            <span>{episodeStatusText}</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {anime.description && (
+                        <p className="text-gray-300 mb-3 line-clamp-3 text-[0.7rem] sm:text-xs opacity-90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
+                          {anime.description}
+                        </p>
                       )}
-                      {anime.year && <span className="flex items-center gap-1"><Calendar className="w-4 h-4" />{anime.year}</span>}
-                      {anime.type && <Badge variant="secondary" className="text-xs">{anime.type.replace(/_/g, " ")}</Badge>}
-                      {episodeStatusText && (
-                        <div className="flex items-center gap-1"><Clapperboard className="w-4 h-4" /><span>{episodeStatusText}</span></div>
-                      )}
-                      {anime.status && <Badge variant="outline" className="text-xs border-purple-500 text-purple-400">{anime.status}</Badge>}
                     </div>
-                    
-                    {/* Описание */}
-                    {anime.description && (
-                      <p className="text-gray-300 mb-6 line-clamp-3 text-sm md:text-base opacity-90">{anime.description}</p>
-                    )}
-                    
-                    {/* Кнопки */}
-                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                      <Link href={`/anime/${anime.shikimori_id}/watch`}>
-                        <Button size="lg" className="bg-purple-600 hover:bg-purple-700 transition-all duration-300 transform hover:scale-105">
-                          <Play className="w-5 h-5 mr-2" />Смотреть
-                        </Button>
-                      </Link>
-                      <Link href={`/anime/${anime.shikimori_id}`}>
-                        <Button size="lg" variant="outline" className="bg-white/10 hover:bg-white/20 border-white/20 text-white transition-all duration-300">
-                          <Info className="w-5 h-5 mr-2" />Подробнее
-                        </Button>
-                      </Link>
+
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="relative w-28 h-42 sm:w-32 sm:h-48 rounded-lg overflow-hidden shadow-xl ring-1 ring-white/20">
+                        {anime.poster_url ? (
+                          <Image
+                            src={anime.poster_url}
+                            alt={`Постер для ${anime.title}`}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 640px) 50vw, 33vw"
+                          />
+                        ) : (
+                          <div className="bg-slate-800 w-full h-full flex items-center justify-center">
+                            <span className="text-slate-500 text-[0.6rem]">Нет постера</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex gap-3 w-full justify-center">
+                        <Link href={`/anime/${anime.shikimori_id}/watch`} className="flex-1 max-w-[45%]">
+                          <Button size="sm" className="w-full bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800 text-white shadow-md h-8 sm:h-10 text-[0.7rem] sm:text-sm">
+                            <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                            <span className="truncate">Смотреть</span>
+                          </Button>
+                        </Link>
+                        <Link href={`/anime/${anime.shikimori_id}`} className="flex-1 max-w-[45%]">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full bg-white/10 hover:bg-white/20 border-white/30 text-white backdrop-blur-sm shadow-md h-8 sm:h-10 text-[0.7rem] sm:text-sm"
+                          >
+                            <Info className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                            <span className="truncate">Подробнее</span>
+                          </Button>
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 </div>
-                
-                {/* Правая часть: Постер (только на больших экранах) */}
-                <div className="hidden md:flex w-1/3 lg:w-1/2 h-full items-center justify-center p-8 md:p-16">
-                  <div className="relative w-64 h-96 sm:w-72 sm:h-[32rem] md:w-80 md:h-[36rem] rounded-xl overflow-hidden shadow-2xl ring-1 ring-white/10 transform transition-transform duration-700 hover:scale-105">
-                    {anime.poster_url ? (
+                {/* --- КОНЕЦ МОБИЛЬНОЙ АДАПТАЦИИ --- */}
+
+                {/* --- ДЕСКТОПНАЯ ВЕРСИЯ --- */}
+                <div className="hidden md:block relative w-full h-[70vh] min-h-[500px]">
+                  <div className="absolute inset-0 z-0">
+                    <div className="absolute inset-y-0 left-0 w-1/2 filter blur-md scale-110">
                       <Image
-                        src={anime.poster_url}
-                        alt={`${anime.title} poster`}
+                        src={backgroundImageUrl}
+                        alt={`Фон для ${anime.title}`}
                         fill
                         className="object-cover"
-                        sizes="(max-width: 768px) 0vw, (max-width: 1200px) 33vw, 25vw"
+                        priority={index === 0}
+                        sizes="(max-width: 1200px) 50vw, 50vw"
                       />
-                    ) : (
-                      <div className="bg-slate-800 w-full h-full flex items-center justify-center">
-                        <span className="text-slate-500">Нет постера</span>
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-slate-900/70 to-transparent"></div>
+                    <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-slate-900 to-transparent"></div>
+                  </div>
+
+                  <div className="relative z-10 h-full w-full flex flex-row items-center p-8 lg:p-12 xl:p-16">
+                    <div className="w-1/2 text-left text-white pr-6">
+                      <div className="max-w-2xl">
+                        <Badge variant="secondary" className="mb-3 sm:mb-4 text-[0.7rem] sm:text-xs md:text-sm bg-white/10 text-purple-300 border border-purple-500/30 backdrop-blur-sm">
+                          #{index + 1} В центре внимания
+                        </Badge>
+                        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-3 sm:mb-4 leading-tight drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
+                          {anime.title}
+                        </h1>
+                        
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 md:gap-4 text-gray-300 mb-3 sm:mb-4 text-xs sm:text-sm md:text-base">
+                          {anime.shikimori_rating && (
+                            <div className="flex items-center gap-1">
+                              <Star className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-yellow-400 fill-current" />
+                              <span>{anime.shikimori_rating.toFixed(1)}</span>
+                            </div>
+                          )}
+                          {anime.year && (
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
+                              <span>{anime.year}</span>
+                            </div>
+                          )}
+                          {anime.type && (
+                            <Badge variant="outline" className="text-[0.6rem] xs:text-[0.65rem] sm:text-xs border-gray-600 px-1.5 py-0.5">
+                              {anime.type.replace(/_/g, " ")}
+                            </Badge>
+                          )}
+                          {episodeStatusText && (
+                            <div className="flex items-center gap-1">
+                              <Clapperboard className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
+                              <span>{episodeStatusText}</span>
+                            </div>
+                          )}
+                          {anime.status && (
+                            <Badge variant="outline" className="text-[0.6rem] xs:text-[0.65rem] sm:text-xs border-purple-500 text-purple-400 px-1.5 py-0.5">
+                              {anime.status}
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        {anime.description && (
+                          <p className="text-gray-300 mb-4 sm:mb-6 line-clamp-3 text-xs sm:text-sm md:text-base opacity-90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
+                            {anime.description}
+                          </p>
+                        )}
+                        
+                        <div className="flex flex-wrap gap-3 sm:gap-4">
+                          <Link href={`/anime/${anime.shikimori_id}/watch`}>
+                            <Button size="sm" className="sm:size-md lg:size-lg bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800 text-white shadow-lg transform transition-all duration-300 hover:scale-105 hover:shadow-xl h-8 sm:h-10 md:h-12 px-3 sm:px-4 md:px-6 text-xs sm:text-sm md:text-base">
+                              <Play className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 mr-1 sm:mr-2" />
+                              Смотреть
+                            </Button>
+                          </Link>
+                          <Link href={`/anime/${anime.shikimori_id}`}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="sm:size-md lg:size-lg bg-white/10 hover:bg-white/20 border-white/30 text-white backdrop-blur-sm shadow-lg transform transition-all duration-300 hover:scale-105 h-8 sm:h-10 md:h-12 px-3 sm:px-4 md:px-6 text-xs sm:text-sm md:text-base"
+                            >
+                              <Info className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 mr-1 sm:mr-2" />
+                              Подробнее
+                            </Button>
+                          </Link>
+                        </div>
                       </div>
-                    )}
+                    </div>
+                    
+                    {/* ПОСТЕР ПОМЕНЬШЕ */}
+                    <div className="w-1/2 h-full flex items-center justify-center pl-6">
+                      {/* Уменьшены размеры контейнера постера */}
+                      <div className="relative w-40 h-60 sm:w-48 sm:h-72 md:w-56 md:h-80 lg:w-64 lg:h-96 xl:w-72 xl:h-[32rem] 2xl:w-80 2xl:h-[36rem] rounded-xl overflow-hidden shadow-2xl ring-1 ring-white/20 transform transition-transform duration-700 hover:scale-105 group">
+                        <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-purple-500/20 via-transparent to-cyan-500/20 pointer-events-none z-10 opacity-70 group-hover:opacity-100 transition-opacity"></div>
+                        {anime.poster_url ? (
+                          <Image
+                            src={anime.poster_url}
+                            alt={`Постер для ${anime.title}`}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+                          />
+                        ) : (
+                          <div className="bg-slate-800 w-full h-full flex items-center justify-center">
+                            <span className="text-slate-500 text-xs">Нет постера</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CarouselItem>
-          );
-        })}
-      </CarouselContent>
-      
-      {/* Навигационные кнопки */}
-      <div className="absolute right-4 md:right-8 bottom-4 md:bottom-8 z-20 flex gap-2">
-        <CarouselPrevious className="bg-white/20 hover:bg-white/30 text-white border-white/30 w-10 h-10 md:w-12 md:h-12" />
-        <CarouselNext className="bg-white/20 hover:bg-white/30 text-white border-white/30 w-10 h-10 md:w-12 md:h-12" />
-      </div>
-      
-      {/* Индикаторы (Dots) - Центрированы внизу */}
-      <div className="absolute bottom-4 left-0 right-0 z-20 flex justify-center">
-        <div className="flex space-x-2">
-          {validItems.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => {
-                // Здесь можно добавить логику для перехода к слайду, если нужно
-              }}
-              className="w-2 h-2 rounded-full bg-white/50 hover:bg-white transition-colors"
-              aria-label={`Go to slide ${index + 1}`}
-            />
-          ))}
+                {/* --- КОНЕЦ ДЕСКТОПНОЙ ВЕРСИИ --- */}
+              </CarouselItem>
+            );
+          })}
+        </CarouselContent>
+        
+        {/* --- СТРЕЛОЧКИ СПРАВА, РЯДОМ --- */}
+        {/* Оберточный div для центрирования по вертикали и позиционирования справа */}
+        <div className="absolute inset-y-0 right-0 flex items-center justify-end pr-2 sm:pr-4 md:pr-6 pointer-events-none">
+          {/* Контейнер для кнопок, который получает pointer-events */}
+          <div className="flex flex-col gap-1 sm:gap-2 pointer-events-auto">
+            <CarouselPrevious className="relative bg-gradient-to-r from-white/25 to-white/15 hover:from-white/35 hover:to-white/25 text-white border border-white/30 backdrop-blur-[6px] w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl" />
+            <CarouselNext className="relative bg-gradient-to-r from-white/25 to-white/15 hover:from-white/35 hover:to-white/25 text-white border border-white/30 backdrop-blur-[6px] w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl" />
+          </div>
         </div>
-      </div>
-    </Carousel>
+        {/* --- КОНЕЦ СТРЕЛОЧЕК СПРАВА --- */}
+      </Carousel>
+    </div>
   );
 }

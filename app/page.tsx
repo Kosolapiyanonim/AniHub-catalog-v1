@@ -1,15 +1,16 @@
 // /app/page.tsx
-import { HeroSlider } from "@/components/HeroSlider"
-import { AnimeCarousel } from "@/components/AnimeCarousel"
-import { SuspenseFallback } from "@/components/suspense-fallback"
-import { TrendingUp, Star } from "lucide-react"
-import { Suspense } from "react"
-import { getHomePageData } from "@/lib/data-fetchers"
+import { HeroSlider } from "@/components/HeroSlider";
+// Импортируем клиентский компонент обертку
+import AnimeCarouselClient from "@/components/AnimeCarouselClient";
+import { Suspense } from "react";
+import { getHomePageData } from "@/lib/data-fetchers";
+import { SuspenseFallback } from "@/components/suspense-fallback";
+import { TrendingUp, Star } from "lucide-react";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const data = await getHomePageData()
+  const data = await getHomePageData();
 
   return (
     <div className="min-h-screen bg-slate-900">
@@ -21,7 +22,8 @@ export default async function HomePage() {
       </div>
       <main className="container mx-auto px-4 py-12 space-y-12">
         <Suspense fallback={<SuspenseFallback type="carousel" />}>
-          <AnimeCarousel
+          {/* Используем клиентский компонент */}
+          <AnimeCarouselClient
             title="Тренды сезона"
             items={data.trending}
             viewAllLink="/catalog?sort=updated_at"
@@ -29,7 +31,8 @@ export default async function HomePage() {
           />
         </Suspense>
         <Suspense fallback={<SuspenseFallback type="carousel" />}>
-          <AnimeCarousel
+          {/* Используем клиентский компонент */}
+          <AnimeCarouselClient
             title="Самое популярное"
             items={data.popular}
             viewAllLink="/catalog?sort=shikimori_votes"
@@ -38,5 +41,5 @@ export default async function HomePage() {
         </Suspense>
       </main>
     </div>
-  )
+  );
 }

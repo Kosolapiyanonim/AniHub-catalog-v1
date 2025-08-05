@@ -13,8 +13,8 @@ const ANIME_CARD_SELECT = `
 
 // Запрос для Hero-секции остается более легковесным
 const HERO_ANIME_SELECT = `
-    id, shikimori_id, title, poster_url, year, description, 
-    shikimori_rating, episodes_count, status, raw_data, 
+    id, shikimori_id, title, poster_url, screenshots, year, description, 
+    shikimori_rating, episodes_aired, episodes_total, status, type,
     genres:anime_genres(genres(name))
 `;
 
@@ -37,7 +37,7 @@ const enrichWithUserStatus = async (supabase: SupabaseClient, session: Session |
 export async function getHomePageData() {
   const cookieStore = cookies();
   const supabase = createServerComponentClient({ cookies: () => cookieStore });
-
+enrichWithUserStatus
   try {
     const { data: { session } } = await supabase.auth.getSession();
 
@@ -48,6 +48,7 @@ export async function getHomePageData() {
       popularResponse,
       latestUpdatesResponse
     ] = await Promise.all([
+      // Изменено: используем обновленный HERO_ANIME_SELECT
       supabase.from("animes").select(HERO_ANIME_SELECT).eq("is_featured_in_hero", true).limit(10),
       supabase.from("animes").select(ANIME_CARD_SELECT).order("shikimori_rating", { ascending: false, nullsFirst: false }).limit(12),
       supabase.from("animes").select(ANIME_CARD_SELECT).order("shikimori_votes", { ascending: false, nullsFirst: false }).limit(12),
@@ -56,9 +57,14 @@ export async function getHomePageData() {
 
     // Обработка данных для Hero-слайдера
     const heroData = heroAnimesResponse.data?.map(anime => ({
-        ...anime,
-        genres: anime.genres.map((g: any) => g.genres.name)
-    })) || [];
+      ...anime,
+      // Извлекаем жанры
+      genres: anime.genres.map((g: any) => g.genres.name),
+      // --- НОВОЕ: Обработка screenshots ---
+      // Берем первый скриншот для фона, если он есть
+      background_screenshot: anime.screenshots && anime.screenshots.length > 0 ? anime.screenshots[0] : null,
+      // --- КОНЕЦ НОВОГО ---
+  })) || [];
     
     // Обработка данных для каруселей
     const processCarouselData = (response: any) => {

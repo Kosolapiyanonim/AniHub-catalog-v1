@@ -1,22 +1,22 @@
-import type React from "react";
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import Script from "next/script";
-import "./globals.css";
-import { Header } from "@/components/header";
-import { Footer } from "@/components/footer";
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/next";
-import { Suspense } from "react";
-import { Providers } from "@/components/providers";
+import type React from "react"
+import type { Metadata } from "next"
+import { Inter } from "next/font/google"
+import Script from "next/script"
+import "./globals.css"
+import { Header } from "@/components/header"
+import { Footer } from "@/components/footer"
+import { Analytics } from "@vercel/analytics/react"
+import { SpeedInsights } from "@vercel/speed-insights/next"
+import { Suspense } from "react"
+import { Providers } from "@/components/providers"
 
-const inter = Inter({ subsets: ["latin", "cyrillic"], display: "swap" });
+const inter = Inter({ subsets: ["latin", "cyrillic"], display: "swap" })
 
 export const metadata: Metadata = {
   title: "AniHub - Смотреть аниме онлайн",
   description: "Лучший сайт для просмотра аниме онлайн.",
-  generator: 'v0.dev'
-};
+  generator: "v0.dev",
+}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -27,10 +27,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Suspense>
               <Header />
             </Suspense>
-            {/* Добавляем mt-16 (или другой размер, соответствующий высоте Header) */}
-            <main className="flex-1 container mx-auto px-4 mt-16">
-              {children}
-            </main>
+            {/* Убираем container и px-4 отсюда, чтобы дать полную свободу дочерним компонентам */}
+            <main className="flex-1 mt-16">{children}</main>
             <Footer />
           </div>
         </Providers>
@@ -46,7 +44,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             })(window,document,'script','dataLayer', '${process.env.NEXT_PUBLIC_GTM_ID}');
           `}
         </Script>
-        </body>
+        {/* Google tag (gtag.js) */}
+        <Script src="https://www.googletagmanager.com/gtag/js?id=G-3DCGBWLNEZ" strategy="afterInteractive" />
+        <Script id="gtag-init" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-3DCGBWLNEZ');
+          `}
+        </Script>
+      </body>
     </html>
-  );
+  )
 }

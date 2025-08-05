@@ -20,27 +20,25 @@ export function HeroSlider({ items }: HeroSliderProps) {
 
   if (!validItems || validItems.length === 0) {
     return (
-      <div className="relative w-full h-[70vh] min-h-[500px] flex items-center justify-center bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-lg">
+      <div className="relative w-full h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-indigo-950 text-white">
         <p className="text-xl text-center px-4">Отметьте аниме в базе для отображения в Hero-секции...</p>
       </div>
     )
   }
 
   return (
-    <div className="relative w-full overflow-hidden">
+    <div className="relative w-full h-screen overflow-hidden">
       <Carousel
-        className="w-full"
+        className="w-full h-full"
         opts={{ loop: true }}
         plugins={[plugin.current]}
         onMouseEnter={plugin.current.stop}
         onMouseLeave={plugin.current.reset}
       >
-        <CarouselContent className="flex !ml-0">
-          {" "}
-          {/* Принудительно убираем отрицательный margin для CarouselContent */}
+        <CarouselContent className="flex !ml-0 h-full">
           {validItems.map((anime, index) => {
             const backgroundImageUrl =
-              anime.background_image_url || anime.poster_url || "/placeholder.svg?height=700&width=1200"
+              anime.background_image_url || anime.poster_url || "/placeholder.svg?height=1080&width=1920"
 
             let episodeStatusText = ""
             if (anime.episodes_total === 1 && anime.episodes_aired === 1) {
@@ -56,11 +54,9 @@ export function HeroSlider({ items }: HeroSliderProps) {
             }
 
             return (
-              <CarouselItem key={anime.id} className="w-full min-w-full !pr-0 overflow-hidden">
-                {" "}
-                {/* Принудительно убираем padding-right и добавляем overflow-hidden */}
+              <CarouselItem key={anime.id} className="w-full min-w-full !pr-0 overflow-hidden h-full">
                 {/* --- МОБИЛЬНАЯ АДАПТАЦИЯ --- */}
-                <div className="md:hidden relative w-full h-[70vh] min-h-[500px]">
+                <div className="md:hidden relative w-full h-screen">
                   <div className="absolute inset-0 z-0">
                     <Image
                       src={backgroundImageUrl || "/placeholder.svg"}
@@ -157,7 +153,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
                 </div>
                 {/* --- КОНЕЦ МОБИЛЬНОЙ АДАПТАЦИИ --- */}
                 {/* --- ДЕСКТОПНАЯ ВЕРСИЯ --- */}
-                <div className="hidden md:block relative w-full h-[70vh] min-h-[500px]">
+                <div className="hidden md:block relative w-full h-screen">
                   <div className="absolute inset-0 z-0">
                     <div className="absolute inset-y-0 left-0 w-1/2 filter blur-md scale-110">
                       <Image

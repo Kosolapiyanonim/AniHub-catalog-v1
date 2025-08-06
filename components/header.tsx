@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Search, Music, Instagram } from 'lucide-react' // MessageCircle удален
+import { Search } from 'lucide-react' // Удалены MessageCircle, Music, Instagram
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CommandPalette } from '@/components/command-palette'

@@ -16,31 +16,23 @@ export default async function HomePage() {
           <AnimeCarousel
             title="Популярное"
             items={sections.popular}
-            href="/popular"
+            href="/catalog?sort=popular"
           />
         )}
 
-        {sections.latest && sections.latest.length > 0 && (
+        {sections.trending && sections.trending.length > 0 && (
+          <AnimeCarousel
+            title="В тренде"
+            items={sections.trending}
+            href="/catalog?sort=trending"
+          />
+        )}
+
+        {sections.latestUpdates && sections.latestUpdates.length > 0 && (
           <AnimeCarousel
             title="Последние обновления"
-            items={sections.latest}
+            items={sections.latestUpdates}
             href="/catalog?sort=updated"
-          />
-        )}
-
-        {sections.ongoing && sections.ongoing.length > 0 && (
-          <AnimeCarousel
-            title="Онгоинги"
-            items={sections.ongoing}
-            href="/catalog?status=ongoing"
-          />
-        )}
-
-        {sections.completed && sections.completed.length > 0 && (
-          <AnimeCarousel
-            title="Завершённые"
-            items={sections.completed}
-            href="/catalog?status=completed"
           />
         )}
       </main>

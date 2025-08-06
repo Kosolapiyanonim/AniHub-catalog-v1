@@ -5,6 +5,7 @@ import Script from "next/script"
 import "./globals.css"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
+import { MobileBottomNav } from "@/components/mobile-bottom-nav"
 import { Analytics } from "@vercel/analytics/react"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Suspense } from "react"
@@ -27,9 +28,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Suspense>
               <Header />
             </Suspense>
-            {/* Убираем container и px-4 отсюда, чтобы дать полную свободу дочерним компонентам */}
-            <main className="flex-1 mt-16">{children}</main>
-            <Footer />
+            {/* Добавляем отступ снизу для мобильной навигации */}
+            <main className="flex-1 mt-16 pb-20 md:pb-0">{children}</main>
+            
+            {/* Десктопный футер */}
+            <div className="hidden md:block">
+              <Footer />
+            </div>
+            
+            {/* Мобильная нижняя навигация */}
+            <MobileBottomNav />
           </div>
         </Providers>
 

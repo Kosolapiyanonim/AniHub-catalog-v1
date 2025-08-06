@@ -1,86 +1,52 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { Bookmark, Grid3X3, Bell, Menu, Home } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet'
+import { Bookmark, LayoutGrid, Bell, Menu, Home } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ArrowRightToLine } from 'lucide-react'
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { MobileMenuContent } from './mobile-menu-content'
+import { useState } from 'react'
 
 export function MobileBottomNav() {
-  const pathname = usePathname()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
-  const navItems = [
-    {
-      href: '/favorites',
-      icon: Bookmark,
-      label: 'Закладки',
-      isActive: pathname.startsWith('/favorites')
-    },
-    {
-      href: '/catalog',
-      icon: Grid3X3,
-      label: 'Каталог',
-      isActive: pathname.startsWith('/catalog')
-    },
-    {
-      href: '/',
-      icon: Home,
-      label: 'AniHub', // Изменено на AniHub
-      isActive: pathname === '/',
-      isCenter: true
-    },
-    {
-      href: '/notifications',
-      icon: Bell,
-      label: 'Уведомления',
-      isActive: pathname.startsWith('/notifications')
-    },
-  ]
+  const handleCloseMenu = () => {
+    setIsMenuOpen(false)
+  }
 
   return (
     <>
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-800/95 backdrop-blur-sm border-t border-slate-700 z-50">
-        <div className="flex items-center justify-around px-2 py-2">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex flex-col items-center justify-center p-2 rounded-lg transition-colors min-w-[60px]",
-                item.isCenter && "bg-blue-600 text-white scale-110 -mt-4 rounded-full shadow-lg shadow-blue-600/50",
-                !item.isCenter && item.isActive && "text-blue-400",
-                !item.isCenter && !item.isActive && "text-slate-400 hover:text-slate-200"
-              )}
-            >
-              <item.icon 
-                size={item.isCenter ? 28 : 22} 
-                className={cn(item.isCenter && "mb-0.5")}
-              />
-              <span className={cn(
-                "text-xs font-medium",
-                item.isCenter && "text-[10px] mt-0.5"
-              )}>
-                {item.label}
-              </span>
-            </Link>
-          ))}
-          {/* Menu Trigger */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-sm border-t border-slate-800 md:hidden">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-around">
+          <Link href="/favorites" className="flex flex-col items-center text-xs text-slate-400 hover:text-white transition-colors">
+            <Bookmark className="w-5 h-5 mb-1" />
+            Закладки
+          </Link>
+          <Link href="/catalog" className="flex flex-col items-center text-xs text-slate-400 hover:text-white transition-colors">
+            <LayoutGrid className="w-5 h-5 mb-1" />
+            Каталог
+          </Link>
+          <Link href="/" className="flex flex-col items-center text-xs text-slate-400 hover:text-white transition-colors">
+            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center -mt-6 border-4 border-slate-900 shadow-lg">
+              <span className="text-white font-bold text-sm">A</span>
+            </div>
+            AniHub {/* Изменено на AniHub */}
+          </Link>
+          <Link href="/notifications" className="flex flex-col items-center text-xs text-slate-400 hover:text-white transition-colors relative">
+            <Bell className="w-5 h-5 mb-1" />
+            Уведомления
+            {/* Пример индикатора уведомлений */}
+            <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-slate-900" />
+          </Link>
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <SheetTrigger asChild>
-              <button className="flex flex-col items-center justify-center p-2 rounded-lg transition-colors min-w-[60px] text-slate-400 hover:text-slate-200">
-                <Menu size={22} />
-                <span className="text-xs font-medium">Меню</span>
-              </button>
+              <Button variant="ghost" className="flex flex-col items-center text-xs text-slate-400 hover:text-white transition-colors h-auto p-0">
+                <Menu className="w-5 h-5 mb-1" />
+                Меню
+              </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="p-0 w-[300px] bg-slate-900 border-l-slate-700">
-              {/* Скрываем стандартную кнопку закрытия Sheet */}
-              <SheetClose className="hidden" /> 
-              <MobileMenuContent onClose={() => setIsMenuOpen(false)} />
+            <SheetContent side="right" className="w-[300px] p-0">
+              <MobileMenuContent onClose={handleCloseMenu} />
             </SheetContent>
           </Sheet>
         </div>

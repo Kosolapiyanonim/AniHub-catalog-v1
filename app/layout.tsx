@@ -5,15 +5,14 @@ import Script from "next/script";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { Header } from "@/components/header";
-import { Footer } from "@/components/footer";
-import { Suspense } from "react";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav"; // Импортируем MobileBottomNav
+import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "AniHub - Лучший сайт для просмотра аниме онлайн. Совместный просмотр аниме, лучшие новинки, уникальный аниме дизайн и аниме коммьюнити.",
-  description: "Лучший сайт для просмотра аниме онлайн. Надоели однотипные сайты? Мы проведём тебя в незабываемый опыт просмотра аниме. Найди своё комьюнити и смотри аниме онлайн со своими друзьями. Совместный просмотр аниме, лучшие новинки, уникальный аниме дизайн и аниме коммьюнити.",
+  title: "AniHub",
+  description: "Смотри аниме онлайн бесплатно",
     generator: 'v0.dev'
 };
 
@@ -40,11 +39,11 @@ export default function RootLayout({ children }: { children: React.ReactNode; })
             <Suspense>
               <Header />
             </Suspense>
-            {/* Добавляем отступ снизу для мобильной навигации */}
-            <main className="flex-1 pb-20 md:pb-0">{children}</main> 
-            <Footer />
+            <main className="flex-1 pb-16">{children}</main> {/* Добавлен padding-bottom для нижней навигации */}
+            <Suspense>
+              <MobileBottomNav /> {/* Добавлена мобильная нижняя навигация */}
+            </Suspense>
           </div>
-          <MobileBottomNav /> {/* Добавляем мобильную нижнюю навигацию */}
         </Providers>
       </body>
     </html>

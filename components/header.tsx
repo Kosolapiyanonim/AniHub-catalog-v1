@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Search, MessageCircle, Music, Instagram } from 'lucide-react'
+import { Search } from 'lucide-react' // Удалены MessageCircle, Music, Instagram
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CommandPalette } from '@/components/command-palette'
@@ -44,7 +44,7 @@ export function Header() {
                 className="text-slate-400 hover:text-white"
               >
                 <Link href="/telegram" target="_blank">
-                  <MessageCircle className="w-5 h-5" />
+                  <img src="/icons/telegram.png" alt="Telegram" className="w-5 h-5" />
                 </Link>
               </Button>
               <Button
@@ -54,7 +54,7 @@ export function Header() {
                 className="text-slate-400 hover:text-white"
               >
                 <Link href="/tiktok" target="_blank">
-                  <Music className="w-5 h-5" />
+                  <img src="/icons/tiktok.png" alt="TikTok" className="w-5 h-5" />
                 </Link>
               </Button>
               <Button
@@ -64,7 +64,7 @@ export function Header() {
                 className="text-slate-400 hover:text-white"
               >
                 <Link href="/instagram" target="_blank">
-                  <Instagram className="w-5 h-5" />
+                  <img src="/icons/instagram.png" alt="Instagram" className="w-5 h-5" />
                 </Link>
               </Button>
             </div>

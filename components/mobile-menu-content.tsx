@@ -9,8 +9,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { Sun, Moon, Users, Globe, Newspaper, BookOpen, ChevronDown, MessageCircle, Music, Instagram } from 'lucide-react'
-import { SheetClose } from '@/components/ui/sheet' // Import SheetClose
+import { Sun, Moon, Users, Globe, Newspaper, BookOpen, ChevronDown, ArrowRightToLine } from 'lucide-react' // Удалены MessageCircle, Music, Instagram
+import { SheetClose } from '@/components/ui/sheet'
 
 interface MobileMenuContentProps {
   onClose: () => void;
@@ -95,7 +95,7 @@ export function MobileMenuContent({ onClose }: MobileMenuContentProps) {
             <SheetClose asChild>
               <Button variant="ghost" className="w-full justify-start gap-3" asChild>
                 <Link href="/telegram" target="_blank">
-                  <MessageCircle className="w-5 h-5" />
+                  <img src="/icons/telegram.png" alt="Telegram" className="w-5 h-5" />
                   Telegram
                 </Link>
               </Button>
@@ -103,7 +103,7 @@ export function MobileMenuContent({ onClose }: MobileMenuContentProps) {
             <SheetClose asChild>
               <Button variant="ghost" className="w-full justify-start gap-3" asChild>
                 <Link href="/tiktok" target="_blank">
-                  <Music className="w-5 h-5" />
+                  <img src="/icons/tiktok.png" alt="TikTok" className="w-5 h-5" />
                   TikTok
                 </Link>
               </Button>
@@ -111,7 +111,7 @@ export function MobileMenuContent({ onClose }: MobileMenuContentProps) {
             <SheetClose asChild>
               <Button variant="ghost" className="w-full justify-start gap-3" asChild>
                 <Link href="/instagram" target="_blank">
-                  <Instagram className="w-5 h-5" />
+                  <img src="/icons/instagram.png" alt="Instagram" className="w-5 h-5" />
                   Instagram
                 </Link>
               </Button>

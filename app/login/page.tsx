@@ -1,18 +1,16 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Mail, Lock, Chrome, Music } from "lucide-react"
+import { Mail, Lock, Chrome, Music } from 'lucide-react'
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -80,45 +78,41 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Вход в AniHub</CardTitle>
-          <CardDescription className="text-center">Войдите в свой аккаунт, чтобы продолжить просмотр</CardDescription>
+    <div className="flex min-h-screen items-center justify-center bg-slate-900">
+      <Card className="w-full max-w-md mx-auto bg-slate-800 text-white border-slate-700">
+        <CardHeader className="space-y-1 text-center">
+          <CardTitle className="text-2xl">Войти в аккаунт</CardTitle>
+          <CardDescription className="text-slate-400">
+            Введите свои данные для входа
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="grid gap-4">
           <form onSubmit={handleEmailLogin} className="space-y-4">
-            <div className="space-y-2">
+            <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
-                  required
-                />
-              </div>
+              <Input
+                id="email"
+                type="email"
+                placeholder="m@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="bg-slate-700 border-slate-600 text-white placeholder-slate-400 pl-10"
+                required
+              />
             </div>
-            <div className="space-y-2">
+            <div className="grid gap-2">
               <Label htmlFor="password">Пароль</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
-                  required
-                />
-              </div>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="bg-slate-700 border-slate-600 text-white placeholder-slate-400 pl-10"
+                required
+              />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={loading}>
               {loading ? "Вход..." : "Войти"}
             </Button>
           </form>
@@ -133,22 +127,22 @@ export default function LoginPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Button variant="outline" onClick={handleGoogleLogin}>
+            <Button variant="outline" onClick={handleGoogleLogin} className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
               <Chrome className="mr-2 h-4 w-4" />
               Google
             </Button>
-            <Button variant="outline" onClick={handleSpotifyLogin}>
+            <Button variant="outline" onClick={handleSpotifyLogin} className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
               <Music className="mr-2 h-4 w-4" />
               Spotify
             </Button>
           </div>
 
-          <div className="text-center text-sm">
-            <span className="text-muted-foreground">Нет аккаунта? </span>
-            <Link href="/register" className="text-primary hover:underline">
+          <p className="text-center text-sm text-slate-400">
+            Нет аккаунта?{" "}
+            <Link href="/register" className="text-blue-400 hover:underline">
               Зарегистрироваться
             </Link>
-          </div>
+          </p>
         </CardContent>
       </Card>
     </div>

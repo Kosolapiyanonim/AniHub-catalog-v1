@@ -1,18 +1,16 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Mail, Lock, User, Chrome, Music } from "lucide-react"
+import { Mail, Lock, User, Chrome, Music } from 'lucide-react'
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("")
@@ -85,65 +83,41 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Регистрация в AniHub</CardTitle>
-          <CardDescription className="text-center">Создайте аккаунт, чтобы сохранять любимые аниме</CardDescription>
+    <div className="flex min-h-screen items-center justify-center bg-slate-900">
+      <Card className="w-full max-w-md mx-auto bg-slate-800 text-white border-slate-700">
+        <CardHeader className="space-y-1 text-center">
+          <CardTitle className="text-2xl">Создать аккаунт</CardTitle>
+          <CardDescription className="text-slate-400">
+            Введите свои данные для регистрации
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <form onSubmit={handleEmailRegister} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Полное имя</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="Ваше имя"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="pl-10"
-                  required
-                />
-              </div>
+        <CardContent className="grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="fullName">Полное имя</Label>
+            <div className="relative">
+              <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="fullName"
+                type="text"
+                placeholder="Ваше имя"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="pl-10 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                required
+              />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
-                  required
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Пароль</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
-                  required
-                  minLength={6}
-                />
-              </div>
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Регистрация..." : "Зарегистрироваться"}
-            </Button>
-          </form>
-
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" type="email" placeholder="m@example.com" className="bg-slate-700 border-slate-600 text-white placeholder-slate-400" />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="password">Пароль</Label>
+            <Input id="password" type="password" className="bg-slate-700 border-slate-600 text-white placeholder-slate-400" />
+          </div>
+          <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={loading}>
+            {loading ? "Регистрация..." : "Зарегистрироваться"}
+          </Button>
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <Separator className="w-full" />
@@ -152,7 +126,6 @@ export default function RegisterPage() {
               <span className="bg-background px-2 text-muted-foreground">Или войдите через</span>
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <Button variant="outline" onClick={handleGoogleLogin}>
               <Chrome className="mr-2 h-4 w-4" />
@@ -163,13 +136,12 @@ export default function RegisterPage() {
               Spotify
             </Button>
           </div>
-
-          <div className="text-center text-sm">
-            <span className="text-muted-foreground">Уже есть аккаунт? </span>
-            <Link href="/login" className="text-primary hover:underline">
+          <p className="text-center text-sm text-slate-400">
+            Уже есть аккаунт?{" "}
+            <Link href="/login" className="text-blue-400 hover:underline">
               Войти
             </Link>
-          </div>
+          </p>
         </CardContent>
       </Card>
     </div>

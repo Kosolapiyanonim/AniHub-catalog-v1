@@ -9,7 +9,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { Sun, Moon, Users, Globe, Newspaper, BookOpen, ChevronDown, ArrowRightToLine } from 'lucide-react' // Удалены MessageCircle, Music, Instagram
+import { Sun, Moon, Users, Globe, Newspaper, BookOpen, ChevronDown, ArrowRightToLine } from 'lucide-react'
 import { SheetClose } from '@/components/ui/sheet'
 
 interface MobileMenuContentProps {

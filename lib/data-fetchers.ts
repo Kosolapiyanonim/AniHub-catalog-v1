@@ -1,102 +1,71 @@
-// lib/data-fetchers.ts
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import type { SupabaseClient, Session } from "@supabase/supabase-js";
+import {
+  getAnimeList,
+  getAnimeDetails,
+  searchAnime,
+  getHomepageSectionsData,
+  getGenresList,
+  getStatusesList,
+  getStudiosList,
+  getTypesList,
+  getYearsList,
+} from './anime-api';
+import type { Anime, AnimeDetails, HomepageSections } from './types';
 
-// --- [ИСПРАВЛЕНИЕ] Единый набор полей для всех карточек, чтобы избежать ошибок ---
-const ANIME_CARD_SELECT = `
-    id, shikimori_id, title, poster_url, year, type, status, 
-    episodes_aired, episodes_total, shikimori_rating, description, 
-    genres:anime_genres(genres(id, name, slug))
-`;
+export async function getCatalogAnime(
+  searchParams: { [key: string]: string | string[] | undefined }
+): Promise<{ animes: Anime[]; totalPages: number }> {
+  const page = parseInt(searchParams.page as string || '1');
+  const limit = 20;
+  const offset = (page - 1) * limit;
 
-// Запрос для Hero-секции остается более легковесным
-const HERO_ANIME_SELECT = `
-    id, shikimori_id, title, poster_url, screenshots, year, description, 
-    shikimori_rating, episodes_aired, episodes_total, status, type,
-    genres:anime_genres(genres(name))
-`;
+  const filters: Record<string, any> = {};
+  if (searchParams.genre) filters.genres = searchParams.genre;
+  if (searchParams.status) filters.anime_status = searchParams.status;
+  if (searchParams.studio) filters.studios = searchParams.studio;
+  if (searchParams.type) filters.anime_type = searchParams.type;
+  if (searchParams.year) filters.years = searchParams.year;
+  if (searchParams.sort) filters.sort = searchParams.sort;
+  if (searchParams.search) filters.title = searchParams.search;
 
-const enrichWithUserStatus = async (supabase: SupabaseClient, session: Session | null, animeList: any[] | null) => {
-  if (!session || !animeList || animeList.length === 0) return animeList;
-  const animeIds = animeList.map(a => a.id);
-  const { data: userListsData } = await supabase
-    .from("user_lists")
-    .select("anime_id, status")
-    .eq("user_id", session.user.id)
-    .in("anime_id", animeIds);
-  if (!userListsData) return animeList;
-  const statusMap = new Map(userListsData.map(item => [item.anime_id, item.status]));
-  return animeList.map(anime => ({
-    ...anime,
-    user_list_status: statusMap.get(anime.id) || null,
-  }));
-};
+  const { animes, total } = await getAnimeList(limit, offset, filters);
+  const totalPages = Math.ceil(total / limit);
 
-export async function getHomePageData() {
-  const cookieStore = cookies();
-  const supabase = createServerComponentClient({ cookies: () => cookieStore });
-  // enrichWithUserStatus // <-- ЭТА СТРОКА УДАЛЕНА
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-
-    // --- [ИСПРАВЛЕНИЕ] Все запросы теперь идут к стабильной таблице 'animes' ---
-    const [
-      heroAnimesResponse,
-      trendingResponse,
-      popularResponse,
-      latestUpdatesResponse
-    ] = await Promise.all([
-      // Изменено: используем обновленный HERO_ANIME_SELECT
-      supabase.from("animes").select(HERO_ANIME_SELECT).eq("is_featured_in_hero", true).limit(10),
-      supabase.from("animes").select(ANIME_CARD_SELECT).order("shikimori_rating", { ascending: false, nullsFirst: false }).limit(12),
-      supabase.from("animes").select(ANIME_CARD_SELECT).order("shikimori_votes", { ascending: false, nullsFirst: false }).limit(12),
-      supabase.from("animes").select(ANIME_CARD_SELECT).order("updated_at_kodik", { ascending: false, nullsFirst: false }).limit(12)
-    ]);
-
-    // Обработка данных для Hero-слайдера
-    const heroData = heroAnimesResponse.data?.map(anime => ({
-      ...anime,
-      // Извлекаем жанры
-      genres: anime.genres.map((g: any) => g.genres.name),
-      // --- НОВОЕ: Обработка screenshots ---
-      // Берем первый скриншот для фона, если он есть
-      background_screenshot: anime.screenshots && anime.screenshots.length > 0 ? anime.screenshots[0] : null,
-      // --- КОНЕЦ НОВОГО ---
-  })) || [];
-    
-    // Обработка данных для каруселей
-    const processCarouselData = (response: any) => {
-        return response.data?.map((anime: any) => ({
-            ...anime,
-            genres: anime.genres.map((g: any) => g.genres).filter(Boolean)
-        })) || [];
-    };
-
-    return {
-      hero: await enrichWithUserStatus(supabase, session, heroData),
-      trending: await enrichWithUserStatus(supabase, session, processCarouselData(trendingResponse)),
-      popular: await enrichWithUserStatus(supabase, session, processCarouselData(popularResponse)),
-      latestUpdates: await enrichWithUserStatus(supabase, session, processCarouselData(latestUpdatesResponse)),
-    };
-
-  } catch (error) {
-    console.error("Ошибка при загрузке данных для главной страницы:", error);
-    return { hero: [], trending: [], popular: [], latestUpdates: [] };
-  }
+  return { animes, totalPages };
 }
 
-// --- ДОБАВЛЕНО: Экспорт функции getHomepageSections ---
-// Эта функция будет вызываться из app/page.tsx
-export async function getHomepageSections() {
-  const data = await getHomePageData(); // <-- Вызываем существующую функцию
-  // Возвращаем объект с теми же полями, которые ожидает app/page.tsx
-  return {
-    hero: data.hero,
-    trending: data.trending,
-    popular: data.popular,
-    latestUpdates: data.latestUpdates,
-    // Добавь другие секции, если они используются в других частях сайта
-  };
+export async function getAnimeById(id: string): Promise<AnimeDetails | null> {
+  return getAnimeDetails(id);
 }
-// --- КОНЕЦ ДОБАВЛЕНИЯ ---
+
+export async function getSearchResults(query: string): Promise<Anime[]> {
+  return searchAnime(query);
+}
+
+export async function getHomepageSections(): Promise<HomepageSections> {
+  return getHomepageSectionsData();
+}
+
+export async function getPopularAnime(): Promise<Anime[]> {
+  const { animes } = await getAnimeList(20, 0, { sort: 'views' });
+  return animes;
+}
+
+export async function getGenres(): Promise<string[]> {
+  return getGenresList();
+}
+
+export async function getStatuses(): Promise<string[]> {
+  return getStatusesList();
+}
+
+export async function getStudios(): Promise<string[]> {
+  return getStudiosList();
+}
+
+export async function getTypes(): Promise<string[]> {
+  return getTypesList();
+}
+
+export async function getYears(): Promise<number[]> {
+  return getYearsList();
+}

@@ -5,7 +5,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, XCircle, User, Mail, Calendar, Shield } from "lucide-react"
+import { CheckCircle, XCircle, User, Mail, Calendar, Shield } from 'lucide-react'
 import type { User as SupabaseUser } from "@supabase/auth-helpers-nextjs"
 
 export function TestAuth() {
@@ -169,6 +169,9 @@ export function TestAuth() {
                 </Button>
                 <Button variant="outline" asChild>
                   <a href="/register">Регистрация</a>
+                </Button>
+                <Button variant="outline" onClick={() => supabase.auth.signInWithOAuth({ provider: 'github' })}>
+                  Войти с GitHub
                 </Button>
               </div>
             </div>

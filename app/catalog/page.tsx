@@ -1,12 +1,15 @@
 // /app/catalog/page.tsx
 "use client";
 
-import { useState, useEffect, useCallback, Suspense } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { AnimeCard } from "@/components/anime-card";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { Button } from "@/components/ui/button";
 import { CatalogFilters, type FiltersState, DEFAULT_FILTERS } from "@/components/catalog-filters";
+import { AnimeGrid } from "@/components/anime-grid";
+import { HeroSection } from "@/components/hero-section";
+import { getCatalogAnime, getGenres, getStatuses, getStudios, getTypes, getYears } from "@/lib/data-fetchers";
 
 interface Anime {
   id: number;
@@ -37,132 +40,41 @@ const parseUrlToFilters = (params: URLSearchParams): FiltersState => ({
     user_list_status: params.get('user_list_status') || '',
 });
 
-function CatalogView() {
+async function fetchCatalogData(searchParams: { [key: string]: string | string[] | undefined }) {
+  const { animes, totalPages } = await getCatalogAnime(searchParams);
+  const genres = await getGenres();
+  const statuses = await getStatuses();
+  const studios = await getStudios();
+  const types = await getTypes();
+  const years = await getYears();
+
+  return { animes, totalPages, genres, statuses, studios, types, years };
+}
+
+function CatalogView({ animes, totalPages, genres, statuses, studios, types, years }: { animes: Anime[], totalPages: number, genres: any[], statuses: any[], studios: any[], types: any[], years: any[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [animes, setAnimes] = useState<Anime[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
   const [currentFilters, setCurrentFilters] = useState<FiltersState>(() => parseUrlToFilters(searchParams));
 
-  const fetchData = useCallback(async (filters: FiltersState, pageNum: number) => {
-    const isNewSearch = pageNum === 1;
-    if (isNewSearch) setLoading(true); else setLoadingMore(true);
-
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
-      if (Array.isArray(value) && value.length > 0) params.append(key, value.join(','));
-      else if (typeof value === 'string' && value) params.append(key, value);
-    });
-    params.set('page', pageNum.toString());
-    params.set('limit', '25');
-
-    try {
-      const response = await fetch(`/api/catalog?${params.toString()}`);
-      if (!response.ok) throw new Error("Ошибка сети");
-      
-      const data = await response.json();
-      
-      // ИСПРАВЛЕНИЕ: Очищаем результаты от "пустых" записей
-      const cleanResults = data.results?.filter(Boolean) || [];
-
-      setAnimes(prev => (isNewSearch ? cleanResults : [...prev, ...cleanResults]));
-      setHasMore(data.hasMore);
-      setTotal(data.total);
-    } catch (err) { console.error(err); } 
-    finally { setLoading(false); setLoadingMore(false); }
-  }, []);
-
   const handleApplyFilters = useCallback((newFilters: FiltersState) => {
-    setPage(1);
     setCurrentFilters(newFilters);
-    fetchData(newFilters, 1);
-
-    const params = new URLSearchParams();
-    Object.entries(newFilters).forEach(([key, value]) => {
-        const filterKey = key as keyof FiltersState;
-        if (JSON.stringify(value) !== JSON.stringify(DEFAULT_FILTERS[filterKey])) {
-            if (Array.isArray(value) && value.length > 0) {
-                params.set(key, value.join(','));
-            } else if (typeof value === 'string' && value) {
-                params.set(key, value);
-            }
-        }
-    });
-    const newUrl = params.toString() ? `/catalog?${params.toString()}` : '/catalog';
-    router.push(newUrl, { scroll: false });
-  }, [fetchData, router]);
-
-  const loadMore = () => {
-    if (!loadingMore && hasMore) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      fetchData(currentFilters, nextPage);
-    }
-  };
-
-  useEffect(() => {
-    const initialFilters = parseUrlToFilters(searchParams);
-    setCurrentFilters(initialFilters);
-    setPage(1);
-    fetchData(initialFilters, 1);
-  }, [searchParams, fetchData]);
+    router.push(`/catalog?${new URLSearchParams(Object.entries(newFilters)).toString()}`, { scroll: false });
+  }, [router]);
 
   return (
-    <div className="container mx-auto px-4 pt-24">
-      <div className="flex flex-col lg:flex-row gap-8">
-        <aside className="w-full lg:w-80 lg:max-w-xs shrink-0">
-          <CatalogFilters initialFilters={currentFilters} onApply={handleApplyFilters} />
-        </aside>
-
-        <main className="flex-1">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-3xl font-bold text-white">Каталог аниме</h1>
-            {!loading && <span className="text-muted-foreground text-sm">Найдено: {total}</span>}
-          </div>
-
-          {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {Array.from({ length: 25 }).map((_, i) => (
-                <div key={i} className="aspect-[2/3] bg-slate-800 rounded-lg animate-pulse" />
-              ))}
-            </div>
-          ) : animes.length > 0 ? (
-            <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {animes.map((anime, index) => (
-                  <AnimeCard key={`${anime.shikimori_id}-${index}`} anime={anime} priority={index < 10} />
-                ))}
-              </div>
-              {hasMore && (
-                <div className="text-center mt-8">
-                  <Button onClick={loadMore} disabled={loadingMore}>
-                    {loadingMore ? <LoadingSpinner size="sm" /> : "Загрузить еще"}
-                  </Button>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="text-center py-16">
-                <p className="text-lg text-gray-400">По вашим фильтрам ничего не найдено</p>
-                <p className="text-sm text-gray-500 mt-2">Попробуйте изменить или сбросить фильтры</p>
-            </div>
-          )}
-        </main>
-      </div>
+    <div className="container mx-auto px-4 py-8">
+      <HeroSection title="Каталог аниме" description="Исследуйте нашу обширную коллекцию аниме." />
+      <CatalogFilters genres={genres} statuses={statuses} studios={studios} types={types} years={years} initialFilters={currentFilters} onApply={handleApplyFilters} />
+      <AnimeGrid animes={animes} totalPages={totalPages} />
     </div>
   );
 }
 
-// Обертка для Suspense
-export default function CatalogPageWrapper() {
+export default async function CatalogPage({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
+  const { animes, totalPages, genres, statuses, studios, types, years } = await fetchCatalogData(searchParams);
+
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><LoadingSpinner size="lg" /></div>}>
-      <CatalogView />
-    </Suspense>
+    <CatalogView animes={animes} totalPages={totalPages} genres={genres} statuses={statuses} studios={studios} types={types} years={years} />
   );
 }

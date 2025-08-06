@@ -1,18 +1,19 @@
-import React from 'react';
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function NotificationsPage() {
   return (
-    <div className="container mx-auto px-4 py-8 mt-16">
-      <h1 className="text-3xl font-bold mb-4">Уведомления</h1>
-      <p className="text-lg text-gray-400">
-        Здесь будут отображаться ваши уведомления.
+    <div className="container mx-auto px-4 py-8 text-center">
+      <h1 className="text-4xl font-bold mb-8">Уведомления</h1>
+      <p className="text-lg text-slate-300 mb-6">
+        Здесь будут отображаться ваши последние уведомления.
       </p>
-      <div className="mt-8 p-6 bg-slate-800 rounded-lg shadow-md">
-        <h2 className="text-2xl font-semibold mb-2">Нет новых уведомлений</h2>
-        <p className="text-gray-300">
-          Все уведомления прочитаны.
-        </p>
-      </div>
+      <p className="text-slate-400 mb-8">
+        Пока нет новых уведомлений.
+      </p>
+      <Button asChild>
+        <Link href="/">На главную</Link>
+      </Button>
     </div>
   );
 }

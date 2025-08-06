@@ -1,50 +1,30 @@
-// /components/supabase-provider.tsx
-"use client";
+'use client'
 
-import { createContext, useContext, useEffect, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import type { SupabaseClient, Session } from "@supabase/supabase-js";
+import { createContext, useContext, useEffect, useState } from 'react'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import type { SupabaseClient } from '@supabase/auth-helpers-nextjs'
+import type { Database } from '@/lib/types'
 
-type SupabaseContextType = {
-  supabase: SupabaseClient;
-  session: Session | null;
-};
+type SupabaseContext = {
+  supabase: SupabaseClient<Database>
+}
 
-const SupabaseContext = createContext<SupabaseContextType | null>(null);
+export const Context = createContext<SupabaseContext | undefined>(undefined)
 
 export function SupabaseProvider({ children }: { children: React.ReactNode }) {
-  const [supabase] = useState(() => createClientComponentClient());
-  const [session, setSession] = useState<Session | null>(null);
-
-  useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    const getInitialSession = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
-    }
-    getInitialSession();
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase]);
+  const [supabase] = useState(() => createClientComponentClient<Database>())
 
   return (
-    <SupabaseContext.Provider value={{ supabase, session }}>
-      {children}
-    </SupabaseContext.Provider>
-  );
+    <Context.Provider value={{ supabase }}>
+      <>{children}</>
+    </Context.Provider>
+  )
 }
 
 export const useSupabase = () => {
-  const context = useContext(SupabaseContext);
-  if (context === null) {
-    throw new Error("useSupabase must be used within a SupabaseProvider");
+  const context = useContext(Context)
+  if (context === undefined) {
+    throw new Error('useSupabase must be used inside SupabaseProvider')
   }
-  return context;
-};
+  return context
+}

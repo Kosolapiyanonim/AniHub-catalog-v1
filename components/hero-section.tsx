@@ -1,20 +1,42 @@
-import { Inter } from "next/font/google"
+import type React from "react";
+import Link from "next/link";
+import { ChevronRight } from 'lucide-react';
+import { cn } from "@/lib/utils";
 
-const inter = Inter({
-  subsets: ["latin", "cyrillic"],
-  display: "swap",
-})
+interface HeroSectionProps extends React.HTMLAttributes<HTMLDivElement> {
+  title: string;
+  description?: string;
+  href?: string;
+  children?: React.ReactNode;
+}
 
-export function HeroSection() {
+export function HeroSection({
+  title,
+  description,
+  href,
+  children,
+  className,
+  ...props
+}: HeroSectionProps) {
   return (
-    <section className="relative text-white">
-      <div className="absolute inset-0 bg-black/40" />
-      <div className="relative container mx-auto px-4 py-24 text-center">
-        <h1 className={`text-4xl md:text-6xl font-bold mb-6 ${inter.className}`}>Смотри Аниме Онлайн</h1>
-        <p className={`text-xl md:text-2xl mb-8 max-w-2xl mx-auto ${inter.className}`}>
-          Тысячи аниме в отличном качестве. Новые серии каждый день.
-        </p>
+    <section className={cn("space-y-4", className)} {...props}>
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
+          {description && (
+            <p className="text-muted-foreground">{description}</p>
+          )}
+        </div>
+        {href && (
+          <Button variant="link" asChild className="px-0">
+            <Link href={href} className="flex items-center gap-1">
+              Смотреть все
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        )}
       </div>
+      {children}
     </section>
-  )
+  );
 }

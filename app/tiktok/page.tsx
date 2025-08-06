@@ -1,18 +1,21 @@
-import React from 'react';
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function TikTokPage() {
   return (
-    <div className="container mx-auto px-4 py-8 mt-16">
-      <h1 className="text-3xl font-bold mb-4">Наш TikTok</h1>
-      <p className="text-lg text-gray-400">
-        Смотрите наши короткие видео и мемы в TikTok!
+    <div className="container mx-auto px-4 py-8 text-center">
+      <h1 className="text-4xl font-bold mb-8">Наш TikTok</h1>
+      <p className="text-lg text-slate-300 mb-6">
+        Подписывайтесь на наш TikTok, чтобы смотреть короткие видео и моменты из любимых аниме!
       </p>
-      <div className="mt-8 p-6 bg-slate-800 rounded-lg shadow-md">
-        <h2 className="text-2xl font-semibold mb-2">Ссылка на TikTok</h2>
-        <a href="https://www.tiktok.com/@your_tiktok_account" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
+      <Button asChild size="lg">
+        <Link href="https://www.tiktok.com/@your_tiktok_account" target="_blank" rel="noopener noreferrer">
           Перейти в TikTok
-        </a>
-      </div>
+        </Link>
+      </Button>
+      <p className="text-slate-400 mt-8">
+        (Это заглушка. Замените ссылку на ваш реальный TikTok-аккаунт.)
+      </p>
     </div>
   );
 }

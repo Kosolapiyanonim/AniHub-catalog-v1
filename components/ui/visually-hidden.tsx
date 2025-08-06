@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Root as RadixVisuallyHidden } from "@radix-ui/react-visually-hidden"
+import * as VisuallyHiddenPrimitive from '@radix-ui/react-visually-hidden'
 
 /**
  * VisuallyHidden
@@ -13,10 +13,7 @@ import { Root as RadixVisuallyHidden } from "@radix-ui/react-visually-hidden"
  * Example:
  *   <VisuallyHidden>Close dialog</VisuallyHidden>
  */
-export const VisuallyHidden = React.forwardRef<
-  React.ElementRef<typeof RadixVisuallyHidden>,
-  React.ComponentPropsWithoutRef<typeof RadixVisuallyHidden>
->((props, ref) => <RadixVisuallyHidden ref={ref} {...props} />)
+export const VisuallyHidden = VisuallyHiddenPrimitive.Root
 
 VisuallyHidden.displayName = "VisuallyHidden"
 

@@ -3,6 +3,7 @@ import Link from "next/link";
 
 export default function BlogPage() {
   return (
+<<<<<<< HEAD
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-3xl mx-auto">
         <h1 className="text-4xl font-bold text-center mb-8">Наш Блог</h1>
@@ -68,9 +69,11 @@ export default function BlogPage() {
         </div>
       </div>
 
+=======
     <div className="flex flex-col items-center justify-center min-h-screen text-white">
       <h1 className="text-4xl font-bold mb-4">Наш Блог</h1>
       <p className="text-lg text-slate-400">Здесь будут статьи и новости.</p>
+>>>>>>> parent of dd53ff5 (Update blog page layout and content)
     </div>
   );
 }

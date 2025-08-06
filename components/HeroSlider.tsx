@@ -45,7 +45,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
   if (!validItems || validItems.length === 0) {
     return (
       <div
-        className={`relative w-full ${isFullscreen ? "h-screen" : "h-[70vh] min-h-[500px]"} flex items-center justify-center bg-gradient-to-br from-slate-900 to-indigo-950 text-white ${!isFullscreen ? "container mx-auto px-4 rounded-lg" : ""}`}
+        className={`relative w-full ${isFullscreen ? "h-[calc(100vh-4rem)]" : "h-[70vh] min-h-[500px]"} flex items-center justify-center bg-gradient-to-br from-slate-900 to-indigo-950 text-white ${!isFullscreen ? "container mx-auto px-4 rounded-lg" : ""}`}
       >
         <p className="text-xl text-center px-4">Отметьте аниме в базе для отображения в Hero-секции...</p>
       </div>
@@ -54,7 +54,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
 
   return (
     <div
-      className={`relative w-full ${isFullscreen ? "h-screen" : "h-[70vh] min-h-[500px]"} overflow-hidden ${!isFullscreen ? "container mx-auto px-4" : ""}`}
+      className={`relative w-full ${isFullscreen ? "h-[calc(100vh-4rem)]" : "h-[70vh] min-h-[500px]"} overflow-hidden ${!isFullscreen ? "container mx-auto px-4" : ""}`}
     >
       {/* Кнопка переключения режима - только на десктопе */}
       <Button
@@ -108,7 +108,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
             return (
               <CarouselItem key={anime.id} className="w-full min-w-full pl-0 pr-0 overflow-hidden h-full">
                 {/* --- МОБИЛЬНАЯ АДАПТАЦИЯ (только полноэкранный режим) --- */}
-                <div className="md:hidden relative w-full h-screen">
+                <div className="md:hidden relative w-full h-[calc(100vh-4rem)]">
                   <div className="absolute inset-0 z-0">
                     <Image
                       src={backgroundImageUrl || "/placeholder.svg"}
@@ -208,7 +208,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
 
                 {/* --- ДЕСКТОПНАЯ ВЕРСИЯ --- */}
                 <div
-                  className={`hidden md:block relative w-full ${isFullscreen ? "h-screen" : "h-[70vh] min-h-[500px]"} ${!isFullscreen ? "rounded-lg overflow-hidden" : ""}`}
+                  className={`hidden md:block relative w-full ${isFullscreen ? "h-[calc(100vh-4rem)]" : "h-[70vh] min-h-[500px]"} ${!isFullscreen ? "rounded-lg overflow-hidden" : ""}`}
                 >
                   <div className="absolute inset-0 z-0">
                     <div className="absolute inset-y-0 left-0 w-1/2 filter blur-md scale-110">

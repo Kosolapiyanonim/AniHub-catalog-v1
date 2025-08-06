@@ -35,7 +35,7 @@ export function Header() {
               </div>
             </div>
 
-            {/* Социальные сети */}
+            {/* Социальные сети - теперь видны и на мобильных */}
             <div className="flex items-center space-x-2">
               <Button
                 variant="ghost"

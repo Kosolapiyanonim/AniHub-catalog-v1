@@ -30,7 +30,7 @@ export function MobileBottomNav() {
     {
       href: '/',
       icon: Home,
-      label: 'Главная',
+      label: 'AniHub', // Изменено на AniHub
       isActive: pathname === '/',
       isCenter: true
     },
@@ -78,13 +78,9 @@ export function MobileBottomNav() {
               </button>
             </SheetTrigger>
             <SheetContent side="right" className="p-0 w-[300px] bg-slate-900 border-l-slate-700">
-              <MobileMenuContent />
-              <SheetClose asChild>
-                <Button variant="ghost" className="absolute bottom-4 right-4 text-slate-400 hover:text-white">
-                  <ArrowRightToLine className="w-5 h-5 mr-2" />
-                  Закрыть
-                </Button>
-              </SheetClose>
+              {/* Скрываем стандартную кнопку закрытия Sheet */}
+              <SheetClose className="hidden" /> 
+              <MobileMenuContent onClose={() => setIsMenuOpen(false)} />
             </SheetContent>
           </Sheet>
         </div>

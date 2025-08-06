@@ -35,6 +35,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         <Analytics />
         <SpeedInsights />
+        
+        {/* Google Tag Manager */}
         <Script id="gtm-script" strategy="afterInteractive">
           {`
             (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -44,8 +46,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             })(window,document,'script','dataLayer', '${process.env.NEXT_PUBLIC_GTM_ID}');
           `}
         </Script>
+        
+        {/* Google Analytics (gtag.js) */}
         <Script
-          src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}`}
+          src="https://www.googletagmanager.com/gtag/js?id=G-3DCGBWLNEZ"
           strategy="afterInteractive"
         />
         <Script id="gtag-init" strategy="afterInteractive">
@@ -53,7 +57,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}');
+            gtag('config', 'G-3DCGBWLNEZ');
           `}
         </Script>
       </body>

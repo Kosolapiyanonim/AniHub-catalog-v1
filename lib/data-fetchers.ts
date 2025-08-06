@@ -1,5 +1,4 @@
 // lib/data-fetchers.ts
-
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import type { SupabaseClient, Session } from "@supabase/supabase-js";
@@ -37,7 +36,7 @@ const enrichWithUserStatus = async (supabase: SupabaseClient, session: Session |
 export async function getHomePageData() {
   const cookieStore = cookies();
   const supabase = createServerComponentClient({ cookies: () => cookieStore });
-enrichWithUserStatus
+  // enrichWithUserStatus // <-- ЭТА СТРОКА УДАЛЕНА
   try {
     const { data: { session } } = await supabase.auth.getSession();
 
@@ -86,3 +85,18 @@ enrichWithUserStatus
     return { hero: [], trending: [], popular: [], latestUpdates: [] };
   }
 }
+
+// --- ДОБАВЛЕНО: Экспорт функции getHomepageSections ---
+// Эта функция будет вызываться из app/page.tsx
+export async function getHomepageSections() {
+  const data = await getHomePageData(); // <-- Вызываем существующую функцию
+  // Возвращаем объект с теми же полями, которые ожидает app/page.tsx
+  return {
+    hero: data.hero,
+    trending: data.trending,
+    popular: data.popular,
+    latestUpdates: data.latestUpdates,
+    // Добавь другие секции, если они используются в других частях сайта
+  };
+}
+// --- КОНЕЦ ДОБАВЛЕНИЯ ---

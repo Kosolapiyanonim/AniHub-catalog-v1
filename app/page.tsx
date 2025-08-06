@@ -2,15 +2,27 @@
 import { HeroSlider } from "@/components/HeroSlider"
 import { AnimeCarousel } from "@/components/anime-carousel"
 import { getHomepageSections } from "@/lib/data-fetchers"
+import { AnimeCarousel } from "@/components/AnimeCarousel"
+import { LoadingSpinner } from "@/components/loading-spinner"
+import { TrendingUp, Star, RotateCw } from "lucide-react"
+import { Suspense } from "react"
+import { getHomePageData } from "@/lib/data-fetchers"
+
+export const dynamic = "force-dynamic"
 
 export default async function HomePage() {
   const sections = await getHomepageSections()
+  const data = await getHomePageData()
 
   return (
     <>
+<<<<<<< HEAD
       {/* HeroSlider теперь действительно вне любого контейнера с px-4 */}
       {/* Он растягивается на 100% ширины, так как находится в div.flex-1 в layout.tsx */}
       <div className="min-h-screen bg-slate-900">
+=======
+      {/* HeroSlider теперь может быть как полноэкранным, так и обычным */}
+>>>>>>> parent of 2f0714e (Update page.tsx)
       <HeroSlider items={data.hero} />
       
       {/* Основной контент теперь ЯВНО обернут в container */}

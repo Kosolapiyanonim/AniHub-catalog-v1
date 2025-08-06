@@ -14,9 +14,9 @@ import { Providers } from "@/components/providers"
 const inter = Inter({ subsets: ["latin", "cyrillic"], display: "swap" })
 
 export const metadata: Metadata = {
-  title: "AniHub - Смотреть аниме онлайн",
-  description: "Лучший сайт для просмотра аниме онлайн.",
-  generator: "v0.dev",
+  title: "AniHub - Лучший сайт для просмотра аниме онлайн. Совместный просмотр аниме, лучшие новинки, уникальный аниме дизайн и аниме коммьюнити.",
+  description: "Лучший сайт для просмотра аниме онлайн. Надоели однотипные сайты? Мы проведём тебя в незабываемый опыт просмотра аниме. Найди своё комьюнити и смотри аниме онлайн со своими друзьями. Совместный просмотр аниме, лучшие новинки, уникальный аниме дизайн и аниме коммьюнити.",
+    generator: 'v0.dev'
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

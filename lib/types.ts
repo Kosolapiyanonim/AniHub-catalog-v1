@@ -1,116 +1,72 @@
-// Базовые типы для Kodik API
-export interface KodikTranslation {
-  id: string
+// Existing types (from previous context, assuming they are here)
+export interface Anime {
+  id: number
+  kodik_id: string
+  shikimori_id: string
+  kinopoisk_id?: string
   title: string
-  type: string
-}
-
-export interface KodikMaterialData {
-  title?: string
-  anime_title?: string
   title_orig?: string
-  poster_url?: string
-  anime_poster_url?: string
-  description?: string
-  anime_description?: string
   year?: number
+  poster_url?: string
+  player_link?: string
+  description?: string
+  type?: string
+  status?: string
+  episodes_count?: number
+  rating_mpaa?: string
   kinopoisk_rating?: number
+  imdb_rating?: number
   shikimori_rating?: number
+  kinopoisk_votes?: number
   shikimori_votes?: number
-  anime_genres?: string[]
-  anime_studios?: string[]
-  countries?: string[]
-  anime_status?: string
-  episodes_count?: number
-  duration?: number
-}
-
-export interface KodikAnimeData {
-  id: string
-  title: string
-  title_orig?: string
-  year?: number
-  link: string
-  type: string
-  quality?: string
-  translation: KodikTranslation
-  episodes_count?: number
-  shikimori_id?: string
-  material_data?: KodikMaterialData
-}
-
-// Типы для нашей базы данных
-export interface AnimeRecord {
-  id: number
-  shikimori_id: string
-  title: string
-  title_orig?: string
-  year?: number
-  poster_url?: string
-  description?: string
-  status?: string
-  episodes_count?: number
-  shikimori_rating?: number
-  shikimori_votes?: number
-  player_link?: string
+  screenshots?: any
+  updated_at_kodik?: string
   created_at: string
-  updated_at: string
 }
 
-export interface GenreRecord {
+export interface Genre {
   id: number
   name: string
-  created_at: string
 }
 
-export interface StudioRecord {
+export interface Studio {
   id: number
   name: string
-  created_at: string
 }
 
-export interface CountryRecord {
+export interface Country {
   id: number
   name: string
-  created_at: string
 }
 
-// Тип для представления с отношениями
-export interface CatalogAnime {
-  id: number
-  shikimori_id: string
-  title: string
-  title_orig?: string
-  year?: number
-  poster_url?: string
-  description?: string
-  status?: string
-  episodes_count?: number
-  shikimori_rating?: number
-  shikimori_votes?: number
-  player_link?: string
-  genres?: string[]
-  studios?: string[]
-  countries?: string[]
-  created_at: string
-  updated_at: string
+export interface AnimeRelation {
+  anime_id: number
+  relation_id: number
+  relation_type: "genre" | "studio" | "country"
 }
 
-// API Response типы
-export interface CatalogResponse {
-  results: CatalogAnime[]
-  total: number
-  hasMore: boolean
-  page: number
-  limit: number
+// New types for User Profile
+export interface Profile {
+  id: string; // Corresponds to auth.users.id
+  username: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+  website: string | null;
+  bio: string | null;
+  email: string; // Assuming email is always present from auth.users
+  created_at: string;
 }
 
-export interface GenresResponse {
-  genres: string[]
-  total: number
-}
+export type AnimeListStatus = "watching" | "completed" | "planned" | "dropped" | "on_hold" | "favorite";
 
-export interface YearsResponse {
-  years: number[]
-  total: number
+export interface UserAnimeList {
+  id: number;
+  user_id: string;
+  anime_id: number;
+  status: AnimeListStatus;
+  score: number | null;
+  episodes_watched: number | null;
+  created_at: string;
+  updated_at: string;
+  anime: Anime; // Joined anime data
 }

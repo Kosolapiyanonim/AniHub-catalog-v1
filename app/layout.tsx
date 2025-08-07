@@ -2,16 +2,18 @@ import type { Metadata } from "next"
 import { Inter } from 'next/font/google'
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { Header } from "@/components/header"
-import { Toaster } from "@/components/ui/toaster" // Импортируем Toaster
+import { Toaster } from "@/components/ui/toaster"
 import SupabaseProvider from "@/components/supabase-provider"
-import { MobileBottomNav } from "@/components/mobile-bottom-nav" // Импортируем MobileBottomNav
+import { cookies } from "next/headers"
+import { Header } from "@/components/header"
+import { MobileBottomNav } from "@/components/mobile-bottom-nav"
+import { Footer } from "@/components/footer"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "AniHub - Каталог аниме",
-  description: "Ваш центральный хаб для просмотра и отслеживания аниме.",
+  title: "AniHub - Смотри аниме онлайн бесплатно",
+  description: "Смотри любимое аниме онлайн бесплатно в высоком качестве на AniHub. Большая коллекция аниме сериалов и фильмов с русской озвучкой и субтитрами.",
     generator: 'v0.dev'
 }
 
@@ -20,6 +22,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const cookieStore = cookies()
   return (
     <html lang="ru" suppressHydrationWarning>
       <body className={inter.className}>
@@ -29,12 +32,17 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <SupabaseProvider>
-            <Header />
-            {children}
-            <MobileBottomNav /> {/* Добавляем MobileBottomNav */}
-            <Toaster /> {/* Добавляем Toaster в корневой макет */}
+          <SupabaseProvider cookieStore={cookieStore}>
+            <div className="flex flex-col min-h-screen">
+              <Header />
+              <main className="flex-grow">
+                {children}
+              </main>
+              <Footer />
+              <MobileBottomNav />
+            </div>
           </SupabaseProvider>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>

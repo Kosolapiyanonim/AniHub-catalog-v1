@@ -1,88 +1,90 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Bell, BellOff } from 'lucide-react'
-import { toast } from 'sonner'
+import { useState, useEffect, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Bell, BellRing, Loader2 } from 'lucide-react';
+import { useSupabase } from './supabase-provider';
+import { toast } from 'sonner';
 
 interface SubscribeButtonProps {
-  animeId: string
-  userId: string
+  animeId: number;
 }
 
-export function SubscribeButton({ animeId, userId }: SubscribeButtonProps) {
-  const [isSubscribed, setIsSubscribed] = useState(false)
-  const [loading, setLoading] = useState(true)
+export function SubscribeButton({ animeId }: SubscribeButtonProps) {
+  const { session } = useSupabase();
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const checkSubscription = async () => {
-      setLoading(true)
-      try {
-        const response = await fetch(`/api/subscriptions?userId=${userId}&animeId=${animeId}`)
-        if (response.ok) {
-          const data = await response.json()
-          setIsSubscribed(data && data.length > 0)
-        } else {
-          console.error('Failed to fetch subscription status')
-        }
-      } catch (error) {
-        console.error('Error checking subscription:', error)
-      } finally {
-        setLoading(false)
-      }
+  const checkSubscription = useCallback(async () => {
+    if (!session) {
+      setLoading(false);
+      return;
     }
-    checkSubscription()
-  }, [animeId, userId])
-
-  const handleSubscribeToggle = async () => {
-    if (loading) return
-
-    setLoading(true)
+    setLoading(true);
     try {
-      const method = isSubscribed ? 'DELETE' : 'POST'
-      const response = await fetch('/api/subscriptions', {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId, animeId }),
-      })
-
+      const response = await fetch(`/api/subscriptions?anime_id=${animeId}`);
       if (response.ok) {
-        setIsSubscribed(!isSubscribed)
-        toast.success(isSubscribed ? 'Вы отписались от аниме.' : 'Вы подписались на аниме!')
-      } else {
-        const errorData = await response.json()
-        toast.error(errorData.error || 'Не удалось обновить подписку.')
+        const data = await response.json();
+        setIsSubscribed(data.subscribed);
       }
     } catch (error) {
-      console.error('Error toggling subscription:', error)
-      toast.error('Произошла ошибка при обновлении подписки.')
+      console.error("Failed to check subscription status:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
+  }, [animeId, session]);
+
+  useEffect(() => {
+    checkSubscription();
+  }, [checkSubscription]);
+
+  const handleSubscribe = async () => {
+    if (!session) {
+      toast.error("Нужно войти в аккаунт для подписки");
+      return;
+    }
+    setLoading(true);
+    const newSubscribedState = !isSubscribed;
+    try {
+      const response = await fetch('/api/subscriptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ anime_id: animeId, subscribed: newSubscribedState }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Ошибка подписки");
+      }
+
+      setIsSubscribed(newSubscribedState);
+      toast.success(newSubscribedState ? "Вы подписались на обновления" : "Вы отписались от обновлений");
+    } catch (error) {
+      toast.error("Не удалось изменить статус подписки");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!session) {
+    return null;
   }
 
   return (
     <Button
-      onClick={handleSubscribeToggle}
+      onClick={handleSubscribe}
+      variant="ghost"
+      size="icon"
       disabled={loading}
-      variant={isSubscribed ? 'secondary' : 'default'}
-      className="w-full"
+      className="text-gray-400 hover:text-white"
+      title={isSubscribed ? "Отписаться от обновлений" : "Подписаться на обновления"}
     >
       {loading ? (
-        'Загрузка...'
+        <Loader2 className="w-5 h-5 animate-spin" />
       ) : isSubscribed ? (
-        <>
-          <BellOff className="mr-2 h-4 w-4" />
-          Отписаться
-        </>
+        <BellRing className="w-5 h-5 text-purple-400" />
       ) : (
-        <>
-          <Bell className="mr-2 h-4 w-4" />
-          Подписаться
-        </>
+        <Bell className="w-5 h-5" />
       )}
     </Button>
-  )
+  );
 }

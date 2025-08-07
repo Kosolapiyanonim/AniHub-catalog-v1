@@ -1,54 +1,56 @@
-'use client'
+"use client"
 
-import Image from 'next/image'
-import Link from 'next/link'
-import { Anime } from '@/lib/types'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { AnimeListPopover } from './AnimeListPopover'
-import { AnimeCardListButton } from './anime-card-list-button'
-import { User as SupabaseUser } from '@supabase/auth-helpers-nextjs'
+import Image from "next/image"
+import Link from "next/link"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { AnimeListPopover } from "@/components/AnimeListPopover"
+import { type Anime } from "@/lib/types"
 
 interface AnimeCardProps {
   anime: Anime
-  user: SupabaseUser | null
 }
 
-export function AnimeCard({ anime, user }: AnimeCardProps) {
+export function AnimeCard({ anime }: AnimeCardProps) {
   return (
-    <Card className="group relative overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out">
-      <Link href={`/anime/${anime.id}`} className="absolute inset-0 z-10" prefetch={false}>
+    <Card className="relative w-full aspect-[2/3] rounded-lg overflow-hidden group bg-slate-800/50 border-slate-700 hover:border-purple-500 transition-all duration-200">
+      <Link href={`/anime/${anime.shikimori_id}`} className="absolute inset-0 z-10">
         <span className="sr-only">View {anime.title}</span>
       </Link>
-      <CardContent className="flex aspect-[2/3] items-center justify-center p-0">
+      <CardContent className="p-0 h-full w-full">
         <Image
-          src={anime.poster_url || '/placeholder.svg?height=300&width=200&text=No+Poster'}
+          src={anime.poster_url || "/placeholder.svg"}
           alt={anime.title}
-          width={200}
-          height={300}
-          className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+          fill
+          className="object-cover transition-transform duration-300 group-hover:scale-105"
         />
-      </CardContent>
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-        <h3 className="text-sm font-semibold truncate">{anime.title}</h3>
-        {anime.shikimori_rating && (
-          <p className="text-xs text-muted-foreground">Рейтинг: {anime.shikimori_rating}</p>
-        )}
-        <div className="flex flex-wrap gap-1 mt-1">
-          {anime.genres && anime.genres.slice(0, 2).map((genre) => (
-            <Badge key={genre} variant="secondary" className="text-xs px-1 py-0.5">
-              {genre}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 p-3 text-white z-20">
+          <h3 className="text-sm font-semibold line-clamp-2 mb-1">
+            {anime.title}
+          </h3>
+          <p className="text-xs text-slate-300 line-clamp-1">
+            {anime.episodes_aired} / {anime.episodes_total || "??"} эп.
+          </p>
+        </div>
+        <div className="absolute top-2 right-2 z-20">
+          {anime.status && (
+            <Badge variant="secondary" className="bg-purple-600/80 text-white text-xs px-2 py-0.5">
+              {anime.status}
             </Badge>
-          ))}
+          )}
         </div>
-      </div>
-      {user && (
-        <div className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <AnimeListPopover animeId={anime.id} userId={user.id}>
-            <AnimeCardListButton />
-          </AnimeListPopover>
+        <div className="absolute top-2 left-2 z-20">
+          {anime.shikimori_rating && (
+            <Badge variant="secondary" className="bg-yellow-500/80 text-white text-xs px-2 py-0.5">
+              ⭐ {anime.shikimori_rating}
+            </Badge>
+          )}
         </div>
-      )}
+        <div className="absolute bottom-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <AnimeListPopover anime={anime} />
+        </div>
+      </CardContent>
     </Card>
   )
 }

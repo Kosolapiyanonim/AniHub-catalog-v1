@@ -1,94 +1,147 @@
-// /app/api/parser/route.ts
+import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { cookies } from 'next/headers';
+import { searchKodikAnime } from '@/lib/anime-api';
 
-import { NextResponse } from "next/server";
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
-import { parseAndSaveAnime } from '@/lib/parser-utils'
-import { supabase } from "@/lib/supabase";
-import type { KodikAnimeData, AnimeRecord } from "@/lib/types";
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const query = searchParams.get('query');
 
-// ====================================================================
-// GET-обработчик для проверки статуса (решает ошибку 405)
-// ====================================================================
-export async function GET() {
-  return NextResponse.json({ status: "ok", message: "Parser API is online." });
-}
-
-// ====================================================================
-// Вспомогательные функции для ОПТИМИЗИРОВАННОЙ обработки связей
-// ====================================================================
-
-/**
- * Обрабатывает один тип связей (например, все жанры со страницы) одним пакетом.
- */
-async function processRelationsBatch(
-  supabaseClient: any,
-  relationData: { anime_id: number; name: string }[],
-  relation_type: "genre" | "studio" | "country"
-) {
-  if (!relationData || relationData.length === 0) return;
-
-  const tableName = relation_type === "country" ? "countries" : `${relation_type}s`;
-  const idFieldName = `${relation_type}_id`;
-  const relationTableName = `anime_${tableName}`;
-
-  // 1. Получаем уникальные имена и добавляем их в справочник (genres, studios, etc.)
-  const uniqueNames = [...new Set(relationData.map(r => r.name))];
-  const { data: existingItems, error: upsertError } = await supabaseClient
-    .from(tableName)
-    .upsert(uniqueNames.map(name => ({ name })), { onConflict: 'name' })
-    .select('id, name');
-
-  if (upsertError) throw upsertError;
-  if (!existingItems) return;
-
-  // 2. Создаем карту "имя -> id" для быстрого доступа
-  const itemMap = new Map(existingItems.map(item => [item.name, item.id]));
-
-  // 3. Формируем записи для таблицы связей (anime_genres, etc.)
-  const relationsToUpsert = relationData
-    .map(rel => {
-      const relationId = itemMap.get(rel.name);
-      if (!relationId) return null;
-      return {
-        anime_id: rel.anime_id,
-        [idFieldName]: relationId,
-      };
-    })
-    .filter(Boolean);
-
-  // 4. Добавляем все связи одним запросом
-  if (relationsToUpsert.length > 0) {
-    const { error: relationError } = await supabaseClient
-      .from(relationTableName)
-      .upsert(relationsToUpsert, { onConflict: `anime_id,${idFieldName}` });
-    
-    if (relationError) console.error(`Ошибка при пакетной вставке в ${relationTableName}:`, relationError);
-  }
-}
-
-// ====================================================================
-// Основной POST-обработчик с новой, оптимизированной логикой
-// ====================================================================
-export async function POST(request: Request) {
-  const supabase = createRouteHandlerClient({ cookies })
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!query) {
+    return NextResponse.json({ error: 'Query parameter is required' }, { status: 400 });
   }
 
-  const { page } = await request.json()
-
-  if (typeof page !== 'number' || page < 1) {
-    return NextResponse.json({ error: 'Invalid page number' }, { status: 400 })
-  }
+  const cookieStore = cookies();
+  const supabase = createClient(cookieStore);
 
   try {
-    const result = await parseAndSaveAnime(page)
-    return NextResponse.json({ message: `Parsed ${result.parsedCount} anime from page ${page}.`, ...result })
-  } catch (error) {
-    console.error(`Error parsing page ${page}:`, error)
-    return NextResponse.json({ error: `Failed to parse page ${page}` }, { status: 500 })
+    const kodikResults = await searchKodikAnime(query);
+
+    if (!kodikResults || kodikResults.length === 0) {
+      return NextResponse.json({ message: 'No results found on Kodik API for the given query.' });
+    }
+
+    let processedCount = 0;
+    for (const kodikAnime of kodikResults) {
+      const { material_data, translations } = kodikAnime;
+
+      if (!material_data || !material_data.shikimori_id) {
+        console.warn(`Skipping anime ${kodikAnime.title} due to missing material_data or shikimori_id.`);
+        continue;
+      }
+
+      // Insert/Update Anime
+      const { data: existingAnime, error: fetchError } = await supabase
+        .from('animes')
+        .select('id')
+        .eq('shikimori_id', material_data.shikimori_id)
+        .single();
+
+      let animeId: string;
+      if (existingAnime) {
+        const { error: updateError } = await supabase
+          .from('animes')
+          .update({
+            title: kodikAnime.title,
+            title_orig: kodikAnime.title_orig,
+            poster_url: material_data.poster_url,
+            description: material_data.description,
+            year: material_data.year,
+            shikimori_rating: material_data.anime_shikimori_rating,
+            episodes_total: material_data.anime_episodes_total,
+            episodes_aired: material_data.anime_episodes_aired,
+            status: material_data.anime_status,
+            kind: material_data.anime_kind,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingAnime.id);
+        if (updateError) throw updateError;
+        animeId = existingAnime.id;
+      } else {
+        const { data: newAnime, error: insertError } = await supabase
+          .from('animes')
+          .insert({
+            shikimori_id: material_data.shikimori_id,
+            title: kodikAnime.title,
+            title_orig: kodikAnime.title_orig,
+            poster_url: material_data.poster_url,
+            description: material_data.description,
+            year: material_data.year,
+            shikimori_rating: material_data.anime_shikimori_rating,
+            episodes_total: material_data.anime_episodes_total,
+            episodes_aired: material_data.anime_episodes_aired,
+            status: material_data.anime_status,
+            kind: material_data.anime_kind,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .select('id')
+          .single();
+        if (insertError) throw insertError;
+        animeId = newAnime.id;
+      }
+
+      // Process Genres
+      if (material_data.anime_genres && material_data.anime_genres.length > 0) {
+        for (const genreName of material_data.anime_genres) {
+          const { data: genreData, error: genreError } = await supabase
+            .from('genres')
+            .upsert({ name: genreName }, { onConflict: 'name' })
+            .select('id')
+            .single();
+          if (genreError) throw genreError;
+
+          if (genreData) {
+            const { error: linkError } = await supabase
+              .from('anime_genres')
+              .upsert({ anime_id: animeId, genre_id: genreData.id }, { onConflict: 'anime_id,genre_id' });
+            if (linkError) throw linkError;
+          }
+        }
+      }
+
+      // Process Studios
+      if (material_data.anime_studios && material_data.anime_studios.length > 0) {
+        for (const studioName of material_data.anime_studios) {
+          const { data: studioData, error: studioError } = await supabase
+            .from('studios')
+            .upsert({ name: studioName }, { onConflict: 'name' })
+            .select('id')
+            .single();
+          if (studioError) throw studioError;
+
+          if (studioData) {
+            const { error: linkError } = await supabase
+              .from('anime_studios')
+              .upsert({ anime_id: animeId, studio_id: studioData.id }, { onConflict: 'anime_id,studio_id' });
+            if (linkError) throw linkError;
+          }
+        }
+      }
+
+      // Process Translations
+      if (translations && translations.length > 0) {
+        for (const translation of translations) {
+          const { error: translationError } = await supabase
+            .from('translations')
+            .upsert({
+              kodik_id: translation.id,
+              anime_id: animeId,
+              title: translation.title,
+              type: translation.type,
+              quality: translation.quality,
+              link_id: translation.link_id,
+              updated_at: new Date().toISOString(),
+            }, { onConflict: 'kodik_id' });
+          if (translationError) throw translationError;
+        }
+      }
+      processedCount++;
+    }
+
+    return NextResponse.json({ message: `Parse completed. Processed ${processedCount} anime.` });
+  } catch (error: any) {
+    console.error('Parse failed:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

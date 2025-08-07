@@ -1,305 +1,274 @@
-'use client'
+// /components/catalog-filters.tsx
+"use client"
 
-import { useState, useEffect, useCallback } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { ChevronDown, Filter, X } from 'lucide-react'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
-import { useDebounce } from '@/hooks/use-debounce'
+import type React from "react"
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { SlidersHorizontal } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "./ui/checkbox"
+import { Label } from "./ui/label"
+import { useSupabase } from "@/components/supabase-provider"
 
-interface CatalogFiltersProps {
-  initialSearch?: string
-  initialGenres?: string[]
-  initialYears?: number[]
-  initialStatuses?: string[]
-  initialTypes?: string[]
-  initialStudios?: string[]
-  initialSort?: string
-  availableGenres: string[]
-  availableStudios: string[]
-  availableYears: number[]
-  availableStatuses: string[]
-  availableTypes: string[]
+type FilterItem = { id: number; name: string; slug: string }
+export interface FiltersState {
+  title: string
+  sort: string
+  year_from: string
+  year_to: string
+  genres: string[]
+  genres_exclude: string[]
+  studios: string[]
+  studios_exclude: string[]
+  kinds: string[] // <-- ИЗМЕНЕНИЕ: types заменен на kinds
+  statuses: string[]
+  user_list_status: string
 }
 
-export function CatalogFilters({
-  initialSearch = '',
-  initialGenres = [],
-  initialYears = [],
-  initialStatuses = [],
-  initialTypes = [],
-  initialStudios = [],
-  initialSort = 'shikimori_rating.desc',
-  availableGenres,
-  availableStudios,
-  availableYears,
-  availableStatuses,
-  availableTypes,
-}: CatalogFiltersProps) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
+export const DEFAULT_FILTERS: FiltersState = {
+  title: "",
+  sort: "shikimori_votes", // <-- ИЗМЕНЕНИЕ: Установлено значение по умолчанию
+  year_from: "",
+  year_to: "",
+  genres: [],
+  genres_exclude: [],
+  studios: [],
+  studios_exclude: [],
+  kinds: [], // <-- ИЗМЕНЕНИЕ
+  statuses: [],
+  user_list_status: "", // <-- ИЗМЕНЕНИЕ: Установлено значение по умолчанию
+}
 
-  const [search, setSearch] = useState(initialSearch)
-  const [selectedGenres, setSelectedGenres] = useState<string[]>(initialGenres)
-  const [selectedYears, setSelectedYears] = useState<number[]>(initialYears)
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(initialStatuses)
-  const [selectedTypes, setSelectedTypes] = useState<string[]>(initialTypes)
-  const [selectedStudios, setSelectedStudios] = useState<string[]>(initialStudios)
-  const [sort, setSort] = useState(initialSort)
+// Список возможных типов, которые приходят от Kodik
+const animeKinds = ["tv", "movie", "ova", "ona", "special"]
+const animeStatuses = ["released", "ongoing", "anons"]
 
-  const debouncedSearch = useDebounce(search, 500)
+interface CatalogFiltersProps {
+  initialFilters: FiltersState
+  onApply: (filters: FiltersState) => void
+}
 
-  // Sync state with URL params on initial load and param changes
+export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps) {
+  const { session } = useSupabase()
+  const [filters, setFilters] = useState(initialFilters)
+  const [genres, setGenres] = useState<FilterItem[]>([])
+  const [studios, setStudios] = useState<FilterItem[]>([])
+  const [tags, setTags] = useState<FilterItem[]>([])
+
   useEffect(() => {
-    setSearch(searchParams.get('search') || '')
-    setSelectedGenres(searchParams.get('genres')?.split(',').filter(Boolean) || [])
-    setSelectedYears(searchParams.get('years')?.split(',').map(Number).filter(Boolean) || [])
-    setSelectedStatuses(searchParams.get('statuses')?.split(',').filter(Boolean) || [])
-    setSelectedTypes(searchParams.get('types')?.split(',').filter(Boolean) || [])
-    setSelectedStudios(searchParams.get('studios')?.split(',').filter(Boolean) || [])
-    setSort(searchParams.get('sort') || 'shikimori_rating.desc')
-  }, [searchParams])
+    setFilters(initialFilters)
+  }, [initialFilters])
 
-  const createQueryString = useCallback(
-    (paramsToUpdate: Record<string, string | string[] | number[] | undefined>) => {
-      const params = new URLSearchParams(searchParams.toString())
+  useEffect(() => {
+    const fetchFilterData = async () => {
+      try {
+        const [genresRes, studiosRes, tagsRes] = await Promise.all([
+          fetch("/api/genres"),
+          fetch("/api/studios"),
+          fetch("/api/tags"),
+        ])
+        if (genresRes.ok) setGenres(await genresRes.json())
+        if (studiosRes.ok) setStudios(await studiosRes.json())
+        if (tagsRes.ok) setTags(await tagsRes.json())
+      } catch (error) {
+        console.error("Failed to fetch filter data", error)
+      }
+    }
+    fetchFilterData()
+  }, [])
 
-      Object.entries(paramsToUpdate).forEach(([name, value]) => {
-        if (value === undefined || value.length === 0) {
-          params.delete(name)
-        } else if (Array.isArray(value)) {
-          params.set(name, value.join(','))
-        } else {
-          params.set(name, String(value))
-        }
-      })
-      params.set('page', '1') // Reset to first page on filter change
-      return params.toString()
-    },
-    [searchParams]
+  const handleApply = () => onApply(filters)
+  const handleReset = () => onApply(DEFAULT_FILTERS)
+
+  // Вспомогательный компонент для группы чекбо��сов
+  const CheckboxGroup = ({
+    items,
+    selected,
+    onChange,
+  }: { items: string[]; selected: string[]; onChange: (newSelected: string[]) => void }) => {
+    const handleCheckboxChange = (item: string, isChecked: boolean) => {
+      if (isChecked) {
+        onChange([...selected, item])
+      } else {
+        onChange(selected.filter((s) => s !== item))
+      }
+    }
+
+    return (
+      <div className="grid grid-cols-2 gap-2">
+        {items.map((item) => (
+          <div key={item} className="flex items-center space-x-2">
+            <Checkbox
+              id={`filter-${item}`}
+              checked={selected.includes(item)}
+              onCheckedChange={(checked) => handleCheckboxChange(item, !!checked)}
+            />
+            <Label htmlFor={`filter-${item}`} className="capitalize text-gray-300">
+              {item}
+            </Label>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  // Вспомогательный компонент для секции фильтра
+  const FilterSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <AccordionItem value={title.toLowerCase().replace(/\s/g, "-")}>
+      <AccordionTrigger className="text-white hover:no-underline">{title}</AccordionTrigger>
+      <AccordionContent className="pt-2">{children}</AccordionContent>
+    </AccordionItem>
   )
 
-  useEffect(() => {
-    const newQueryString = createQueryString({ search: debouncedSearch })
-    router.push(`?${newQueryString}`, { scroll: false })
-  }, [debouncedSearch, createQueryString, router])
-
-  const applyFilters = useCallback(() => {
-    const newQueryString = createQueryString({
-      genres: selectedGenres,
-      years: selectedYears,
-      statuses: selectedStatuses,
-      types: selectedTypes,
-      studios: selectedStudios,
-      sort,
-    })
-    router.push(`?${newQueryString}`, { scroll: false })
-  }, [selectedGenres, selectedYears, selectedStatuses, selectedTypes, selectedStudios, sort, createQueryString, router])
-
-  const resetFilters = useCallback(() => {
-    setSearch('')
-    setSelectedGenres([])
-    setSelectedYears([])
-    setSelectedStatuses([])
-    setSelectedTypes([])
-    setSelectedStudios([])
-    setSort('shikimori_rating.desc')
-    router.push('/catalog', { scroll: false })
-  }, [router])
-
-  const handleGenreChange = (genre: string, checked: boolean) => {
-    setSelectedGenres((prev) =>
-      checked ? [...prev, genre] : prev.filter((g) => g !== genre)
-    )
-  }
-
-  const handleYearChange = (year: number, checked: boolean) => {
-    setSelectedYears((prev) =>
-      checked ? [...prev, year] : prev.filter((y) => y !== year)
-    )
-  }
-
-  const handleStatusChange = (status: string, checked: boolean) => {
-    setSelectedStatuses((prev) =>
-      checked ? [...prev, status] : prev.filter((s) => s !== status)
-    )
-  }
-
-  const handleTypeChange = (type: string, checked: boolean) => {
-    setSelectedTypes((prev) =>
-      checked ? [...prev, type] : prev.filter((t) => t !== type)
-    )
-  }
-
-  const handleStudioChange = (studio: string, checked: boolean) => {
-    setSelectedStudios((prev) =>
-      checked ? [...prev, studio] : prev.filter((s) => s !== studio)
-    )
-  }
-
   return (
-    <div className="bg-card p-6 rounded-lg shadow-md sticky top-20">
-      <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-        <Filter className="h-6 w-6" />
-        Фильтры
-      </h2>
-
-      <div className="space-y-6">
-        {/* Search */}
+    <Card className="sticky top-20 bg-slate-800 border-slate-700">
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <CardTitle className="flex items-center gap-2 text-white">
+            <SlidersHorizontal className="w-5 h-5" />
+            Фильтры
+          </CardTitle>
+          <Button onClick={handleReset} variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+            Сбросить
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Поиск по названию */}
         <div>
-          <Label htmlFor="search">Поиск по названию</Label>
+          <Label htmlFor="title-search" className="sr-only">
+            Поиск по названию
+          </Label>
           <Input
-            id="search"
-            type="text"
-            placeholder="Найти аниме..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="mt-1"
+            id="title-search"
+            placeholder="Название аниме..."
+            value={filters.title}
+            onChange={(e) => setFilters((prev) => ({ ...prev, title: e.target.value }))}
+            className="bg-slate-700 border-slate-600 text-white placeholder:text-gray-400"
           />
         </div>
 
-        {/* Sort */}
-        <div>
-          <Label htmlFor="sort">Сортировка</Label>
-          <Select value={sort} onValueChange={setSort}>
-            <SelectTrigger className="w-full mt-1">
-              <SelectValue placeholder="Выберите сортировку" />
+        {/* Сортировка */}
+        <div className="space-y-2">
+          <Label htmlFor="sort-by" className="text-gray-300">
+            Сортировать по
+          </Label>
+          <Select value={filters.sort} onValueChange={(val) => setFilters((prev) => ({ ...prev, sort: val }))}>
+            <SelectTrigger className="w-full bg-slate-700 border-slate-600 text-white">
+              <SelectValue placeholder="Выберите опцию" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="shikimori_rating.desc">Рейтинг Shikimori (убыв.)</SelectItem>
-              <SelectItem value="shikimori_rating.asc">Рейтинг Shikimori (возр.)</SelectItem>
-              <SelectItem value="year.desc">Год выпуска (убыв.)</SelectItem>
-              <SelectItem value="year.asc">Год выпуска (возр.)</SelectItem>
-              <SelectItem value="title.asc">Название (А-Я)</SelectItem>
-              <SelectItem value="title.desc">Название (Я-А)</SelectItem>
+            <SelectContent className="bg-slate-800 border-slate-700 text-white">
+              <SelectItem value="shikimori_votes">Популярности</SelectItem>
+              <SelectItem value="year">Году выпуска</SelectItem>
+              <SelectItem value="shikimori_rating">Рейтингу</SelectItem>
+              <SelectItem value="title">Названию</SelectItem>
+              <SelectItem value="updated_at_kodik">Обновлению</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        <Separator />
+        <Button onClick={handleApply} className="w-full bg-primary hover:bg-primary/90 text-white">
+          Применить
+        </Button>
 
-        {/* Genres */}
-        <Collapsible>
-          <CollapsibleTrigger className="flex items-center justify-between w-full py-2 font-semibold text-lg [&[data-state=open]>svg]:rotate-180">
-            Жанры
-            <ChevronDown className="h-5 w-5 transition-transform duration-200" />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-2 max-h-60 overflow-y-auto pr-2">
-            {availableGenres.map((genre) => (
-              <div key={genre} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`genre-${genre}`}
-                  checked={selectedGenres.includes(genre)}
-                  onCheckedChange={(checked) => handleGenreChange(genre, checked as boolean)}
-                />
-                <Label htmlFor={`genre-${genre}`}>{genre}</Label>
-              </div>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
+        <Accordion type="multiple" className="w-full" defaultValue={["user_list_status", "genres"]}>
+          {/* Фильтр по типу (anime_kind) */}
+          <FilterSection title="Тип">
+            <CheckboxGroup
+              items={animeKinds}
+              selected={filters.kinds}
+              onChange={(val) => setFilters((prev) => ({ ...prev, kinds: val }))}
+            />
+          </FilterSection>
 
-        <Separator />
+          {/* Фильтр по статусу */}
+          <FilterSection title="Статус">
+            <CheckboxGroup
+              items={animeStatuses}
+              selected={filters.statuses}
+              onChange={(val) => setFilters((prev) => ({ ...prev, statuses: val }))}
+            />
+          </FilterSection>
 
-        {/* Years */}
-        <Collapsible>
-          <CollapsibleTrigger className="flex items-center justify-between w-full py-2 font-semibold text-lg [&[data-state=open]>svg]:rotate-180">
-            Годы выпуска
-            <ChevronDown className="h-5 w-5 transition-transform duration-200" />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-2 max-h-60 overflow-y-auto pr-2">
-            {availableYears.map((year) => (
-              <div key={year} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`year-${year}`}
-                  checked={selectedYears.includes(year)}
-                  onCheckedChange={(checked) => handleYearChange(year, checked as boolean)}
-                />
-                <Label htmlFor={`year-${year}`}>{year}</Label>
-              </div>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
+          {/* Фильтр по годам */}
+          <FilterSection title="Год">
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                placeholder="От"
+                value={filters.year_from}
+                onChange={(e) => setFilters((prev) => ({ ...prev, year_from: e.target.value }))}
+                className="w-1/2 bg-slate-700 border-slate-600 text-white placeholder:text-gray-400"
+              />
+              <Input
+                type="number"
+                placeholder="До"
+                value={filters.year_to}
+                onChange={(e) => setFilters((prev) => ({ ...prev, year_to: e.target.value }))}
+                className="w-1/2 bg-slate-700 border-slate-600 text-white placeholder:text-gray-400"
+              />
+            </div>
+          </FilterSection>
 
-        <Separator />
+          {/* Фильтр по жанрам */}
+          <FilterSection title="Жанры">
+            <ScrollArea className="h-[200px] pr-4">
+              <CheckboxGroup
+                items={genres.map((g) => g.name)}
+                selected={filters.genres}
+                onChange={(val) => setFilters((prev) => ({ ...prev, genres: val }))}
+              />
+            </ScrollArea>
+          </FilterSection>
 
-        {/* Statuses */}
-        <Collapsible>
-          <CollapsibleTrigger className="flex items-center justify-between w-full py-2 font-semibold text-lg [&[data-state=open]>svg]:rotate-180">
-            Статусы
-            <ChevronDown className="h-5 w-5 transition-transform duration-200" />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-2 max-h-60 overflow-y-auto pr-2">
-            {availableStatuses.map((status) => (
-              <div key={status} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`status-${status}`}
-                  checked={selectedStatuses.includes(status)}
-                  onCheckedChange={(checked) => handleStatusChange(status, checked as boolean)}
-                />
-                <Label htmlFor={`status-${status}`}>{status}</Label>
-              </div>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
+          {/* Фильтр по студиям */}
+          <FilterSection title="Студии">
+            <ScrollArea className="h-[200px] pr-4">
+              <CheckboxGroup
+                items={studios.map((s) => s.name)}
+                selected={filters.studios}
+                onChange={(val) => setFilters((prev) => ({ ...prev, studios: val }))}
+              />
+            </ScrollArea>
+          </FilterSection>
 
-        <Separator />
+          {/* Фильтр по тегам (если применимо) */}
+          {/* <FilterSection title="Теги">
+            <ScrollArea className="h-[200px] pr-4">
+              <CheckboxGroup
+                items={tags.map(t => t.name)}
+                selected={filters.tags}
+                onChange={val => setFilters(prev => ({ ...prev, tags: val }))}
+              />
+            </ScrollArea>
+          </FilterSection> */}
 
-        {/* Types */}
-        <Collapsible>
-          <CollapsibleTrigger className="flex items-center justify-between w-full py-2 font-semibold text-lg [&[data-state=open]>svg]:rotate-180">
-            Типы
-            <ChevronDown className="h-5 w-5 transition-transform duration-200" />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-2 max-h-60 overflow-y-auto pr-2">
-            {availableTypes.map((type) => (
-              <div key={type} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`type-${type}`}
-                  checked={selectedTypes.includes(type)}
-                  onCheckedChange={(checked) => handleTypeChange(type, checked as boolean)}
-                />
-                <Label htmlFor={`type-${type}`}>{type}</Label>
-              </div>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
-
-        <Separator />
-
-        {/* Studios */}
-        <Collapsible>
-          <CollapsibleTrigger className="flex items-center justify-between w-full py-2 font-semibold text-lg [&[data-state=open]>svg]:rotate-180">
-            Студии
-            <ChevronDown className="h-5 w-5 transition-transform duration-200" />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-2 max-h-60 overflow-y-auto pr-2">
-            {availableStudios.map((studio) => (
-              <div key={studio} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`studio-${studio}`}
-                  checked={selectedStudios.includes(studio)}
-                  onCheckedChange={(checked) => handleStudioChange(studio, checked as boolean)}
-                />
-                <Label htmlFor={`studio-${studio}`}>{studio}</Label>
-              </div>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
-
-        <div className="flex gap-2 mt-6">
-          <Button onClick={applyFilters} className="flex-1">Применить</Button>
-          <Button onClick={resetFilters} variant="outline" className="flex-1">
-            <X className="h-4 w-4 mr-2" />
-            Сбросить
-          </Button>
-        </div>
-      </div>
-    </div>
+          {session && (
+            <FilterSection title="Мой список">
+              <Select
+                value={filters.user_list_status}
+                onValueChange={(val) => setFilters((prev) => ({ ...prev, user_list_status: val }))}
+              >
+                <SelectTrigger className="w-full bg-slate-700 border-slate-600 text-white">
+                  <SelectValue placeholder="Выберите статус" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                  <SelectItem value="all">Все</SelectItem> {/* <-- ИЗМЕНЕНИЕ: Значение не пустое */}
+                  <SelectItem value="watching">Смотрю</SelectItem>
+                  <SelectItem value="planned">Запланировано</SelectItem>
+                  <SelectItem value="completed">Просмотрено</SelectItem>
+                  <SelectItem value="dropped">Брошено</SelectItem>
+                  <SelectItem value="on_hold">Отложено</SelectItem>
+                </SelectContent>
+              </Select>
+            </FilterSection>
+          )}
+        </Accordion>
+      </CardContent>
+    </Card>
   )
 }

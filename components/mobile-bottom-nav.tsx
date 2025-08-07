@@ -1,64 +1,62 @@
-'use client'
+"use client"
 
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { Home, Bookmark, Heart, User, Menu, Search } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
-import { MobileMenuContent } from './mobile-menu-content'
-import { useState } from 'react'
-import { useSearchStore } from '@/hooks/use-search-store'
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { Home, Compass, Star, Bell, Menu } from 'lucide-react'
+import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { MobileMenuContent } from "@/components/mobile-menu-content"
+import { useState } from "react"
 
 export function MobileBottomNav() {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const toggleSearch = useSearchStore((state) => state.toggle)
+
+  const navItems = [
+    { href: "/", icon: Home, label: "Главная" },
+    { href: "/catalog", icon: Compass, label: "Каталог" },
+    { href: "/favorites", icon: Star, label: "Избранное" },
+    { href: "/notifications", icon: Bell, label: "Уведомления" },
+  ]
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 bg-slate-900/95 backdrop-blur-sm border-t border-slate-800 lg:hidden">
-      <div className="container mx-auto h-14 flex items-center justify-around">
-        <Link href="/" className="flex flex-col items-center text-xs font-medium text-white hover:text-purple-400 transition-colors">
-          <Home className={`h-5 w-5 ${pathname === '/' ? 'text-purple-400' : ''}`} />
-          Главная
-        </Link>
-        <Link href="/catalog" className="flex flex-col items-center text-xs font-medium text-white hover:text-purple-400 transition-colors">
-          <Bookmark className={`h-5 w-5 ${pathname === '/catalog' ? 'text-purple-400' : ''}`} />
-          Каталог
-        </Link>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="flex flex-col items-center text-xs font-medium text-white hover:text-purple-400 transition-colors h-auto w-auto p-0"
-          onClick={toggleSearch}
-        >
-          <Search className="h-5 w-5" />
-          Поиск
-        </Button>
-        <Link href="/popular" className="flex flex-col items-center text-xs font-medium text-white hover:text-purple-400 transition-colors">
-          <Heart className={`h-5 w-5 ${pathname === '/popular' ? 'text-purple-400' : ''}`} />
-          Популярное
-        </Link>
-
-        {/* Mobile Menu Trigger */}
+    <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden">
+      <nav className="flex h-14 items-center justify-around px-2">
+        {navItems.map((item) => {
+          const isActive = pathname === item.href
+          return (
+            <Button
+              key={item.href}
+              variant="ghost"
+              size="icon"
+              asChild
+              className={`flex flex-col h-auto w-auto p-2 text-xs ${
+                isActive ? "text-primary" : "text-muted-foreground"
+              }`}
+            >
+              <Link href={item.href}>
+                <item.icon className="h-5 w-5 mb-1" />
+                <span>{item.label}</span>
+              </Link>
+            </Button>
+          )
+        })}
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
-              className="flex flex-col items-center text-xs font-medium text-white hover:text-purple-400 transition-colors h-auto w-auto p-0"
+              className="flex flex-col h-auto w-auto p-2 text-xs text-muted-foreground"
             >
-              <Menu className="h-5 w-5" />
-              Меню
+              <Menu className="h-5 w-5 mb-1" />
+              <span>Меню</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="right" className="w-[280px] sm:w-[350px] bg-slate-900 border-slate-800">
-            <SheetHeader>
-              <SheetTitle className="text-left text-white">Меню</SheetTitle>
-            </SheetHeader>
+          <SheetContent side="left" className="p-0">
             <MobileMenuContent setMobileMenuOpen={setMobileMenuOpen} />
           </SheetContent>
         </Sheet>
-      </div>
-    </nav>
+      </nav>
+    </div>
   )
 }

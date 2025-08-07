@@ -1,17 +1,17 @@
-// hooks/use-search-store.ts
-
-import { create } from 'zustand'
+import { create } from 'zustand';
 
 interface SearchStore {
-  isOpen: boolean
-  open: () => void
-  close: () => void
-  toggle: () => void
+  isOpen: boolean;
+  query: string;
+  setIsOpen: (isOpen: boolean) => void;
+  setQuery: (query: string) => void;
+  toggle: () => void;
 }
 
 export const useSearchStore = create<SearchStore>((set) => ({
   isOpen: false,
-  open: () => set({ isOpen: true }),
-  close: () => set({ isOpen: false }),
+  query: '',
+  setIsOpen: (isOpen) => set({ isOpen }),
+  setQuery: (query) => set({ query }),
   toggle: () => set((state) => ({ isOpen: !state.isOpen })),
-}))
+}));

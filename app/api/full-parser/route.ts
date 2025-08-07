@@ -1,41 +1,145 @@
-import { NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
-import { parseAndSaveAnime } from '@/lib/parser-utils'
+import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { cookies } from 'next/headers';
+import { searchKodikAnime } from '@/lib/anime-api';
 
-export async function POST(request: Request) {
-  const supabase = createRouteHandlerClient({ cookies })
-  const { data: { user } } = await supabase.auth.getUser()
+export const maxDuration = 300; // 5 minutes
 
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+export async function GET(request: Request) {
+  const cookieStore = cookies();
+  const supabase = createClient(cookieStore);
 
-  // This is a simplified example. In a real application,
-  // you might want to run this as a background job or a serverless function
-  // that can handle long-running tasks.
-  // For demonstration, we'll just run it directly.
+  // This is a simplified example. A real full parser would need to:
+  // 1. Handle pagination for Kodik API to get all anime.
+  // 2. Process anime in batches to avoid memory/timeout issues.
+  // 3. Implement robust error handling and retry mechanisms.
+  // 4. Potentially use a queue system (e.g., Vercel Queue, Redis Queue) for long-running tasks.
 
   try {
-    let currentPage = 1
-    let hasMore = true
-    const totalParsed = 0
+    // Fetch a small batch for demonstration. In reality, you'd iterate through all pages.
+    const initialSearch = await searchKodikAnime("anime"); // Broad search to get some data
+    let processedCount = 0;
 
-    // This loop will run indefinitely if not stopped.
-    // In a real scenario, you'd have a mechanism to stop it,
-    // or limit the number of pages/items.
-    while (hasMore && currentPage <= 10) { // Limiting to 10 pages for safety
-      console.log(`Starting full parse for page ${currentPage}...`)
-      const result = await parseAndSaveAnime(currentPage)
-      hasMore = result.hasMore
-      // totalParsed += result.parsedCount
-      currentPage++
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Delay to avoid rate limits
+    for (const kodikAnime of initialSearch) {
+      const { material_data, translations } = kodikAnime;
+
+      if (!material_data || !material_data.shikimori_id) {
+        console.warn(`Skipping anime ${kodikAnime.title} due to missing material_data or shikimori_id.`);
+        continue;
+      }
+
+      // Insert/Update Anime
+      const { data: existingAnime, error: fetchError } = await supabase
+        .from('animes')
+        .select('id')
+        .eq('shikimori_id', material_data.shikimori_id)
+        .single();
+
+      let animeId: string;
+      if (existingAnime) {
+        const { error: updateError } = await supabase
+          .from('animes')
+          .update({
+            title: kodikAnime.title,
+            title_orig: kodikAnime.title_orig,
+            poster_url: material_data.poster_url,
+            description: material_data.description,
+            year: material_data.year,
+            shikimori_rating: material_data.anime_shikimori_rating,
+            episodes_total: material_data.anime_episodes_total,
+            episodes_aired: material_data.anime_episodes_aired,
+            status: material_data.anime_status,
+            kind: material_data.anime_kind,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingAnime.id);
+        if (updateError) throw updateError;
+        animeId = existingAnime.id;
+      } else {
+        const { data: newAnime, error: insertError } = await supabase
+          .from('animes')
+          .insert({
+            shikimori_id: material_data.shikimori_id,
+            title: kodikAnime.title,
+            title_orig: kodikAnime.title_orig,
+            poster_url: material_data.poster_url,
+            description: material_data.description,
+            year: material_data.year,
+            shikimori_rating: material_data.anime_shikimori_rating,
+            episodes_total: material_data.anime_episodes_total,
+            episodes_aired: material_data.anime_episodes_aired,
+            status: material_data.anime_status,
+            kind: material_data.anime_kind,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .select('id')
+          .single();
+        if (insertError) throw insertError;
+        animeId = newAnime.id;
+      }
+
+      // Process Genres
+      if (material_data.anime_genres && material_data.anime_genres.length > 0) {
+        for (const genreName of material_data.anime_genres) {
+          const { data: genreData, error: genreError } = await supabase
+            .from('genres')
+            .upsert({ name: genreName }, { onConflict: 'name' })
+            .select('id')
+            .single();
+          if (genreError) throw genreError;
+
+          if (genreData) {
+            const { error: linkError } = await supabase
+              .from('anime_genres')
+              .upsert({ anime_id: animeId, genre_id: genreData.id }, { onConflict: 'anime_id,genre_id' });
+            if (linkError) throw linkError;
+          }
+        }
+      }
+
+      // Process Studios
+      if (material_data.anime_studios && material_data.anime_studios.length > 0) {
+        for (const studioName of material_data.anime_studios) {
+          const { data: studioData, error: studioError } = await supabase
+            .from('studios')
+            .upsert({ name: studioName }, { onConflict: 'name' })
+            .select('id')
+            .single();
+          if (studioError) throw studioError;
+
+          if (studioData) {
+            const { error: linkError } = await supabase
+              .from('anime_studios')
+              .upsert({ anime_id: animeId, studio_id: studioData.id }, { onConflict: 'anime_id,studio_id' });
+            if (linkError) throw linkError;
+          }
+        }
+      }
+
+      // Process Translations
+      if (translations && translations.length > 0) {
+        for (const translation of translations) {
+          const { error: translationError } = await supabase
+            .from('translations')
+            .upsert({
+              kodik_id: translation.id,
+              anime_id: animeId,
+              title: translation.title,
+              type: translation.type,
+              quality: translation.quality,
+              link_id: translation.link_id,
+              updated_at: new Date().toISOString(),
+            }, { onConflict: 'kodik_id' });
+          if (translationError) throw translationError;
+        }
+      }
+      processedCount++;
     }
 
-    return NextResponse.json({ message: 'Full parsing process initiated. Check logs for progress.', totalParsed })
-  } catch (error) {
-    console.error('Error during full parsing:', error)
-    return NextResponse.json({ error: 'Failed to initiate full parsing' }, { status: 500 })
+    return NextResponse.json({ message: `Full parse completed. Processed ${processedCount} anime.` });
+  } catch (error: any) {
+    console.error('Full parse failed:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

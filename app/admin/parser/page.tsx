@@ -1,136 +1,203 @@
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { toast } from 'sonner'
+"use client"
 
-export default async function ParserPage() {
-  const supabase = createServerComponentClient({ cookies })
-  const { data: { user } } = await supabase.auth.getUser()
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useToast } from "@/hooks/use-toast"
+import { Loader2 } from 'lucide-react'
 
-  if (!user) {
-    redirect('/login')
-  }
+export default function ParserPage() {
+  const [url, setUrl] = useState("")
+  const [status, setStatus] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const { toast } = useToast()
 
-  const handleParseLatest = async () => {
-    'use server'
+  const handleParseSinglePage = async () => {
+    setIsLoading(true)
+    setStatus("Запуск парсинга одной страницы...")
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/parse-latest`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
+      const response = await fetch(`/api/parse-single-page?url=${encodeURIComponent(url)}`)
       const data = await response.json()
       if (response.ok) {
-        toast.success(data.message || 'Последние аниме успешно спарсены!')
+        setStatus(`Успешно: ${JSON.stringify(data, null, 2)}`)
+        toast({
+          title: "Парсинг завершен",
+          description: "Страница успешно обработана.",
+        })
       } else {
-        toast.error(data.error || 'Ошибка при парсинге последних аниме.')
+        setStatus(`Ошибка: ${data.error || "Неизвестная ошибка"}`)
+        toast({
+          title: "Ошибка парсинга",
+          description: data.error || "Произошла ошибка при обработке страницы.",
+          variant: "destructive",
+        })
       }
-    } catch (error) {
-      console.error('Error parsing latest anime:', error)
-      toast.error('Произошла ошибка при парсинге последних аниме.')
+    } catch (error: any) {
+      setStatus(`Ошибка: ${error.message}`)
+      toast({
+        title: "Ошибка парсинга",
+        description: error.message,
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const handleParseSinglePage = async (formData: FormData) => {
-    'use server'
-    const page = formData.get('page')
+  const handleParseLatest = async () => {
+    setIsLoading(true)
+    setStatus("Запуск парсинга последних обновлений...")
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/parse-single-page`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ page: Number(page) }),
-      })
+      const response = await fetch("/api/parse-latest")
       const data = await response.json()
       if (response.ok) {
-        toast.success(data.message || `Страница ${page} успешно спарсена!`)
+        setStatus(`Успешно: ${JSON.stringify(data, null, 2)}`)
+        toast({
+          title: "Парсинг завершен",
+          description: "Последние обновления успешно обработаны.",
+        })
       } else {
-        toast.error(data.error || `Ошибка при парсинге страницы ${page}.`)
+        setStatus(`Ошибка: ${data.error || "Неизвестная ошибка"}`)
+        toast({
+          title: "Ошибка парсинга",
+          description: data.error || "Произошла ошибка при обработке последних обновлений.",
+          variant: "destructive",
+        })
       }
-    } catch (error) {
-      console.error('Error parsing single page:', error)
-      toast.error('Произошла ошибка при парсинге страницы.')
+    } catch (error: any) {
+      setStatus(`Ошибка: ${error.message}`)
+      toast({
+        title: "Ошибка парсинга",
+        description: error.message,
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 
   const handleFullParse = async () => {
-    'use server'
+    setIsLoading(true)
+    setStatus("Запуск полного парсинга (может занять много времени)...")
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/full-parser`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
+      const response = await fetch("/api/full-parser")
       const data = await response.json()
       if (response.ok) {
-        toast.success(data.message || 'Полный парсинг запущен успешно!')
+        setStatus(`Успешно: ${JSON.stringify(data, null, 2)}`)
+        toast({
+          title: "Полный парсинг завершен",
+          description: "Все аниме успешно обработаны.",
+        })
       } else {
-        toast.error(data.error || 'Ошибка при запуске полного парсинга.')
+        setStatus(`Ошибка: ${data.error || "Неизвестная ошибка"}`)
+        toast({
+          title: "Ошибка полного парсинга",
+          description: data.error || "Произошла ошибка при полном парсинге.",
+          variant: "destructive",
+        })
       }
-    } catch (error) {
-      console.error('Error starting full parse:', error)
-      toast.error('Произошла ошибка при запуске полного парсинга.')
+    } catch (error: any) {
+      setStatus(`Ошибка: ${error.message}`)
+      toast({
+        title: "Ошибка полного парсинга",
+        description: error.message,
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 
   return (
-    <main className="container mx-auto px-4 py-8 mt-16">
-      <h1 className="text-3xl font-bold mb-8 text-center">Панель управления парсером</h1>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-6">Панель администратора: Парсер Kodik</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle>Парсинг последних аниме</CardTitle>
-            <CardDescription>
-              Запускает парсинг последних добавленных аниме с Kodik.
-            </CardDescription>
+            <CardTitle className="text-white">Парсинг одной страницы</CardTitle>
           </CardHeader>
-          <CardContent>
-            <form action={handleParseLatest}>
-              <Button type="submit" className="w-full">Запустить парсинг последних</Button>
-            </form>
+          <CardContent className="space-y-4">
+            <div className="grid gap-2">
+              <Label htmlFor="url" className="text-slate-300">URL страницы Kodik</Label>
+              <Input
+                id="url"
+                type="url"
+                placeholder="https://kodik.info/anime/..."
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                className="bg-slate-700 border-slate-600 text-white"
+              />
+            </div>
+            <Button
+              onClick={handleParseSinglePage}
+              disabled={isLoading || !url}
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Парсить страницу
+            </Button>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle>Парсинг одной страницы</CardTitle>
-            <CardDescription>
-              Парсит аниме с указанной страницы Kodik.
-            </CardDescription>
+            <CardTitle className="text-white">Парсинг последних обновлений</CardTitle>
           </CardHeader>
-          <CardContent>
-            <form action={handleParseSinglePage} className="space-y-4">
-              <div>
-                <Label htmlFor="page-number">Номер страницы</Label>
-                <Input id="page-number" name="page" type="number" defaultValue={1} min={1} required />
-              </div>
-              <Button type="submit" className="w-full">Запустить парсинг страницы</Button>
-            </form>
+          <CardContent className="space-y-4">
+            <p className="text-slate-400">
+              Запускает парсинг последних обновлений аниме из Kodik API.
+              Это быстрее, чем полный парсинг, и подходит для регулярного обновления.
+            </p>
+            <Button
+              onClick={handleParseLatest}
+              disabled={isLoading}
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Парсить последние
+            </Button>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="md:col-span-2 bg-slate-800/50 border-slate-700 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle>Полный парсинг</CardTitle>
-            <CardDescription>
-              Запускает полный парсинг всех аниме с Kodik (может занять много времени).
-            </CardDescription>
+            <CardTitle className="text-white">Полный парсинг</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-slate-400">
+              Запускает полный парсинг всех доступных аниме из Kodik API.
+              Это может занять очень много времени и потребляет много ресурсов.
+              Используйте осторожно.
+            </p>
+            <Button
+              onClick={handleFullParse}
+              disabled={isLoading}
+              className="w-full bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Запустить полный парсинг
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2 bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="text-white">Статус парсинга</CardTitle>
           </CardHeader>
           <CardContent>
-            <form action={handleFullParse}>
-              <Button type="submit" className="w-full" variant="destructive">Запустить полный парсинг</Button>
-            </form>
+            <Textarea
+              value={status}
+              readOnly
+              rows={10}
+              className="w-full bg-slate-700 border-slate-600 text-white font-mono text-sm"
+            />
           </CardContent>
         </Card>
       </div>
-    </main>
+    </div>
   )
 }

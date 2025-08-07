@@ -1,26 +1,20 @@
-import { NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { cookies } from 'next/headers';
 
 export async function GET(request: Request) {
-  const supabase = createRouteHandlerClient({ cookies })
+  const cookieStore = cookies();
+  const supabase = createClient(cookieStore);
 
-  try {
-    const { data, error, count } = await supabase
-      .from('studios')
-      .select('name', { count: 'exact' })
-      .order('name', { ascending: true })
+  const { data: studios, error } = await supabase
+    .from('studios')
+    .select('name')
+    .order('name', { ascending: true });
 
-    if (error) {
-      console.error('Error fetching studios:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    const studios = data.map(s => s.name)
-
-    return NextResponse.json({ studios, total: count || 0 })
-  } catch (error) {
-    console.error('Unexpected error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  if (error) {
+    console.error('Error fetching studios:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  return NextResponse.json(studios.map(s => s.name));
 }

@@ -1,6 +1,6 @@
 // app/api/anime/[id]/route.ts
 
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from '@/lib/supabase/server';
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
@@ -11,8 +11,12 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   const shikimoriId = params.id;
+  if (!shikimoriId) {
+    return NextResponse.json({ error: "Shikimori ID is required" }, { status: 400 });
+  }
+
   const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+  const supabase = createClient(cookieStore);
 
   try {
     // --- ШАГ 1: Получаем сессию пользователя ---
@@ -20,14 +24,21 @@ export async function GET(
 
     // --- ШАГ 2: Получаем основную информацию об аниме ---
     const { data: anime, error: animeError } = await supabase
-      .from('animes_with_relations')
-      .select('*')
-      .eq('id', shikimoriId)
+      .from('animes')
+      .select(`
+        *, 
+        genres:anime_genres(genres(name)), 
+        studios:anime_studios(studios(name)),
+        tags:anime_tags(tags(name))
+      `)
+      .eq('shikimori_id', shikimoriId)
       .single();
 
     if (animeError) {
-      console.error('Error fetching anime by ID:', animeError);
-      return NextResponse.json({ error: animeError.message }, { status: 500 });
+      if (animeError.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Аниме не найдено' }, { status: 404 });
+      }
+      throw animeError;
     }
 
     if (!anime) {
@@ -49,9 +60,45 @@ export async function GET(
       }
     }
 
-    // --- ШАГ 4: Собираем финальный ответ, добавляя статус пользователя ---
+    // --- ШАГ 4: Получаем озвучки и связанные произведения параллельно ---
+    const [translationsResponse, relatedResponse] = await Promise.all([
+      supabase.from('translations').select('*').eq('anime_id', anime.id),
+      supabase.from('anime_relations').select('relation_type_formatted, related_id').eq('anime_id', anime.id)
+    ]);
+
+    const translations = translationsResponse.data || [];
+    const relations = relatedResponse.data || [];
+
+    // --- ШАГ 5: Получаем информацию о связанных аниме (если они есть) ---
+    let relatedAnimesWithInfo = [];
+    if (relations.length > 0) {
+      const relatedAnimeIds = relations.map(r => r.related_id);
+      
+      const { data: relatedInfo } = await supabase
+        .from('animes')
+        .select('id, shikimori_id, title, poster_url, year, type')
+        .in('id', relatedAnimeIds);
+
+      relatedAnimesWithInfo = relations
+        .map(relation => {
+          const animeInfo = relatedInfo?.find(a => a.id === relation.related_id);
+          if (!animeInfo) return null;
+          return {
+            ...animeInfo,
+            relation_type_formatted: relation.relation_type_formatted,
+          };
+        })
+        .filter(Boolean);
+    }
+    
+    // --- ШАГ 6: Собираем финальный ответ, добавляя статус пользователя ---
     const responseData = {
       ...anime,
+      genres: (anime.genres || []).map((g: any) => g.genres).filter(Boolean),
+      studios: (anime.studios || []).map((s: any) => s.studios).filter(Boolean),
+      tags: (anime.tags || []).map((t: any) => t.tags).filter(Boolean),
+      translations: translations,
+      related: relatedAnimesWithInfo,
       user_list_status: userListStatus, // <-- Вот добавленная информация
     };
 

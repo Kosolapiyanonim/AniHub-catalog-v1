@@ -1,116 +1,87 @@
-// Базовые типы для Kodik API
-export interface KodikTranslation {
-  id: string
-  title: string
-  type: string
+import { Database } from "./database.types"
+
+export type Anime = Database["public"]["Tables"]["animes"]["Row"]
+export type Genre = Database["public"]["Tables"]["genres"]["Row"]
+export type Studio = Database["public"]["Tables"]["studios"]["Row"]
+export type Translation = Database["public"]["Tables"]["translations"]["Row"]
+export type Profile = Database["public"]["Tables"]["profiles"]["Row"]
+export type UserAnimeList = Database["public"]["Tables"]["user_anime_lists"]["Row"]
+
+export type AnimeWithGenresAndStudios = Anime & {
+  genres: { genres: Pick<Genre, "name"> }[]
+  studios: { studios: Pick<Studio, "name"> }[]
 }
 
-export interface KodikMaterialData {
-  title?: string
-  anime_title?: string
-  title_orig?: string
-  poster_url?: string
-  anime_poster_url?: string
-  description?: string
-  anime_description?: string
-  year?: number
-  kinopoisk_rating?: number
-  shikimori_rating?: number
-  shikimori_votes?: number
-  anime_genres?: string[]
-  anime_studios?: string[]
-  countries?: string[]
-  anime_status?: string
-  episodes_count?: number
-  duration?: number
+export type UserAnimeListItem = UserAnimeList & {
+  anime: Pick<Anime, "id" | "shikimori_id" | "title" | "title_orig" | "poster_url" | "episodes_total" | "episodes_aired" | "status">
 }
 
-export interface KodikAnimeData {
+export type HomePageSection = {
   id: string
   title: string
-  title_orig?: string
-  year?: number
+  type: "carousel" | "grid"
+  animes: Anime[]
+}
+
+export type SearchResult = {
+  id: string
+  shikimori_id: number | null
+  title: string
+  title_orig: string | null
+  poster_url: string | null
+  episodes_total: number | null
+  episodes_aired: number | null
+  status: string | null
+  genres: { genres: Pick<Genre, "name"> }[] | null
+  year: number | null
+}
+
+export type KodikAnime = {
+  id: string
+  title: string
+  title_orig: string
   link: string
+  material_data: {
+    shikimori_id: number
+    poster_url: string
+    description: string
+    year: number
+    episodes_total: number
+    episodes_aired: number
+    status: string
+    genres: string[]
+    studios: string[]
+    rating_mpaa: string
+    minimal_age: number
+    anime_kind: string
+    anime_status: string
+    anime_genres: string[]
+    anime_studios: string[]
+    anime_licensors: string[]
+    anime_franchise: string
+    anime_aired_at: string
+    anime_next_episode_at: string
+    anime_episodes_aired: number
+    anime_episodes_total: number
+    anime_shikimori_rating: number
+    anime_shikimori_votes: number
+  }
+  translations: {
+    id: string
+    title: string
+    type: string
+    quality: string
+  }[]
+}
+
+export type KodikTranslation = {
+  id: string
+  title: string
   type: string
-  quality?: string
-  translation: KodikTranslation
-  episodes_count?: number
-  shikimori_id?: string
-  material_data?: KodikMaterialData
+  quality: string
+  link_id: string
 }
 
-// Типы для нашей базы данных
-export interface AnimeRecord {
-  id: number
-  shikimori_id: string
-  title: string
-  title_orig?: string
-  year?: number
-  poster_url?: string
-  description?: string
-  status?: string
-  episodes_count?: number
-  shikimori_rating?: number
-  shikimori_votes?: number
-  player_link?: string
-  created_at: string
-  updated_at: string
-}
-
-export interface GenreRecord {
-  id: number
-  name: string
-  created_at: string
-}
-
-export interface StudioRecord {
-  id: number
-  name: string
-  created_at: string
-}
-
-export interface CountryRecord {
-  id: number
-  name: string
-  created_at: string
-}
-
-// Тип для представления с отношениями
-export interface CatalogAnime {
-  id: number
-  shikimori_id: string
-  title: string
-  title_orig?: string
-  year?: number
-  poster_url?: string
-  description?: string
-  status?: string
-  episodes_count?: number
-  shikimori_rating?: number
-  shikimori_votes?: number
-  player_link?: string
-  genres?: string[]
-  studios?: string[]
-  countries?: string[]
-  created_at: string
-  updated_at: string
-}
-
-// API Response типы
-export interface CatalogResponse {
-  results: CatalogAnime[]
-  total: number
-  hasMore: boolean
-  page: number
-  limit: number
-}
-
-export interface GenresResponse {
-  genres: string[]
-  total: number
-}
-
-export interface YearsResponse {
-  years: number[]
-  total: number
+export type KodikPlayerLinkResponse = {
+  link: string
 }

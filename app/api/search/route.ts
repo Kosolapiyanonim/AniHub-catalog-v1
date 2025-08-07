@@ -1,35 +1,39 @@
-import { NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
-import { CatalogAnime } from '@/lib/types'
+import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { cookies } from 'next/headers';
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const query = searchParams.get('query') || ''
-  const limit = parseInt(searchParams.get('limit') || '10')
+  const { searchParams } = new URL(request.url);
+  const query = searchParams.get('query');
 
   if (!query) {
-    return NextResponse.json({ results: [] })
+    return NextResponse.json([]);
   }
 
-  const supabase = createRouteHandlerClient({ cookies })
+  const cookieStore = cookies();
+  const supabase = createClient(cookieStore);
 
-  try {
-    const { data, error } = await supabase
-      .from('animes_with_relations')
-      .select('*')
-      .ilike('title', `%${query}%`)
-      .limit(limit)
-      .order('shikimori_rating', { ascending: false }) // Order by rating for relevance
+  const { data, error } = await supabase
+    .from('animes')
+    .select(`
+      id,
+      shikimori_id,
+      title,
+      title_orig,
+      poster_url,
+      episodes_total,
+      episodes_aired,
+      status,
+      genres:anime_genres(genres(name)),
+      year
+    `)
+    .or(`title.ilike.%${query}%,title_orig.ilike.%${query}%`)
+    .limit(10);
 
-    if (error) {
-      console.error('Error searching anime:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    return NextResponse.json({ results: data as CatalogAnime[] })
-  } catch (error) {
-    console.error('Unexpected error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  if (error) {
+    console.error('Error during search:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  return NextResponse.json(data);
 }

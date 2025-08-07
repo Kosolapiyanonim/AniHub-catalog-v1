@@ -5,7 +5,7 @@
 import { useAnimeListStatus } from "@/hooks/use-anime-list-status";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Check, Trash2, Eye, CalendarCheck, Clock, History, Bookmark, XCircle } from "lucide-react";
+import { Loader2, Plus, Check, Trash2, Eye, CalendarCheck, Clock, History, Bookmark, XCircle } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 const statuses = [

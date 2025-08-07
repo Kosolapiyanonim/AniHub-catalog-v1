@@ -1,22 +1,28 @@
-// /app/api/statuses/route.ts
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 
-export const dynamic = 'force-dynamic';
-
-export async function GET() {
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+export async function GET(request: Request) {
+  const supabase = createRouteHandlerClient({ cookies })
 
   try {
-    // Эта функция запрашивает все уникальные значения из колонки 'status'
-    const { data, error } = await supabase.rpc('get_distinct_statuses');
-    if (error) throw error;
+    // Fetch distinct statuses from the animes table
+    const { data, error } = await supabase
+      .from('animes')
+      .select('status', { distinct: true })
+      .not('status', 'is', null) // Exclude null statuses
+      .order('status', { ascending: true })
 
-    return NextResponse.json(data.map(item => item.status));
+    if (error) {
+      console.error('Error fetching statuses:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    const statuses = data.map(row => row.status)
+
+    return NextResponse.json({ statuses })
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('Unexpected error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

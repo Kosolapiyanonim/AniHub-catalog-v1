@@ -1,236 +1,318 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { LoadingSpinner } from "@/components/loading-spinner"
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner'
 
 export default function TestApiPage() {
-  const [data, setData] = useState<any>(null)
+  const [apiResponse, setApiResponse] = useState<any>(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [testType, setTestType] = useState<string>("")
-  const [result, setResult] = useState<string>("–")
+  const [animeId, setAnimeId] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [parsePage, setParsePage] = useState('1')
 
-  async function runTest(testName: string, url: string) {
+  const handleApiCall = async (endpoint: string, method: string = 'GET', body?: any) => {
     setLoading(true)
-    setError(null)
-    setData(null)
-    setTestType(testName)
-
+    setApiResponse(null)
     try {
-      console.log(`🧪 Running ${testName} test…`)
-      const response = await fetch(url)
-
-      const contentType = response.headers.get("content-type") ?? ""
-      if (!contentType.includes("application/json")) {
-        throw new Error(`Expected JSON response, got ${contentType}`)
+      const options: RequestInit = { method }
+      if (body) {
+        options.headers = { 'Content-Type': 'application/json' }
+        options.body = JSON.stringify(body)
       }
-
-      const result = await response.json()
-      console.log(`📊 ${testName} response:`, result)
-
+      const response = await fetch(`/api/${endpoint}`, options)
+      const data = await response.json()
+      setApiResponse(data)
       if (!response.ok) {
-        throw new Error(result.error || `HTTP ${response.status}`)
+        toast.error(data.error || `Ошибка при вызове ${endpoint}`)
+      } else {
+        toast.success(`Успешный вызов ${endpoint}`)
       }
-
-      setData(result)
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error"
-      console.error(`❌ ${testName} error:`, message)
-      setError(message)
+    } catch (error: any) {
+      console.error('API call error:', error)
+      setApiResponse({ error: error.message || 'Неизвестная ошибка' })
+      toast.error('Произошла ошибка при вызове API.')
     } finally {
       setLoading(false)
     }
   }
 
-  const pingApi = async () => {
-    try {
-      const res = await fetch("/api/test")
-      const json = await res.json()
-      setResult(JSON.stringify(json, null, 2))
-    } catch (e) {
-      setResult(String(e))
-    }
-  }
-
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center gap-6 p-10">
-      <h1 className="text-3xl font-bold">/test-api</h1>
-      <p className="text-muted-foreground">
-        Это вспомогательная страница для проверки работоспособности проекта. Здесь можно разместить тестовые вызовы API
-        или отладочную информацию.
-      </p>
+    <main className="container mx-auto px-4 py-8 mt-16">
+      <h1 className="text-3xl font-bold mb-8 text-center">Тестирование API</h1>
 
-      {/* Buttons */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        <Button
-          onClick={() => runTest("Environment Check", "/api/test")}
-          disabled={loading}
-          variant="outline"
-          className="h-16"
-        >
-          <div className="text-center">
-            <div className="text-lg">🔧 Environment</div>
-            <div className="text-sm opacity-70">Check API token</div>
-          </div>
-        </Button>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Test /api/test */}
+        <Card>
+          <CardHeader>
+            <CardTitle>/api/test</CardTitle>
+            <CardDescription>Проверяет статус пользователя.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => handleApiCall('test')} disabled={loading} className="w-full">
+              {loading ? 'Загрузка...' : 'Проверить пользователя'}
+            </Button>
+          </CardContent>
+        </Card>
 
-        <Button
-          onClick={() => runTest("Popular Anime", "/api/anime/popular?limit=5")}
-          disabled={loading}
-          className="h-16"
-        >
-          <div className="text-center">
-            <div className="text-lg">🎬 Popular</div>
-            <div className="text-sm opacity-70">Get top anime</div>
-          </div>
-        </Button>
+        {/* Test /api/catalog */}
+        <Card>
+          <CardHeader>
+            <CardTitle>/api/catalog</CardTitle>
+            <CardDescription>Получает список аниме из каталога.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => handleApiCall('catalog?page=1&limit=5')} disabled={loading} className="w-full">
+              {loading ? 'Загрузка...' : 'Получить каталог (5 аниме)'}
+            </Button>
+          </CardContent>
+        </Card>
 
-        <Button
-          onClick={() => runTest("Search Test", "/api/anime/search?q=naruto")}
-          disabled={loading}
-          variant="outline"
-          className="h-16"
-        >
-          <div className="text-center">
-            <div className="text-lg">🔍 Search</div>
-            <div className="text-sm opacity-70">Find “naruto”</div>
-          </div>
-        </Button>
+        {/* Test /api/anime/[id] */}
+        <Card>
+          <CardHeader>
+            <CardTitle>/api/anime/[id]</CardTitle>
+            <CardDescription>Получает аниме по ID.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="anime-id">ID Аниме</Label>
+              <Input id="anime-id" value={animeId} onChange={(e) => setAnimeId(e.target.value)} placeholder="Например, 1" />
+            </div>
+            <Button onClick={() => handleApiCall(`anime/${animeId}`)} disabled={loading || !animeId} className="w-full">
+              {loading ? 'Загрузка...' : 'Получить аниме по ID'}
+            </Button>
+          </CardContent>
+        </Card>
 
-        <Button
-          onClick={() => runTest("Anime Details", "/api/anime/movie-123456")}
-          disabled={loading}
-          variant="secondary"
-          className="h-16"
-        >
-          <div className="text-center">
-            <div className="text-lg">📺 Details</div>
-            <div className="text-sm opacity-70">Get anime info</div>
-          </div>
-        </Button>
+        {/* Test /api/search */}
+        <Card>
+          <CardHeader>
+            <CardTitle>/api/search</CardTitle>
+            <CardDescription>Ищет аниме по названию.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="search-query">Поисковый запрос</Label>
+              <Input id="search-query" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Например, Наруто" />
+            </div>
+            <Button onClick={() => handleApiCall(`search?query=${searchQuery}`)} disabled={loading || !searchQuery} className="w-full">
+              {loading ? 'Загрузка...' : 'Найти аниме'}
+            </Button>
+          </CardContent>
+        </Card>
 
-        <Button onClick={pingApi}>Выполнить запрос</Button>
+        {/* Test /api/parse-latest */}
+        <Card>
+          <CardHeader>
+            <CardTitle>/api/parse-latest (POST)</CardTitle>
+            <CardDescription>Запускает парсинг последних аниме.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => handleApiCall('parse-latest', 'POST')} disabled={loading} className="w-full">
+              {loading ? 'Загрузка...' : 'Запустить парсинг последних'}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Test /api/parse-single-page */}
+        <Card>
+          <CardHeader>
+            <CardTitle>/api/parse-single-page (POST)</CardTitle>
+            <CardDescription>Парсит аниме с одной страницы.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="parse-page">Номер страницы</Label>
+              <Input id="parse-page" type="number" value={parsePage} onChange={(e) => setParsePage(e.target.value)} min={1} />
+            </div>
+            <Button onClick={() => handleApiCall('parse-single-page', 'POST', { page: parseInt(parsePage) })} disabled={loading || !parsePage} className="w-full">
+              {loading ? 'Загрузка...' : `Парсить страницу ${parsePage}`}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Test /api/full-parser */}
+        <Card>
+          <CardHeader>
+            <CardTitle>/api/full-parser (POST)</CardTitle>
+            <CardDescription>Запускает полный парсинг (может занять много времени).</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => handleApiCall('full-parser', 'POST')} disabled={loading} className="w-full" variant="destructive">
+              {loading ? 'Загрузка...' : 'Запустить полный парсинг'}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Test /api/genres */}
+        <Card>
+          <CardHeader>
+            <CardTitle>/api/genres</CardTitle>
+            <CardDescription>Получает список всех жанров.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => handleApiCall('genres')} disabled={loading} className="w-full">
+              {loading ? 'Загрузка...' : 'Получить жанры'}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Test /api/years */}
+        <Card>
+          <CardHeader>
+            <CardTitle>/api/years</CardTitle>
+            <CardDescription>Получает список всех годов выпуска.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => handleApiCall('years')} disabled={loading} className="w-full">
+              {loading ? 'Загрузка...' : 'Получить годы'}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Test /api/statuses */}
+        <Card>
+          <CardHeader>
+            <CardTitle>/api/statuses</CardTitle>
+            <CardDescription>Получает список всех статусов аниме.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => handleApiCall('statuses')} disabled={loading} className="w-full">
+              {loading ? 'Загрузка...' : 'Получить статусы'}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Test /api/types */}
+        <Card>
+          <CardHeader>
+            <CardTitle>/api/types</CardTitle>
+            <CardDescription>Получает список всех типов аниме.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => handleApiCall('types')} disabled={loading} className="w-full">
+              {loading ? 'Загрузка...' : 'Получить типы'}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Test /api/studios */}
+        <Card>
+          <CardHeader>
+            <CardTitle>/api/studios</CardTitle>
+            <CardDescription>Получает список всех студий.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => handleApiCall('studios')} disabled={loading} className="w-full">
+              {loading ? 'Загрузка...' : 'Получить студии'}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Test /api/lists (GET) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>/api/lists (GET)</CardTitle>
+            <CardDescription>Получает списки пользователя (требуется авторизация).</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => handleApiCall('lists?userId=YOUR_USER_ID')} disabled={loading} className="w-full">
+              {loading ? 'Загрузка...' : 'Получить списки'}
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2">Замените YOUR_USER_ID на реальный ID пользователя.</p>
+          </CardContent>
+        </Card>
+
+        {/* Test /api/lists (POST) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>/api/lists (POST)</CardTitle>
+            <CardDescription>Добавляет аниме в список (требуется авторизация).</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => handleApiCall('lists', 'POST', { userId: 'YOUR_USER_ID', animeId: 'ANIME_ID', listName: 'watching' })} disabled={loading} className="w-full">
+              {loading ? 'Загрузка...' : 'Добавить в список "Смотрю"'}
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2">Замените YOUR_USER_ID и ANIME_ID.</p>
+          </CardContent>
+        </Card>
+
+        {/* Test /api/lists (DELETE) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>/api/lists (DELETE)</CardTitle>
+            <CardDescription>Удаляет аниме из списка (требуется авторизация).</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => handleApiCall('lists', 'DELETE', { userId: 'YOUR_USER_ID', animeId: 'ANIME_ID', listName: 'watching' })} disabled={loading} className="w-full" variant="destructive">
+              {loading ? 'Загрузка...' : 'Удалить из списка "Смотрю"'}
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2">Замените YOUR_USER_ID и ANIME_ID.</p>
+          </CardContent>
+        </Card>
+
+        {/* Test /api/subscriptions (GET) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>/api/subscriptions (GET)</CardTitle>
+            <CardDescription>Получает подписки пользователя (требуется авторизация).</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => handleApiCall('subscriptions?userId=YOUR_USER_ID')} disabled={loading} className="w-full">
+              {loading ? 'Загрузка...' : 'Получить подписки'}
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2">Замените YOUR_USER_ID.</p>
+          </CardContent>
+        </Card>
+
+        {/* Test /api/subscriptions (POST) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>/api/subscriptions (POST)</CardTitle>
+            <CardDescription>Добавляет подписку на аниме (требуется авторизация).</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => handleApiCall('subscriptions', 'POST', { userId: 'YOUR_USER_ID', animeId: 'ANIME_ID' })} disabled={loading} className="w-full">
+              {loading ? 'Загрузка...' : 'Подписаться'}
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2">Замените YOUR_USER_ID и ANIME_ID.</p>
+          </CardContent>
+        </Card>
+
+        {/* Test /api/subscriptions (DELETE) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>/api/subscriptions (DELETE)</CardTitle>
+            <CardDescription>Удаляет подписку на аниме (требуется авторизация).</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => handleApiCall('subscriptions', 'DELETE', { userId: 'YOUR_USER_ID', animeId: 'ANIME_ID' })} disabled={loading} className="w-full" variant="destructive">
+              {loading ? 'Загрузка...' : 'Отписаться'}
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2">Замените YOUR_USER_ID и ANIME_ID.</p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Loading state */}
-      {loading && (
-        <Card className="border-blue-200 bg-blue-50 mb-4">
-          <CardContent className="flex items-center justify-center py-8">
-            <LoadingSpinner size="lg" />
-            <span className="ml-4 text-lg">Running {testType} test…</span>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Error state */}
-      {error && (
-        <Card className="border-red-200 bg-red-50 mb-4">
+      {apiResponse && (
+        <Card className="mt-8">
           <CardHeader>
-            <CardTitle className="text-red-800">❌ {testType} Failed</CardTitle>
+            <CardTitle>Ответ API</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-red-700 font-mono text-sm bg-red-100 p-3 rounded">{error}</p>
+            <Textarea
+              readOnly
+              value={JSON.stringify(apiResponse, null, 2)}
+              className="min-h-[200px] font-mono text-sm"
+            />
           </CardContent>
         </Card>
       )}
-
-      {/* Success state */}
-      {data && (
-        <Card className="mb-4 border-green-200 bg-green-50">
-          <CardHeader>
-            <CardTitle className="text-green-800">✅ {testType} Success</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Environment check */}
-              {data.hasKodikToken !== undefined && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">Environment:</span>
-                      <span className="bg-gray-100 px-2 py-1 rounded">{data.environment}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">KODIK_API_TOKEN:</span>
-                      <span className={data.hasKodikToken ? "text-green-600" : "text-red-600"}>
-                        {data.hasKodikToken ? "✅ Present" : "❌ Missing"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">PUBLIC Token:</span>
-                      <span className={data.hasPublicKodikToken ? "text-green-600" : "text-red-600"}>
-                        {data.hasPublicKodikToken ? "✅ Present" : "❌ Missing"}
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-semibold mb-2">Available env vars:</div>
-                    <div className="text-sm bg-gray-100 p-2 rounded max-h-32 overflow-y-auto">
-                      {data.availableEnvVars?.join(", ") || "None"}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* API stats */}
-              {data.results && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-4">
-                    <span className="font-semibold">Results Count:</span>
-                    <span className="bg-blue-100 px-3 py-1 rounded-full">{data.results.length}</span>
-                  </div>
-                  {data.total && (
-                    <div className="flex items-center gap-4">
-                      <span className="font-semibold">Total Available:</span>
-                      <span className="bg-purple-100 px-3 py-1 rounded-full">{data.total}</span>
-                    </div>
-                  )}
-                  {data.time && (
-                    <div className="flex items-center gap-4">
-                      <span className="font-semibold">API Response Time:</span>
-                      <span className="bg-green-100 px-3 py-1 rounded-full">{data.time}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Sample data */}
-              {data.results && data.results.length > 0 && (
-                <div>
-                  <div className="font-semibold mb-2">Sample Result:</div>
-                  <div className="bg-gray-100 p-3 rounded text-sm space-y-1">
-                    <div>
-                      <strong>Title:</strong> {data.results[0].title}
-                    </div>
-                    <div>
-                      <strong>Year:</strong> {data.results[0].year}
-                    </div>
-                    <div>
-                      <strong>Type:</strong> {data.results[0].type}
-                    </div>
-                    <div>
-                      <strong>ID:</strong> {data.results[0].id}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Full JSON */}
-              <details>
-                <summary className="cursor-pointer font-semibold hover:text-blue-600">📋 Full Response Data</summary>
-                <pre className="bg-gray-100 p-4 rounded-lg mt-2 overflow-auto text-xs max-h-96 border">
-                  {JSON.stringify(data, null, 2)}
-                </pre>
-              </details>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Ping API Result */}
-      <pre className="bg-muted p-4 rounded text-sm overflow-x-auto">{result}</pre>
     </main>
   )
 }

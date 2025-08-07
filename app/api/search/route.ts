@@ -1,56 +1,35 @@
-// src/app/api/search/route.ts
-
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
-import { z } from 'zod'
+import { CatalogAnime } from '@/lib/types'
 
-export const dynamic = 'force-dynamic'
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const query = searchParams.get('query') || ''
+  const limit = parseInt(searchParams.get('limit') || '10')
 
-const searchSchema = z.object({
-  query: z.string().min(2, 'Query must be at least 2 characters long.'),
-})
+  if (!query) {
+    return NextResponse.json({ results: [] })
+  }
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url)
-  const query = searchParams.get('query')
+  const supabase = createRouteHandlerClient({ cookies })
 
-  const validation = searchSchema.safeParse({ query })
-  if (!validation.success) {
-    if (query === '' || query === null) {
-      return NextResponse.json({ data: [], total: 0 }, { status: 200 })
+  try {
+    const { data, error } = await supabase
+      .from('animes_with_relations')
+      .select('*')
+      .ilike('title', `%${query}%`)
+      .limit(limit)
+      .order('shikimori_rating', { ascending: false }) // Order by rating for relevance
+
+    if (error) {
+      console.error('Error searching anime:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
     }
-    return NextResponse.json({ error: validation.error.format() }, { status: 400 })
+
+    return NextResponse.json({ results: data as CatalogAnime[] })
+  } catch (error) {
+    console.error('Unexpected error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-
-  const validatedQuery = validation.data.query
-  const cookieStore = cookies()
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
-  const ftsQuery = validatedQuery.trim().split(' ').join(' & ')
-
-  // --- [ИЗМЕНЕНИЕ] Выполняем два запроса параллельно ---
-  const [dataResponse, countResponse] = await Promise.all([
-    // Запрос №1: получаем 8 записей с детальной информацией
-    supabase
-      .from('animes')
-      .select('title, poster_url, year, shikimori_id, type, status, raw_data')
-      .textSearch('ts_document', ftsQuery, { type: 'websearch', config: 'russian' })
-      .limit(8),
-    // Запрос №2: получаем только общее количество
-    supabase
-      .from('animes')
-      .select('*', { count: 'exact', head: true })
-      .textSearch('ts_document', ftsQuery, { type: 'websearch', config: 'russian' }),
-  ])
-  
-  const { data, error: dataError } = dataResponse
-  const { count, error: countError } = countResponse
-
-  if (dataError || countError) {
-    console.error('Supabase search error:', dataError || countError)
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
-  }
-
-  // --- [ИЗМЕНЕНИЕ] Возвращаем и данные, и общее количество ---
-  return NextResponse.json({ data, total: count ?? 0 })
 }

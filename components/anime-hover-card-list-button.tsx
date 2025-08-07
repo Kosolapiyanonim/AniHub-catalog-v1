@@ -4,7 +4,7 @@
 
 import { useAnimeListStatus } from "@/hooks/use-anime-list-status";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Eye, CalendarCheck, Clock } from "lucide-react";
+import { Loader2, Plus, Eye, CalendarCheck, Clock } from 'lucide-react';
 import Link from "next/link";
 
 const statuses = [
@@ -50,6 +50,12 @@ export function AnimeHoverCardListButton({ animeId, initialStatus, onStatusChang
           </Button>
         ))}
         </div>
+      )}
+      {!loading && currentStatus === null && (
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Plus className="h-4 w-4" />
+          <span className="sr-only">Добавить в список</span>
+        </Button>
       )}
     </div>
   );

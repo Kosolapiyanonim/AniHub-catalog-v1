@@ -1,25 +1,32 @@
-// /app/api/genres/route.ts
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+import { GenresResponse } from '@/lib/types'
 
-export const dynamic = 'force-dynamic';
-
-export async function GET() {
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+export async function GET(request: Request) {
+  const supabase = createRouteHandlerClient({ cookies })
 
   try {
-    const { data, error } = await supabase
+    const { data, error, count } = await supabase
       .from('genres')
-      .select('id, name, slug')
-      .order('name', { ascending: true });
+      .select('name', { count: 'exact' })
+      .order('name', { ascending: true })
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching genres:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 
-    return NextResponse.json(data);
+    const genres = data.map(g => g.name)
+
+    const response: GenresResponse = {
+      genres,
+      total: count || 0,
+    }
+
+    return NextResponse.json(response)
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('Unexpected error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -1,168 +1,94 @@
-// /app/catalog/page.tsx
-"use client";
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+import { CatalogFilters } from '@/components/catalog-filters'
+import { AnimeGrid } from '@/components/anime-grid'
+import { getCatalogAnime, getGenres, getStudios, getYears, getStatuses, getTypes } from '@/lib/data-fetchers'
+import { Suspense } from 'react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { Search } from 'lucide-react'
 
-import { useState, useEffect, useCallback, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { AnimeCard } from "@/components/anime-card";
-import { LoadingSpinner } from "@/components/loading-spinner";
-import { Button } from "@/components/ui/button";
-import { CatalogFilters, type FiltersState, DEFAULT_FILTERS } from "@/components/catalog-filters";
-
-interface Anime {
-  id: number;
-  shikimori_id: string;
-  title: string;
-  poster_url?: string | null;
-  year?: number | null;
-  user_list_status?: string | null;
-  // Добавляем поля для HoverCard
-  description?: string;
-  type?: string;
-  genres?: { name: string }[];
-  shikimori_rating?: number;
+interface CatalogPageProps {
+  searchParams: {
+    page?: string
+    limit?: string
+    search?: string
+    genres?: string
+    years?: string
+    statuses?: string
+    types?: string
+    studios?: string
+    sort?: string
+  }
 }
 
-const parseUrlToFilters = (params: URLSearchParams): FiltersState => ({
-    ...DEFAULT_FILTERS,
-    title: params.get('title') || '', 
-    sort: params.get('sort') || 'shikimori_votes',
-    year_from: params.get('year_from') || '',
-    year_to: params.get('year_to') || '',
-    genres: params.get('genres')?.split(',') || [], 
-    genres_exclude: params.get('genres_exclude')?.split(',') || [],
-    studios: params.get('studios')?.split(',') || [], 
-    studios_exclude: params.get('studios_exclude')?.split(',') || [],
-    tags: params.get('tags')?.split(',') || [],
-    tags_exclude: params.get('tags_exclude')?.split(',') || [],
-    user_list_status: params.get('user_list_status') || '',
-});
+export default async function CatalogPage({ searchParams }: CatalogPageProps) {
+  const supabase = createServerComponentClient({ cookies })
+  const { data: { user } } = await supabase.auth.getUser()
 
-function CatalogView() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const page = parseInt(searchParams.page || '1')
+  const limit = parseInt(searchParams.limit || '24')
+  const search = searchParams.search || ''
+  const genres = searchParams.genres?.split(',') || []
+  const years = searchParams.years?.split(',').map(Number).filter(Boolean) || []
+  const statuses = searchParams.statuses?.split(',') || []
+  const types = searchParams.types?.split(',') || []
+  const studios = searchParams.studios?.split(',') || []
+  const sort = searchParams.sort || 'shikimori_rating.desc'
 
-  const [animes, setAnimes] = useState<Anime[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [currentFilters, setCurrentFilters] = useState<FiltersState>(() => parseUrlToFilters(searchParams));
-
-  const fetchData = useCallback(async (filters: FiltersState, pageNum: number) => {
-    const isNewSearch = pageNum === 1;
-    if (isNewSearch) setLoading(true); else setLoadingMore(true);
-
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
-      if (Array.isArray(value) && value.length > 0) params.append(key, value.join(','));
-      else if (typeof value === 'string' && value) params.append(key, value);
-    });
-    params.set('page', pageNum.toString());
-    params.set('limit', '25');
-
-    try {
-      const response = await fetch(`/api/catalog?${params.toString()}`);
-      if (!response.ok) throw new Error("Ошибка сети");
-      
-      const data = await response.json();
-      
-      // ИСПРАВЛЕНИЕ: Очищаем результаты от "пустых" записей
-      const cleanResults = data.results?.filter(Boolean) || [];
-
-      setAnimes(prev => (isNewSearch ? cleanResults : [...prev, ...cleanResults]));
-      setHasMore(data.hasMore);
-      setTotal(data.total);
-    } catch (err) { console.error(err); } 
-    finally { setLoading(false); setLoadingMore(false); }
-  }, []);
-
-  const handleApplyFilters = useCallback((newFilters: FiltersState) => {
-    setPage(1);
-    setCurrentFilters(newFilters);
-    fetchData(newFilters, 1);
-
-    const params = new URLSearchParams();
-    Object.entries(newFilters).forEach(([key, value]) => {
-        const filterKey = key as keyof FiltersState;
-        if (JSON.stringify(value) !== JSON.stringify(DEFAULT_FILTERS[filterKey])) {
-            if (Array.isArray(value) && value.length > 0) {
-                params.set(key, value.join(','));
-            } else if (typeof value === 'string' && value) {
-                params.set(key, value);
-            }
-        }
-    });
-    const newUrl = params.toString() ? `/catalog?${params.toString()}` : '/catalog';
-    router.push(newUrl, { scroll: false });
-  }, [fetchData, router]);
-
-  const loadMore = () => {
-    if (!loadingMore && hasMore) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      fetchData(currentFilters, nextPage);
-    }
-  };
-
-  useEffect(() => {
-    const initialFilters = parseUrlToFilters(searchParams);
-    setCurrentFilters(initialFilters);
-    setPage(1);
-    fetchData(initialFilters, 1);
-  }, [searchParams, fetchData]);
+  const [
+    catalogData,
+    allGenres,
+    allStudios,
+    allYears,
+    allStatuses,
+    allTypes
+  ] = await Promise.all([
+    getCatalogAnime(page, limit, search, genres, years, statuses, types, studios, sort),
+    getGenres(),
+    getStudios(),
+    getYears(),
+    getStatuses(),
+    getTypes()
+  ])
 
   return (
-    <div className="container mx-auto px-4 pt-24">
+    <main className="container mx-auto px-4 py-8 mt-16">
+      <h1 className="text-3xl font-bold mb-8 text-center">Каталог аниме</h1>
+
       <div className="flex flex-col lg:flex-row gap-8">
-        <aside className="w-full lg:w-80 lg:max-w-xs shrink-0">
-          <CatalogFilters initialFilters={currentFilters} onApply={handleApplyFilters} />
+        <aside className="lg:w-1/4">
+          <CatalogFilters
+            initialSearch={search}
+            initialGenres={genres}
+            initialYears={years}
+            initialStatuses={statuses}
+            initialTypes={types}
+            initialStudios={studios}
+            initialSort={sort}
+            availableGenres={allGenres.genres}
+            availableStudios={allStudios.studios}
+            availableYears={allYears.years}
+            availableStatuses={allStatuses.statuses}
+            availableTypes={allTypes.types}
+          />
         </aside>
 
-        <main className="flex-1">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-3xl font-bold text-white">Каталог аниме</h1>
-            {!loading && <span className="text-muted-foreground text-sm">Найдено: {total}</span>}
-          </div>
-
-          {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {Array.from({ length: 25 }).map((_, i) => (
-                <div key={i} className="aspect-[2/3] bg-slate-800 rounded-lg animate-pulse" />
-              ))}
-            </div>
-          ) : animes.length > 0 ? (
-            <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {animes.map((anime, index) => (
-                  <AnimeCard key={`${anime.shikimori_id}-${index}`} anime={anime} priority={index < 10} />
-                ))}
-              </div>
-              {hasMore && (
-                <div className="text-center mt-8">
-                  <Button onClick={loadMore} disabled={loadingMore}>
-                    {loadingMore ? <LoadingSpinner size="sm" /> : "Загрузить еще"}
-                  </Button>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="text-center py-16">
-                <p className="text-lg text-gray-400">По вашим фильтрам ничего не найдено</p>
-                <p className="text-sm text-gray-500 mt-2">Попробуйте изменить или сбросить фильтры</p>
-            </div>
-          )}
-        </main>
+        <section className="lg:w-3/4">
+          <Suspense fallback={<p>Загрузка аниме...</p>}>
+            <AnimeGrid
+              animes={catalogData.results}
+              total={catalogData.total}
+              hasMore={catalogData.hasMore}
+              page={catalogData.page}
+              limit={catalogData.limit}
+              searchParams={searchParams}
+              user={user}
+            />
+          </Suspense>
+        </section>
       </div>
-    </div>
-  );
-}
-
-// Обертка для Suspense
-export default function CatalogPageWrapper() {
-  return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><LoadingSpinner size="lg" /></div>}>
-      <CatalogView />
-    </Suspense>
-  );
+    </main>
+  )
 }

@@ -1,177 +1,130 @@
-"use client"
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { toast } from 'sonner'
 
-import type React from "react"
+export default async function RegisterPage() {
+  const supabase = createServerComponentClient({ cookies })
+  const { data: { user } } = await supabase.auth.getUser()
 
-import { useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { Mail, Lock, User, Chrome, Music } from "lucide-react"
-import { toast } from "sonner"
-
-export default function RegisterPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [fullName, setFullName] = useState("")
-  const [loading, setLoading] = useState(false)
-  const router = useRouter()
-  const supabase = createClientComponentClient()
-
-  const handleEmailRegister = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-          },
-        },
-      })
-
-      if (error) {
-        toast.error(error.message)
-      } else {
-        toast.success("Проверьте email для подтверждения регистрации!")
-        router.push("/login")
-      }
-    } catch (error) {
-      toast.error("Произошла ошибка при регистрации")
-    } finally {
-      setLoading(false)
-    }
+  if (user) {
+    redirect('/')
   }
 
-  const handleGoogleLogin = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${location.origin}/auth/callback`,
-        },
-      })
+  const handleSignUp = async (formData: FormData) => {
+    'use server'
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
+    const confirmPassword = formData.get('confirmPassword') as string
+    const supabase = createServerComponentClient({ cookies })
 
-      if (error) {
-        toast.error(error.message)
-      }
-    } catch (error) {
-      toast.error("Ошибка входа через Google")
+    if (password !== confirmPassword) {
+      toast.error('Пароли не совпадают.')
+      return redirect('/register?message=Passwords do not match')
     }
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+      },
+    })
+
+    if (error) {
+      console.error('Sign up error:', error)
+      toast.error(error.message || 'Ошибка регистрации. Попробуйте еще раз.')
+      return redirect('/register?message=Could not register user')
+    }
+
+    toast.success('Регистрация успешна! Проверьте свою почту для подтверждения.')
+    return redirect('/register?message=Check email to continue sign in process')
   }
 
-  const handleSpotifyLogin = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "spotify",
-        options: {
-          redirectTo: `${location.origin}/auth/callback`,
-        },
-      })
+  const handleOAuthSignIn = async (provider: 'google' | 'github') => {
+    'use server'
+    const supabase = createServerComponentClient({ cookies })
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+      },
+    })
 
-      if (error) {
-        toast.error(error.message)
-      }
-    } catch (error) {
-      toast.error("Ошибка входа через Spotify")
+    if (error) {
+      console.error('OAuth sign-up error:', error)
+      toast.error(error.message || 'Ошибка регистрации через OAuth.')
+      return redirect('/register?message=Could not register with OAuth')
+    }
+
+    if (data.url) {
+      return redirect(data.url)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
+    <main className="flex min-h-screen flex-col items-center justify-center p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Регистрация в AniHub</CardTitle>
-          <CardDescription className="text-center">Создайте аккаунт, чтобы сохранять любимые аниме</CardDescription>
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl">Зарегистрироваться в AniHub</CardTitle>
+          <CardDescription>
+            Создайте аккаунт, чтобы начать отслеживать аниме.
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <form onSubmit={handleEmailRegister} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Полное имя</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="Ваше имя"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="pl-10"
-                  required
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
+        <CardContent>
+          <form action={handleSignUp} className="space-y-4">
+            <div>
               <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
-                  required
-                />
-              </div>
+              <Input id="email" name="email" type="email" placeholder="ваша@почта.com" required />
             </div>
-            <div className="space-y-2">
+            <div>
               <Label htmlFor="password">Пароль</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
-                  required
-                  minLength={6}
-                />
-              </div>
+              <Input id="password" name="password" type="password" placeholder="••••••••" required />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Регистрация..." : "Зарегистрироваться"}
-            </Button>
+            <div>
+              <Label htmlFor="confirmPassword">Подтвердите пароль</Label>
+              <Input id="confirmPassword" name="confirmPassword" type="password" placeholder="••••••••" required />
+            </div>
+            <Button type="submit" className="w-full">Зарегистрироваться</Button>
           </form>
 
-          <div className="relative">
+          <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <Separator className="w-full" />
+              <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Или войдите через</span>
+              <span className="bg-background px-2 text-muted-foreground">
+                Или зарегистрироваться с
+              </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Button variant="outline" onClick={handleGoogleLogin}>
-              <Chrome className="mr-2 h-4 w-4" />
-              Google
-            </Button>
-            <Button variant="outline" onClick={handleSpotifyLogin}>
-              <Music className="mr-2 h-4 w-4" />
-              Spotify
-            </Button>
+          <div className="flex flex-col space-y-2">
+            <form action={handleOAuthSignIn.bind(null, 'google')}>
+              <Button type="submit" variant="outline" className="w-full">
+                Зарегистрироваться с Google
+              </Button>
+            </form>
+            <form action={handleOAuthSignIn.bind(null, 'github')}>
+              <Button type="submit" variant="outline" className="w-full">
+                Зарегистрироваться с GitHub
+              </Button>
+            </form>
           </div>
 
-          <div className="text-center text-sm">
-            <span className="text-muted-foreground">Уже есть аккаунт? </span>
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            Уже есть аккаунт?{' '}
             <Link href="/login" className="text-primary hover:underline">
               Войти
             </Link>
-          </div>
+          </p>
         </CardContent>
       </Card>
-    </div>
+    </main>
   )
 }

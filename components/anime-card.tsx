@@ -6,50 +6,49 @@ import { Anime } from '@/lib/types'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AnimeListPopover } from './AnimeListPopover'
-import { cn } from '@/lib/utils'
+import { AnimeCardListButton } from './anime-card-list-button'
+import { User as SupabaseUser } from '@supabase/auth-helpers-nextjs'
 
 interface AnimeCardProps {
   anime: Anime
-  className?: string
+  user: SupabaseUser | null
 }
 
-export function AnimeCard({ anime, className }: AnimeCardProps) {
-  const posterUrl = anime.poster_url || '/placeholder.svg?height=300&width=200';
-
+export function AnimeCard({ anime, user }: AnimeCardProps) {
   return (
-    <Card className={cn("relative group overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 bg-slate-800 border-slate-700", className)}>
-      <Link href={`/anime/${anime.id}`} className="block">
-        <div className="relative w-full h-64 sm:h-72 md:h-80 lg:h-96 overflow-hidden">
-          <Image
-            src={posterUrl || "/placeholder.svg"}
-            alt={anime.title}
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
-            priority={false}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
-            <h3 className="text-lg font-semibold text-white leading-tight">{anime.title}</h3>
-          </div>
-        </div>
+    <Card className="group relative overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out">
+      <Link href={`/anime/${anime.id}`} className="absolute inset-0 z-10" prefetch={false}>
+        <span className="sr-only">View {anime.title}</span>
       </Link>
-      <CardContent className="p-3 space-y-2">
-        <div className="flex justify-between items-center">
-          <Badge variant="secondary" className="bg-purple-600 text-white">
-            {anime.type || 'Аниме'}
-          </Badge>
-          {anime.shikimori_rating && (
-            <span className="text-sm font-medium text-yellow-400">
-              ⭐ {anime.shikimori_rating.toFixed(1)}
-            </span>
-          )}
-        </div>
-        <p className="text-sm text-slate-300 truncate">{anime.description || 'Описание отсутствует.'}</p>
-        <div className="flex justify-between items-center pt-2">
-          <span className="text-xs text-slate-400">{anime.year}</span>
-          <AnimeListPopover anime={anime} />
-        </div>
+      <CardContent className="flex aspect-[2/3] items-center justify-center p-0">
+        <Image
+          src={anime.poster_url || '/placeholder.svg?height=300&width=200&text=No+Poster'}
+          alt={anime.title}
+          width={200}
+          height={300}
+          className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+        />
       </CardContent>
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <h3 className="text-sm font-semibold truncate">{anime.title}</h3>
+        {anime.shikimori_rating && (
+          <p className="text-xs text-muted-foreground">Рейтинг: {anime.shikimori_rating}</p>
+        )}
+        <div className="flex flex-wrap gap-1 mt-1">
+          {anime.genres && anime.genres.slice(0, 2).map((genre) => (
+            <Badge key={genre} variant="secondary" className="text-xs px-1 py-0.5">
+              {genre}
+            </Badge>
+          ))}
+        </div>
+      </div>
+      {user && (
+        <div className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <AnimeListPopover animeId={anime.id} userId={user.id}>
+            <AnimeCardListButton />
+          </AnimeListPopover>
+        </div>
+      )}
     </Card>
   )
 }

@@ -1,24 +1,9 @@
-"use client"
+'use client'
 
-import type React from "react"
-import { useState } from "react"
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { ThemeProvider } from "@/components/theme-provider"
-import { SupabaseProvider } from "@/components/supabase-provider"
-import { Toaster } from "@/components/ui/sonner"
+import * as React from 'react'
+import { ThemeProvider as NextThemesProvider } from 'next-themes'
+import { type ThemeProviderProps } from 'next-themes'
 
-export function Providers({ children }: { children: React.ReactNode }) {
-  // one QueryClient instance per app
-  const [queryClient] = useState(() => new QueryClient())
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-        <SupabaseProvider>
-          {children}
-          <Toaster />
-        </SupabaseProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
-  )
+export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
+  return <NextThemesProvider {...props}>{children}</NextThemesProvider>
 }

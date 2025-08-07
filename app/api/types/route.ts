@@ -1,22 +1,28 @@
-// /app/api/types/route.ts
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 
-export const dynamic = 'force-dynamic';
-
-export async function GET() {
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+export async function GET(request: Request) {
+  const supabase = createRouteHandlerClient({ cookies })
 
   try {
-    // Эта функция запрашивает все уникальные значения из колонки 'type'
-    const { data, error } = await supabase.rpc('get_distinct_types');
-    if (error) throw error;
-    // data вернется в виде [{type: 'tv_series'}, {type: 'movie'}, ...]
-    return NextResponse.json(data.map(item => item.type));
+    // Fetch distinct types from the animes table
+    const { data, error } = await supabase
+      .from('animes')
+      .select('type', { distinct: true })
+      .not('type', 'is', null) // Exclude null types
+      .order('type', { ascending: true })
+
+    if (error) {
+      console.error('Error fetching types:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    const types = data.map(row => row.type)
+
+    return NextResponse.json({ types })
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('Unexpected error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

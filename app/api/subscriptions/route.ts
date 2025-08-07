@@ -1,47 +1,111 @@
-// /app/api/subscriptions/route.ts
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 
-export const dynamic = 'force-dynamic';
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const userId = searchParams.get('userId')
+  const animeId = searchParams.get('animeId')
 
-export async function POST(request: Request) {
-  const { anime_id, subscribed } = await request.json();
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+  if (!userId) {
+    return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
+  }
 
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const supabase = createRouteHandlerClient({ cookies })
 
-  const user_id = session.user.id;
+  try {
+    let query = supabase
+      .from('user_subscriptions')
+      .select('*')
+      .eq('user_id', userId)
 
-  if (subscribed) {
-    const { error } = await supabase.from('user_subscriptions').upsert({ user_id, anime_id }, { onConflict: 'user_id,anime_id' });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ message: "Subscribed" });
-  } else {
-    const { error } = await supabase.from('user_subscriptions').delete().match({ user_id, anime_id });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ message: "Unsubscribed" });
+    if (animeId) {
+      query = query.eq('anime_id', animeId)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error('Error fetching subscriptions:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json(data)
+  } catch (error) {
+    console.error('Unexpected error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-export async function GET(request: Request) {
-    const { searchParams } = new URL(request.url);
-    const anime_id = searchParams.get("anime_id");
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+export async function POST(request: Request) {
+  const { userId, animeId } = await request.json()
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return NextResponse.json({ subscribed: false });
+  if (!userId || !animeId) {
+    return NextResponse.json({ error: 'Missing required fields: userId, animeId' }, { status: 400 })
+  }
 
-    const { data, error } = await supabase
-        .from('user_subscriptions')
-        .select('anime_id')
-        .eq('user_id', session.user.id)
-        .eq('anime_id', anime_id)
-        .maybeSingle();
+  const supabase = createRouteHandlerClient({ cookies })
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ subscribed: !!data });
+  try {
+    // Check if already subscribed
+    const { data: existingSubscription, error: fetchError } = await supabase
+      .from('user_subscriptions')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('anime_id', animeId)
+      .single()
+
+    if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no rows found
+      console.error('Error checking existing subscription:', fetchError)
+      return NextResponse.json({ error: fetchError.message }, { status: 500 })
+    }
+
+    if (existingSubscription) {
+      return NextResponse.json({ message: 'Already subscribed to this anime' }, { status: 200 })
+    }
+
+    const { data, error: insertError } = await supabase
+      .from('user_subscriptions')
+      .insert({ user_id: userId, anime_id: animeId })
+      .select()
+      .single()
+
+    if (insertError) {
+      console.error('Error creating subscription:', insertError)
+      return NextResponse.json({ error: insertError.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ message: 'Subscribed successfully', subscription: data })
+  } catch (error) {
+    console.error('Unexpected error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: Request) {
+  const { userId, animeId } = await request.json()
+
+  if (!userId || !animeId) {
+    return NextResponse.json({ error: 'Missing required fields: userId, animeId' }, { status: 400 })
+  }
+
+  const supabase = createRouteHandlerClient({ cookies })
+
+  try {
+    const { error } = await supabase
+      .from('user_subscriptions')
+      .delete()
+      .eq('user_id', userId)
+      .eq('anime_id', animeId)
+
+    if (error) {
+      console.error('Error deleting subscription:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ message: 'Unsubscribed successfully' })
+  } catch (error) {
+    console.error('Unexpected error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }

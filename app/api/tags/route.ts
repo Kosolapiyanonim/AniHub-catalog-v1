@@ -1,25 +1,35 @@
-// /app/api/tags/route.ts
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 
-export const dynamic = 'force-dynamic';
-
-export async function GET() {
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+export async function GET(request: Request) {
+  const supabase = createRouteHandlerClient({ cookies })
 
   try {
+    // Fetch distinct tags from the animes_with_relations view
+    // This assumes 'tags' is an array column in the view
     const { data, error } = await supabase
-      .from('tags')
-      .select('id, name, slug')
-      .order('name', { ascending: true });
+      .from('animes_with_relations')
+      .select('tags')
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching tags:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 
-    return NextResponse.json(data);
+    // Extract all unique tags
+    const allTags = new Set<string>()
+    data.forEach(row => {
+      if (Array.isArray(row.tags)) {
+        row.tags.forEach((tag: string) => allTags.add(tag))
+      }
+    })
+
+    const tags = Array.from(allTags).sort() // Sort alphabetically
+
+    return NextResponse.json({ tags })
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('Unexpected error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -1,140 +1,170 @@
 'use client'
 
 import Link from 'next/link'
-import { useTheme } from 'next-themes'
+import { Home, Bookmark, Heart, User, LogOut, Settings, CheckCheck, Bell } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
-import { Sun, Moon, Users, Globe, Newspaper, BookOpen, ChevronDown, ArrowRightToLine } from 'lucide-react' // Удалены MessageCircle, Music, Instagram
-import { SheetClose } from '@/components/ui/sheet'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import { useState, useEffect } from 'react'
+import type { User as SupabaseUser } from '@supabase/auth-helpers-nextjs'
 
 interface MobileMenuContentProps {
-  onClose: () => void;
+  setMobileMenuOpen: (open: boolean) => void
 }
 
-export function MobileMenuContent({ onClose }: MobileMenuContentProps) {
-  const { theme, setTheme } = useTheme()
+function NotificationsDropdownMobile() {
+  const [hasNotifications, setHasNotifications] = useState(true)
 
   return (
-    <div className="flex flex-col h-full p-4 bg-slate-900 text-white">
-      {/* Вход / Регистрация - перемещено наверх */}
-      <div className="mb-4">
-        <Button size="lg" className="w-full bg-blue-600 hover:bg-blue-700 text-lg" asChild>
-          <SheetClose asChild>
-            <Link href="/login">Вход / Регистрация</Link>
-          </SheetClose>
-        </Button>
-      </div>
+    <div className="flex items-center justify-between py-3 px-2 text-white">
+      <span>Уведомления</span>
+      <Button variant="ghost" size="sm" className="h-auto p-1 text-xs">
+        <CheckCheck className="w-3 h-3 mr-1" />
+        Прочитать все
+      </Button>
+      {hasNotifications && (
+        <span className="relative flex h-2.5 w-2.5 ml-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+        </span>
+      )}
+    </div>
+  )
+}
 
-      <div className="flex-1 space-y-4">
-        {/* Theme Switcher - улучшенный дизайн */}
-        <div className="flex items-center justify-between p-2 rounded-lg bg-slate-800 border border-slate-700">
-          <span className="font-medium text-slate-300">Тема</span>
-          <div className="flex items-center gap-1 bg-slate-700 rounded-md p-0.5">
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-8 px-3 rounded-md ${theme === 'light' ? 'bg-slate-600 text-white' : 'text-slate-400 hover:bg-slate-600/50'}`}
-              onClick={() => setTheme('light')}
-            >
-              <Sun className="h-4 w-4 mr-2" /> Светлая
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-8 px-3 rounded-md ${theme === 'dark' ? 'bg-slate-600 text-white' : 'text-slate-400 hover:bg-slate-600/50'}`}
-              onClick={() => setTheme('dark')}
-            >
-              <Moon className="h-4 w-4 mr-2" /> Темная
-            </Button>
+export function MobileMenuContent({ setMobileMenuOpen }: MobileMenuContentProps) {
+  const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+  const supabase = createClientComponentClient()
+
+  useEffect(() => {
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      setUser(user)
+      setLoading(false)
+    }
+    getUser()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+    return () => subscription.unsubscribe()
+  }, [supabase.auth])
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    toast.success("Вы вышли из аккаунта")
+    router.refresh()
+    setMobileMenuOpen(false)
+  }
+
+  const getUserName = (user: SupabaseUser) => {
+    return user.user_metadata?.full_name || user.email?.split("@")[0] || "Пользователь"
+  }
+
+  return (
+    <div className="flex flex-col space-y-4 mt-8">
+      {/* Navigation Links */}
+      <Link
+        href="/"
+        className="flex items-center py-3 px-2 text-white hover:text-purple-400 transition-colors"
+        onClick={() => setMobileMenuOpen(false)}
+      >
+        <Home className="mr-3 h-5 w-5" />
+        Главная
+      </Link>
+
+      <Link
+        href="/catalog"
+        className="flex items-center py-3 px-2 text-white hover:text-purple-400 transition-colors"
+        onClick={() => setMobileMenuOpen(false)}
+      >
+        <Bookmark className="mr-3 h-5 w-5" />
+        Каталог
+      </Link>
+
+      <Link
+        href="/popular"
+        className="flex items-center py-3 px-2 text-white hover:text-purple-400 transition-colors"
+        onClick={() => setMobileMenuOpen(false)}
+      >
+        <Heart className="mr-3 h-5 w-5" />
+        Популярное
+      </Link>
+
+      {/* User Section */}
+      {loading ? (
+        <div className="h-12 w-full rounded-md bg-slate-800 animate-pulse mt-4" />
+      ) : user ? (
+        <div className="pt-4 border-t border-slate-700 space-y-2">
+          <div className="px-2 py-2">
+            <p className="text-sm font-medium text-white truncate">{getUserName(user)}</p>
+            <p className="text-xs text-slate-400 truncate">{user.email}</p>
+          </div>
+
+          <Link
+            href={`/profile/${user.id}`}
+            className="flex items-center py-3 px-2 text-white hover:text-purple-400 transition-colors"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <User className="mr-3 h-5 w-5" />
+            Профиль
+          </Link>
+
+          <Link
+            href={`/profile/${user.id}/lists`}
+            className="flex items-center py-3 px-2 text-white hover:text-purple-400 transition-colors"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <Heart className="mr-3 h-5 w-5" />
+            Мои списки
+          </Link>
+
+          <Link
+            href="/settings"
+            className="flex items-center py-3 px-2 text-white hover:text-purple-400 transition-colors"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <Settings className="mr-3 h-5 w-5" />
+            Настройки
+          </Link>
+
+          <button
+            onClick={handleSignOut}
+            className="flex items-center py-3 px-2 w-full text-left text-red-400 hover:text-red-300 transition-colors"
+          >
+            <LogOut className="mr-3 h-5 w-5" />
+            Выйти
+          </button>
+
+          <div className="pt-2">
+            <NotificationsDropdownMobile />
           </div>
         </div>
-
-        <Separator className="bg-slate-700" />
-
-        <nav className="flex flex-col space-y-2">
-          <SheetClose asChild>
-            <Button variant="ghost" className="justify-start gap-3 text-lg p-3 h-auto" onClick={onClose}>
-              <Users className="w-6 h-6" />
-              Смотреть Вместе
+      ) : (
+        <div className="pt-4 border-t border-slate-700 space-y-2">
+          <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+            <Button variant="outline" className="w-full justify-start h-12 border-slate-700">
+              <User className="mr-3 h-5 w-5" />
+              Войти
             </Button>
-          </SheetClose>
-          <SheetClose asChild>
-            <Button variant="ghost" className="justify-start gap-3 text-lg p-3 h-auto" asChild>
-              <Link href="/blog">
-                <BookOpen className="w-6 h-6" />
-                Наш Блог
-              </Link>
+          </Link>
+          <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
+            <Button className="w-full justify-start h-12">
+              <User className="mr-3 h-5 w-5" />
+              Регистрация
             </Button>
-          </SheetClose>
-          <SheetClose asChild>
-            <Button variant="ghost" className="justify-start gap-3 text-lg p-3 h-auto" asChild>
-              <Link href="/news">
-                <Newspaper className="w-6 h-6" />
-                Новости
-              </Link>
-            </Button>
-          </SheetClose>
-        </nav>
-
-        <Collapsible>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="w-full justify-between text-lg p-3 h-auto">
-              <span className="flex items-center gap-3">
-                <Globe className="w-6 h-6" />
-                Наши ресурсы
-              </span>
-              <ChevronDown className="w-5 h-5 transition-transform [&[data-state=open]]:rotate-180" />
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-2 pl-8">
-            <SheetClose asChild>
-              <Button variant="ghost" className="w-full justify-start gap-3" asChild>
-                <Link href="/telegram" target="_blank">
-                  <img src="/icons/telegram.png" alt="Telegram" className="w-5 h-5" />
-                  Telegram
-                </Link>
-              </Button>
-            </SheetClose>
-            <SheetClose asChild>
-              <Button variant="ghost" className="w-full justify-start gap-3" asChild>
-                <Link href="/tiktok" target="_blank">
-                  <img src="/icons/tiktok.png" alt="TikTok" className="w-5 h-5" />
-                  TikTok
-                </Link>
-              </Button>
-            </SheetClose>
-            <SheetClose asChild>
-              <Button variant="ghost" className="w-full justify-start gap-3" asChild>
-                <Link href="/instagram" target="_blank">
-                  <img src="/icons/instagram.png" alt="Instagram" className="w-5 h-5" />
-                  Instagram
-                </Link>
-              </Button>
-            </SheetClose>
-            <SheetClose asChild>
-              <Button variant="ghost" className="w-full justify-start gap-3" asChild>
-                <Link href="/en">
-                  <Globe className="w-5 h-5" />
-                  English Version
-                </Link>
-              </Button>
-            </SheetClose>
-          </CollapsibleContent>
-        </Collapsible>
-      </div>
-
-      {/* Кнопка закрытия меню */}
-      <SheetClose asChild>
-        <Button variant="ghost" className="mt-auto w-full justify-start text-slate-400 hover:text-white">
-          <ArrowRightToLine className="w-5 h-5 mr-2" />
-          Закрыть меню
-        </Button>
-      </SheetClose>
+          </Link>
+        </div>
+      )}
     </div>
   )
 }

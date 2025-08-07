@@ -14,12 +14,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Menu, Bell, User, LogOut, Settings, Heart, Search, CheckCheck, Home, Bookmark } from "lucide-react"
+import { Bell, User, LogOut, Settings, Heart, Search, CheckCheck } from 'lucide-react'
 import { CommandPalette } from "./command-palette"
 import { toast } from "sonner"
 import type { User as SupabaseUser } from "@supabase/auth-helpers-nextjs"
 import { useSearchStore } from "@/hooks/use-search-store"
+import { ModeToggle } from "@/components/ui/mode-toggle" // Добавлен импорт ModeToggle
+import { ApiStatus } from "@/components/api-status" // Добавлен импорт ApiStatus
+import Image from "next/image" // Добавлен импорт Image
 
 function NotificationsDropdown() {
   const [hasNotifications, setHasNotifications] = useState(true)
@@ -55,7 +57,6 @@ function NotificationsDropdown() {
 export function Header() {
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [loading, setLoading] = useState(true)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const router = useRouter()
   const supabase = createClientComponentClient()
 
@@ -95,7 +96,6 @@ export function Header() {
     await supabase.auth.signOut()
     toast.success("Вы вышли из аккаунта")
     router.refresh()
-    setMobileMenuOpen(false)
   }
 
   const getUserInitials = (user: SupabaseUser) => {
@@ -112,8 +112,9 @@ export function Header() {
       <header className="fixed inset-x-0 top-0 z-40 bg-slate-900/95 backdrop-blur-sm border-b border-slate-800">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="text-xl font-bold text-white hover:text-purple-400 transition-colors">
-            AniHub
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/placeholder-logo.svg" width={32} height={32} alt="AniHub Logo" />
+            <span className="text-xl font-bold text-white hover:text-purple-400 transition-colors">AniHub</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -135,6 +136,11 @@ export function Header() {
             <Link href="/popular" className="text-sm font-medium hover:text-purple-400 transition-colors">
               Популярное
             </Link>
+            {user && (
+              <Link href="/admin/parser" className="text-sm font-medium hover:text-purple-400 transition-colors">
+                Парсер
+              </Link>
+            )}
           </nav>
 
           {/* Desktop Search Button (tablet) */}
@@ -146,6 +152,8 @@ export function Header() {
 
           {/* Right side */}
           <div className="flex items-center gap-2">
+            <ModeToggle /> {/* Перемещен сюда */}
+            <ApiStatus /> {/* Перемещен сюда */}
             {loading ? (
               <div className="h-9 w-9 rounded-full bg-slate-800 animate-pulse" />
             ) : user ? (
@@ -208,127 +216,6 @@ export function Header() {
                 </Link>
               </div>
             )}
-
-            {/* Mobile Menu */}
-            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="lg:hidden h-9 w-9">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[280px] sm:w-[350px] bg-slate-900 border-slate-800">
-                <SheetHeader>
-                  <SheetTitle className="text-left text-white">Меню</SheetTitle>
-                </SheetHeader>
-
-                <div className="flex flex-col space-y-4 mt-8">
-                  {/* Search Button */}
-                  <Button
-                    variant="outline"
-                    className="justify-start h-12 border-slate-700 hover:bg-slate-800"
-                    onClick={() => {
-                      toggleSearch()
-                      setMobileMenuOpen(false)
-                    }}
-                  >
-                    <Search className="mr-3 h-5 w-5" />
-                    Поиск аниме
-                  </Button>
-
-                  {/* Navigation Links */}
-                  <Link
-                    href="/"
-                    className="flex items-center py-3 px-2 text-white hover:text-purple-400 transition-colors"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <Home className="mr-3 h-5 w-5" />
-                    Главная
-                  </Link>
-
-                  <Link
-                    href="/catalog"
-                    className="flex items-center py-3 px-2 text-white hover:text-purple-400 transition-colors"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <Bookmark className="mr-3 h-5 w-5" />
-                    Каталог
-                  </Link>
-
-                  <Link
-                    href="/popular"
-                    className="flex items-center py-3 px-2 text-white hover:text-purple-400 transition-colors"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <Heart className="mr-3 h-5 w-5" />
-                    Популярное
-                  </Link>
-
-                  {/* User Section */}
-                  {user ? (
-                    <div className="pt-4 border-t border-slate-700 space-y-2">
-                      <div className="px-2 py-2">
-                        <p className="text-sm font-medium text-white truncate">{getUserName(user)}</p>
-                        <p className="text-xs text-slate-400 truncate">{user.email}</p>
-                      </div>
-
-                      <Link
-                        href={`/profile/${user.id}`}
-                        className="flex items-center py-3 px-2 text-white hover:text-purple-400 transition-colors"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <User className="mr-3 h-5 w-5" />
-                        Профиль
-                      </Link>
-
-                      <Link
-                        href={`/profile/${user.id}/lists`}
-                        className="flex items-center py-3 px-2 text-white hover:text-purple-400 transition-colors"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <Heart className="mr-3 h-5 w-5" />
-                        Мои списки
-                      </Link>
-
-                      <Link
-                        href="/settings"
-                        className="flex items-center py-3 px-2 text-white hover:text-purple-400 transition-colors"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <Settings className="mr-3 h-5 w-5" />
-                        Настройки
-                      </Link>
-
-                      <button
-                        onClick={handleSignOut}
-                        className="flex items-center py-3 px-2 w-full text-left text-red-400 hover:text-red-300 transition-colors"
-                      >
-                        <LogOut className="mr-3 h-5 w-5" />
-                        Выйти
-                      </button>
-
-                      <div className="sm:hidden pt-2">
-                        <NotificationsDropdown />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="pt-4 border-t border-slate-700 space-y-2">
-                      <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                        <Button variant="outline" className="w-full justify-start h-12 border-slate-700">
-                          <User className="mr-3 h-5 w-5" />
-                          Войти
-                        </Button>
-                      </Link>
-                      <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
-                        <Button className="w-full justify-start h-12">
-                          <User className="mr-3 h-5 w-5" />
-                          Регистрация
-                        </Button>
-                      </Link>
-                    </div>
-                  )}
-                </div>
-              </SheetContent>
-            </Sheet>
           </div>
         </div>
       </header>

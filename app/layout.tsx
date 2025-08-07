@@ -1,51 +1,42 @@
-import type React from "react";
-import type { Metadata } from "next";
-import { Inter } from 'next/font/google';
-import Script from "next/script";
-import "./globals.css";
-import { Providers } from "@/components/providers";
-import { Header } from "@/components/header";
-import { MobileBottomNav } from "@/components/mobile-bottom-nav"; // Импортируем MobileBottomNav
-import { Suspense } from "react";
+import type { Metadata } from "next"
+import { Inter } from 'next/font/google'
+import "./globals.css"
+import { ThemeProvider } from "@/components/theme-provider"
+import { Header } from "@/components/header"
+import { Toaster } from "@/components/ui/toaster" // Импортируем Toaster
+import SupabaseProvider from "@/components/supabase-provider"
+import { MobileBottomNav } from "@/components/mobile-bottom-nav" // Импортируем MobileBottomNav
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "AniHub - Смотри аниме онлайн бесплатно",
-  description: "Смотри любимое аниме онлайн бесплатно в высоком качестве на AniHub. Большая коллекция, удобный поиск и регулярные обновления.",
+  title: "AniHub - Каталог аниме",
+  description: "Ваш центральный хаб для просмотра и отслеживания аниме.",
     generator: 'v0.dev'
-};
+}
 
-export default function RootLayout({ children }: { children: React.ReactNode; }) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode
+}>) {
   return (
     <html lang="ru" suppressHydrationWarning>
-      <body className={`${inter.className} bg-slate-900 text-white`}>
-        {/* --- Google Analytics (gtag.js) --- */}
-        <Script
-          src={`https://www.googletagmanager.com/gtag/js?id=G-3DCGBWLNEZ`}
-          strategy="afterInteractive"
-        />
-        <Script id="gtag-init" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-3DCGBWLNEZ');
-          `}
-        </Script>
-        {/* --- Конец Google Analytics --- */}
-        <Providers>
-          <div className="relative flex min-h-screen flex-col">
-            <Suspense>
-              <Header />
-            </Suspense>
-            <main className="flex-1 pb-16">{children}</main> {/* Добавлен padding-bottom для нижней навигации */}
-            <Suspense>
-              <MobileBottomNav /> {/* Добавлена мобильная нижняя навигация */}
-            </Suspense>
-          </div>
-        </Providers>
+      <body className={inter.className}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <SupabaseProvider>
+            <Header />
+            {children}
+            <MobileBottomNav /> {/* Добавляем MobileBottomNav */}
+            <Toaster /> {/* Добавляем Toaster в корневой макет */}
+          </SupabaseProvider>
+        </ThemeProvider>
       </body>
     </html>
-  );
+  )
 }

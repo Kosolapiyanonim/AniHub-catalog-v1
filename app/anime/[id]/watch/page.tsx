@@ -1,52 +1,36 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { createClient } from "@/lib/supabase/server"
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from "next/headers"
-import {
-  ArrowLeft,
-  Play,
-  Settings,
-  Volume2,
-  Maximize,
-  MoreHorizontal,
-  Star,
-  Clock,
-  Users,
-  Calendar,
-} from "lucide-react"
+import { PlayerClient } from "@/components/player-client"
+import { ArrowLeft, Play, Settings, Volume2, Maximize, MoreHorizontal, Star, Clock, Users, Calendar } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { PlayerClient } from "@/components/player-client"
+import { getAnimeById } from '@/lib/data-fetchers'
 
-export default async function WatchPage({ params }: { params: { id: string } }) {
-  const cookieStore = cookies()
-  const supabase = createClient(cookieStore)
+interface WatchPageProps {
+  params: {
+    id: string
+  }
+}
 
-  // Получаем данные аниме
-  const { data: animeData } = await supabase
-    .from("animes")
-    .select(`
-      id, 
-      title, 
-      title_orig,
-      poster_url,
-      description,
-      year,
-      shikimori_rating,
-      episodes_total,
-      episodes_aired,
-      status,
-      genres:anime_genres(genres(name)),
-      studios:anime_studios(studios(name))
-    `)
-    .eq("shikimori_id", params.id)
-    .single()
+export default async function WatchPage({ params }: WatchPageProps) {
+  const supabase = createServerComponentClient({ cookies })
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!animeData) {
+  if (!user) {
+    // Optionally redirect to login or show a message
+    // For now, we'll just allow unauthenticated access to the player
+    // redirect('/login')
+  }
+
+  const anime = await getAnimeById(params.id)
+
+  if (!anime || !anime.player_link) {
     notFound()
   }
 
@@ -54,7 +38,7 @@ export default async function WatchPage({ params }: { params: { id: string } }) 
   const { data: translations } = await supabase
     .from("translations")
     .select("*")
-    .eq("anime_id", animeData.id)
+    .eq("anime_id", anime.id)
     .order("title")
 
   if (!translations || translations.length === 0) {
@@ -104,16 +88,16 @@ export default async function WatchPage({ params }: { params: { id: string } }) 
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 relative rounded overflow-hidden">
                   <Image
-                    src={animeData.poster_url || "/placeholder.svg"}
-                    alt={animeData.title}
+                    src={anime.poster_url || "/placeholder.svg"}
+                    alt={anime.title}
                     fill
                     className="object-cover"
                   />
                 </div>
                 <div>
-                  <h1 className="text-white font-semibold text-sm sm:text-base line-clamp-1">{animeData.title}</h1>
+                  <h1 className="text-white font-semibold text-sm sm:text-base line-clamp-1">{anime.title}</h1>
                   <p className="text-slate-400 text-xs">
-                    {animeData.episodes_aired} / {animeData.episodes_total || "??"} эп.
+                    {anime.episodes_aired} / {anime.episodes_total || "??"} эп.
                   </p>
                 </div>
               </div>
@@ -139,7 +123,7 @@ export default async function WatchPage({ params }: { params: { id: string } }) 
             <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm overflow-hidden">
               <CardContent className="p-0">
                 <div className="aspect-video bg-black relative group">
-                  <PlayerClient src="https://example.com/video.m3u8" poster={animeData.poster_url || undefined} />
+                  <PlayerClient playerLink={anime.player_link} poster={anime.poster_url || undefined} />
 
                   {/* Контролы плеера (overlay) */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -192,7 +176,7 @@ export default async function WatchPage({ params }: { params: { id: string } }) 
                   </div>
                   <div className="flex items-center">
                     <Calendar className="w-4 h-4 mr-1" />
-                    {animeData.year}
+                    {anime.year}
                   </div>
                   <div className="flex items-center">
                     <Users className="w-4 h-4 mr-1" />
@@ -200,9 +184,9 @@ export default async function WatchPage({ params }: { params: { id: string } }) 
                   </div>
                 </div>
 
-                {animeData.description && (
+                {anime.description && (
                   <div className="prose prose-invert prose-sm max-w-none">
-                    <p className="text-slate-300 leading-relaxed">{animeData.description.slice(0, 200)}...</p>
+                    <p className="text-slate-300 leading-relaxed">{anime.description.slice(0, 200)}...</p>
                   </div>
                 )}
               </CardContent>
@@ -217,12 +201,12 @@ export default async function WatchPage({ params }: { params: { id: string } }) 
                 <div className="p-4 border-b border-slate-700">
                   <h3 className="font-semibold text-white">Эпизоды</h3>
                   <p className="text-sm text-slate-400">
-                    {animeData.episodes_aired} из {animeData.episodes_total || "??"}
+                    {anime.episodes_aired} из {anime.episodes_total || "??"}
                   </p>
                 </div>
                 <ScrollArea className="h-64">
                   <div className="p-2">
-                    {Array.from({ length: Math.min(animeData.episodes_aired || 1, 12) }, (_, i) => (
+                    {Array.from({ length: Math.min(anime.episodes_aired || 1, 12) }, (_, i) => (
                       <button
                         key={i}
                         className={`w-full text-left p-3 rounded-lg mb-1 transition-colors ${
@@ -280,32 +264,32 @@ export default async function WatchPage({ params }: { params: { id: string } }) 
               <CardContent className="p-4">
                 <h3 className="font-semibold text-white mb-3">Об аниме</h3>
                 <div className="space-y-3">
-                  {animeData.shikimori_rating && (
+                  {anime.shikimori_rating && (
                     <div className="flex items-center justify-between">
                       <span className="text-slate-400 text-sm">Рейтинг</span>
                       <div className="flex items-center">
                         <Star className="w-4 h-4 text-yellow-500 mr-1" />
-                        <span className="text-white font-medium">{animeData.shikimori_rating}</span>
+                        <span className="text-white font-medium">{anime.shikimori_rating}</span>
                       </div>
                     </div>
                   )}
                   <div className="flex items-center justify-between">
                     <span className="text-slate-400 text-sm">Статус</span>
                     <Badge variant="outline" className="border-slate-600 text-slate-300">
-                      {animeData.status}
+                      {anime.status}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-slate-400 text-sm">Год</span>
-                    <span className="text-white">{animeData.year}</span>
+                    <span className="text-white">{anime.year}</span>
                   </div>
                 </div>
 
-                {animeData.genres && animeData.genres.length > 0 && (
+                {anime.genres && anime.genres.length > 0 && (
                   <div className="mt-4">
                     <p className="text-slate-400 text-sm mb-2">Жанры</p>
                     <div className="flex flex-wrap gap-1">
-                      {animeData.genres.slice(0, 4).map((genre: any) => (
+                      {anime.genres.slice(0, 4).map((genre: any) => (
                         <Badge key={genre.genres.name} variant="secondary" className="text-xs">
                           {genre.genres.name}
                         </Badge>

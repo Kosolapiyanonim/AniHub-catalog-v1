@@ -1,35 +1,34 @@
-import { NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
+import { NextResponse } from 'next/server'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+import { YearsResponse } from '@/lib/types'
 
-export async function GET() {
+export async function GET(request: Request) {
+  const supabase = createRouteHandlerClient({ cookies })
+
   try {
-    console.log("📅 Fetching years from database...")
-
-    // Получаем все уникальные годы из базы
+    // Fetch distinct years from the animes table
     const { data, error } = await supabase
-      .from("animes")
-      .select("year")
-      .not("year", "is", null)
-      .order("year", { ascending: false })
+      .from('animes')
+      .select('year', { distinct: true })
+      .not('year', 'is', null) // Exclude null years
+      .order('year', { ascending: false }) // Order by year descending
 
     if (error) {
-      console.error("❌ Error fetching years:", error)
-      throw error
+      console.error('Error fetching years:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    // Убираем дубликаты и сортируем
-    const years = [...new Set(data?.map((item) => item.year).filter(Boolean))] as number[]
-    years.sort((a, b) => b - a) // От новых к старым
+    const years = data.map(row => row.year) as number[]
 
-    console.log(`✅ Found ${years.length} unique years`)
-
-    return NextResponse.json({
+    const response: YearsResponse = {
       years,
       total: years.length,
-    })
+    }
+
+    return NextResponse.json(response)
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Неизвестная ошибка"
-    console.error("❌ Years API error:", message)
-    return NextResponse.json({ status: "error", message, years: [] }, { status: 500 })
+    console.error('Unexpected error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

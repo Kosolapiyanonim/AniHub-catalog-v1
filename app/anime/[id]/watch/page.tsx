@@ -20,6 +20,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import KodikPlayer from "../../../../components/kodik-player"
+import Comments from "@/components/Comments"
 
 export default async function WatchPage({ params }: { params: { id: string } }) {
   const supabase = await createClient()
@@ -311,6 +312,12 @@ export default async function WatchPage({ params }: { params: { id: string } }) 
                     </div>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+              <CardContent className="p-4">
+                <Comments animeId={animeData.id} />
               </CardContent>
             </Card>
           </div>

@@ -22,7 +22,10 @@ export default function KodikPlayer({ src, width = "100%", height = undefined, a
     return () => window.removeEventListener("message", handleMessage)
   }, [])
 
-  if (!src) {
+  // Normalize protocol-less links from Kodik (e.g., //kodik.cc/....)
+  const normalizedSrc = typeof src === "string" && src.startsWith("//") ? `https:${src}` : src
+
+  if (!normalizedSrc) {
     return (
       <div className="w-full aspect-video bg-slate-900 text-slate-300 flex items-center justify-center rounded-lg">
         Плеер недоступен
@@ -35,12 +38,12 @@ export default function KodikPlayer({ src, width = "100%", height = undefined, a
       <iframe
         ref={iframeRef}
         id="kodik-player"
-        src={src}
+        src={normalizedSrc}
         width={typeof width === "number" ? String(width) : width}
         height={typeof height === "number" ? String(height) : undefined}
         className="w-full h-full"
         frameBorder={0}
-        allow={"autoplay *; fullscreen *"}
+        allow={"autoplay; fullscreen; encrypted-media; picture-in-picture"}
         allowFullScreen={allowFullscreen}
       />
     </div>

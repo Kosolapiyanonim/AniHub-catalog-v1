@@ -12,6 +12,7 @@ import { ArrowLeft, Star, Play } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { AnimeCarousel } from "@/components/AnimeCarousel";
 import { SubscribeButton } from "@/components/SubscribeButton";
+import Comments from "@/components/Comments";
 // --- [ИЗМЕНЕНИЕ] Импортируем правильную кнопку для этой страницы ---
 import { AnimePageListButton } from "@/components/anime-page-list-button";
 
@@ -137,7 +138,7 @@ export default function AnimePage() {
             {anime.related && anime.related.length > 0 && (
               <section>
                 <h2 className="text-xl font-bold text-white mb-4">Связанное</h2>
-                <AnimeCarousel items={anime.related} />
+                <AnimeCarousel title="Связанное" items={anime.related} />
               </section>
             )}
             
@@ -148,10 +149,7 @@ export default function AnimePage() {
                 </div>
             </section>
             <section>
-                <h2 className="text-xl font-bold text-white mb-4">Обсуждение</h2>
-                <div className="bg-slate-800 border border-slate-700 rounded-lg p-8 text-center text-gray-500">
-                    <p>Комментарии к аниме скоро появятся!</p>
-                </div>
+              <Comments animeId={anime.id} />
             </section>
           </main>
         </div>

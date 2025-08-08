@@ -1,8 +1,6 @@
-name: CD - Vercel
+name: CD - Vercel (Manual Prod)
 
 on:
-  push:
-    branches: [ main, anihub-1.02 ]
   workflow_dispatch:
 
 jobs:
@@ -40,19 +38,7 @@ jobs:
           MEILISEARCH_INDEX: ${{ secrets.MEILISEARCH_INDEX }}
         run: pnpm build
 
-      - name: Deploy Preview to Vercel (anihub-1.02)
-        if: github.ref == 'refs/heads/anihub-1.02'
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          working-directory: .
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-
-      - name: Deploy Production to Vercel (main)
-        if: github.ref == 'refs/heads/main'
+      - name: Deploy Production to Vercel (manual)
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}

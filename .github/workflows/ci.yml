@@ -1,3 +1,4 @@
+# .github/workflows/ci.yml
 name: CI
 
 on:
@@ -8,10 +9,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup PNPM
@@ -26,21 +27,20 @@ jobs:
           cache: pnpm
 
       - name: Install deps
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile  # ← Заменил на frozen!
 
-      
       - name: Build
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          KODIK_API_TOKEN: ${{ secrets.KODIK_API_TOKEN }}
           NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
           NEXT_PUBLIC_GA_MEASUREMENT_ID: ${{ secrets.NEXT_PUBLIC_GA_MEASUREMENT_ID }}
           NEXT_PUBLIC_GTM_ID: ${{ secrets.NEXT_PUBLIC_GTM_ID }}
+          KODIK_API_TOKEN: ${{ secrets.KODIK_API_TOKEN }}
           MEILISEARCH_API_KEY: ${{ secrets.MEILISEARCH_API_KEY }}
           MEILISEARCH_HOST: ${{ secrets.MEILISEARCH_HOST }}
           MEILISEARCH_INDEX: ${{ secrets.MEILISEARCH_INDEX }}
+          # ❌ Не передаём SUPABASE_SERVICE_ROLE_KEY — он не нужен при build в Next.js (если не используется в getStaticProps/getServerSideProps)
         run: pnpm build
 
       - name: Install Playwright Browsers
@@ -50,5 +50,3 @@ jobs:
         run: pnpm test:e2e
         env:
           BASE_URL: http://localhost:3000
-
-

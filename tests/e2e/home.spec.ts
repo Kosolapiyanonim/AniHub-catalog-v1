@@ -1,3 +1,4 @@
+// tests/e2e/home.spec.ts
 import { test, expect } from '@playwright/test'
 
 test('главная открывается и отображает контент', async ({ page }) => {

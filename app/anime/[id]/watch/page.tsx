@@ -1,8 +1,7 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { createClient } from "@/lib/supabase/server"
-import { cookies } from "next/headers"
+import createClient from "@/lib/supabase/server"
 import {
   ArrowLeft,
   Play,
@@ -20,11 +19,10 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { PlayerClient } from "@/components/player-client"
+import KodikPlayer from "../../../../components/kodik-player"
 
 export default async function WatchPage({ params }: { params: { id: string } }) {
-  const cookieStore = cookies()
-  const supabase = createClient(cookieStore)
+  const supabase = await createClient()
 
   // Получаем данные аниме
   const { data: animeData } = await supabase
@@ -139,7 +137,7 @@ export default async function WatchPage({ params }: { params: { id: string } }) 
             <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm overflow-hidden">
               <CardContent className="p-0">
                 <div className="aspect-video bg-black relative group">
-                  <PlayerClient src="https://example.com/video.m3u8" poster={animeData.poster_url || undefined} />
+                  <KodikPlayer src={(translations?.[0] as any)?.player_link || ""} />
 
                   {/* Контролы плеера (overlay) */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">

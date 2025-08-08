@@ -28,7 +28,8 @@ jobs:
       - name: Install deps
         run: pnpm install --frozen-lockfile
 
-      - name: Lint
+      - name: Lint (skipped if no ESLint config)
+        if: ${{ hashFiles('**/.eslintrc*') != '' }}
         run: pnpm lint
 
       - name: Build

@@ -40,15 +40,26 @@ jobs:
           MEILISEARCH_INDEX: ${{ secrets.MEILISEARCH_INDEX }}
         run: pnpm build
 
-      - name: Deploy to Vercel
+      - name: Deploy Preview to Vercel (anihub-1.02)
+        if: github.ref == 'refs/heads/anihub-1.02'
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           working-directory: .
-          # Для ветки main можно раскомментировать прод-деплой
-           vercel-args: "--prod"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy Production to Vercel (main)
+        if: github.ref == 'refs/heads/main'
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: .
+          vercel-args: "--prod"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 

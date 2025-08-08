@@ -13,6 +13,7 @@ export default function KodikPlayer({ src, width = "100%", height = undefined, a
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [currentSrc, setCurrentSrc] = useState<string>(src)
 
+  // Listen to postMessage events from Kodik
   useEffect(() => {
     function handleMessage(message: MessageEvent) {
       const data = message.data as { key?: string; value?: unknown }
@@ -23,17 +24,7 @@ export default function KodikPlayer({ src, width = "100%", height = undefined, a
     return () => window.removeEventListener("message", handleMessage)
   }, [])
 
-  // Normalize protocol-less links from Kodik (e.g., //kodik.cc/....)
-  const normalizedSrc = typeof currentSrc === "string" && currentSrc.startsWith("//") ? `https:${currentSrc}` : currentSrc
-
-  if (!normalizedSrc) {
-    return (
-      <div className="w-full aspect-video bg-slate-900 text-slate-300 flex items-center justify-center rounded-lg">
-        Плеер недоступен
-      </div>
-    )
-  }
-
+  // Sync prop changes into state
   useEffect(() => {
     setCurrentSrc(src)
   }, [src])
@@ -50,19 +41,26 @@ export default function KodikPlayer({ src, width = "100%", height = undefined, a
     return () => window.removeEventListener("anihub:kodik:setSrc", handler as EventListener)
   }, [])
 
+  // Normalize protocol-less links from Kodik (e.g., //kodik.cc/....)
+  const normalizedSrc = typeof currentSrc === "string" && currentSrc.startsWith("//") ? `https:${currentSrc}` : currentSrc
+
   return (
     <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
-      <iframe
-        ref={iframeRef}
-        id="kodik-player"
-        src={normalizedSrc}
-        width={typeof width === "number" ? String(width) : width}
-        height={typeof height === "number" ? String(height) : undefined}
-        className="w-full h-full"
-        frameBorder={0}
-        allow={"autoplay; fullscreen; encrypted-media; picture-in-picture"}
-        allowFullScreen={allowFullscreen}
-      />
+      {normalizedSrc ? (
+        <iframe
+          ref={iframeRef}
+          id="kodik-player"
+          src={normalizedSrc}
+          width={typeof width === "number" ? String(width) : width}
+          height={typeof height === "number" ? String(height) : undefined}
+          className="w-full h-full"
+          frameBorder={0}
+          allow={"autoplay; fullscreen; encrypted-media; picture-in-picture"}
+          allowFullScreen={allowFullscreen}
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-slate-300">Плеер недоступен</div>
+      )}
     </div>
   )
 }

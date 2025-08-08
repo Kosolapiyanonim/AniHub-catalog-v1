@@ -30,7 +30,9 @@ export default function Comments({ animeId }: { animeId: number }) {
       try {
         const res = await fetch(`/api/comments?animeId=${animeId}`, { cache: "no-store" })
         if (!res.ok) throw new Error((await res.json()).error || "Ошибка загрузки комментариев")
-        setComments(await res.json())
+        const raw = (await res.json()) as CommentItem[]
+        // Enrich with profile info by fetching from /api/types/profiles if desired later.
+        setComments(raw)
       } catch (e) {
         setError(e instanceof Error ? e.message : "Неизвестная ошибка")
       } finally {
@@ -89,14 +91,12 @@ export default function Comments({ animeId }: { animeId: number }) {
           {comments.map((c) => (
             <li key={c.id} className="flex gap-3">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={c.profiles?.avatar_url || undefined} />
-                <AvatarFallback>
-                  {(c.profiles?.username || "?").slice(0, 2).toUpperCase()}
-                </AvatarFallback>
+                <AvatarImage src={undefined} />
+                <AvatarFallback>US</AvatarFallback>
               </Avatar>
               <div className="flex-1">
                 <div className="text-sm text-white">
-                  {c.profiles?.username || "Пользователь"}
+                  Пользователь
                   <span className="ml-2 text-xs text-slate-500">
                     {new Date(c.created_at).toLocaleString()}
                   </span>

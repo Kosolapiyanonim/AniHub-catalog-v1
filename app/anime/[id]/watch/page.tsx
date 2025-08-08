@@ -21,6 +21,7 @@ import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import KodikPlayer from "../../../../components/kodik-player"
 import Comments from "@/components/Comments"
+import WatchControls from "@/components/watch-controls"
 
 export default async function WatchPage({ params }: { params: { id: string } }) {
   const supabase = await createClient()
@@ -137,33 +138,8 @@ export default async function WatchPage({ params }: { params: { id: string } }) 
             {/* Видео плеер */}
             <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm overflow-hidden">
               <CardContent className="p-0">
-                <div className="aspect-video bg-black relative group">
+                <div className="aspect-video bg-black relative">
                   <KodikPlayer src={(translations?.[0] as any)?.player_link || ""} />
-
-                  {/* Контролы плеера (overlay) */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="absolute bottom-4 left-4 right-4">
-                      <div className="flex items-center justify-between text-white">
-                        <div className="flex items-center space-x-3">
-                          <Button size="sm" variant="ghost" className="text-white hover:bg-white/20">
-                            <Play className="w-4 h-4" />
-                          </Button>
-                          <Button size="sm" variant="ghost" className="text-white hover:bg-white/20">
-                            <Volume2 className="w-4 h-4" />
-                          </Button>
-                          <span className="text-sm">00:00 / 24:00</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Button size="sm" variant="ghost" className="text-white hover:bg-white/20">
-                            <Settings className="w-4 h-4" />
-                          </Button>
-                          <Button size="sm" variant="ghost" className="text-white hover:bg-white/20">
-                            <Maximize className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -210,69 +186,7 @@ export default async function WatchPage({ params }: { params: { id: string } }) 
 
           {/* Боковая панель */}
           <div className="xl:col-span-1 space-y-6">
-            {/* Список эпизодов */}
-            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-              <CardContent className="p-0">
-                <div className="p-4 border-b border-slate-700">
-                  <h3 className="font-semibold text-white">Эпизоды</h3>
-                  <p className="text-sm text-slate-400">
-                    {animeData.episodes_aired} из {animeData.episodes_total || "??"}
-                  </p>
-                </div>
-                <ScrollArea className="h-64">
-                  <div className="p-2">
-                    {Array.from({ length: Math.min(animeData.episodes_aired || 1, 12) }, (_, i) => (
-                      <button
-                        key={i}
-                        className={`w-full text-left p-3 rounded-lg mb-1 transition-colors ${
-                          i === 0
-                            ? "bg-purple-600/20 border border-purple-500/30 text-purple-300"
-                            : "hover:bg-slate-700/50 text-slate-300"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">Эпизод {i + 1}</span>
-                          <span className="text-xs text-slate-500">24:00</span>
-                        </div>
-                        <p className="text-xs text-slate-400 mt-1">Серия {i + 1}</p>
-                      </button>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-
-            {/* Озвучки */}
-            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-              <CardContent className="p-0">
-                <div className="p-4 border-b border-slate-700">
-                  <h3 className="font-semibold text-white">Озвучки</h3>
-                  <p className="text-sm text-slate-400">{translations.length} доступно</p>
-                </div>
-                <ScrollArea className="h-48">
-                  <div className="p-2">
-                    {translations.slice(0, 8).map((translation, index) => (
-                      <button
-                        key={translation.id}
-                        className={`w-full text-left p-3 rounded-lg mb-1 transition-colors ${
-                          index === 0
-                            ? "bg-blue-600/20 border border-blue-500/30 text-blue-300"
-                            : "hover:bg-slate-700/50 text-slate-300"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium text-sm">{translation.title}</span>
-                          <Badge variant="secondary" className="text-xs">
-                            {translation.quality}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-slate-400 mt-1">{translation.type}</p>
-                      </button>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
+            <WatchControls translations={translations as any} episodesAired={animeData.episodes_aired} episodesTotal={animeData.episodes_total} />
 
             {/* Информация об аниме */}
             <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">

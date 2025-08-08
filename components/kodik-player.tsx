@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 
 interface KodikPlayerProps {
   src: string
@@ -11,6 +11,7 @@ interface KodikPlayerProps {
 
 export default function KodikPlayer({ src, width = "100%", height = undefined, allowFullscreen = true }: KodikPlayerProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const [currentSrc, setCurrentSrc] = useState<string>(src)
 
   useEffect(() => {
     function handleMessage(message: MessageEvent) {
@@ -23,7 +24,7 @@ export default function KodikPlayer({ src, width = "100%", height = undefined, a
   }, [])
 
   // Normalize protocol-less links from Kodik (e.g., //kodik.cc/....)
-  const normalizedSrc = typeof src === "string" && src.startsWith("//") ? `https:${src}` : src
+  const normalizedSrc = typeof currentSrc === "string" && currentSrc.startsWith("//") ? `https:${currentSrc}` : currentSrc
 
   if (!normalizedSrc) {
     return (
@@ -32,6 +33,22 @@ export default function KodikPlayer({ src, width = "100%", height = undefined, a
       </div>
     )
   }
+
+  useEffect(() => {
+    setCurrentSrc(src)
+  }, [src])
+
+  // Listen for global src change events
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const custom = e as CustomEvent<string>
+      if (typeof custom.detail === "string" && custom.detail.length > 0) {
+        setCurrentSrc(custom.detail)
+      }
+    }
+    window.addEventListener("anihub:kodik:setSrc", handler as EventListener)
+    return () => window.removeEventListener("anihub:kodik:setSrc", handler as EventListener)
+  }, [])
 
   return (
     <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">

@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("comments")
-    .select("id, anime_id, user_id, content, created_at, profiles:profiles!comments_user_id_fkey(username, avatar_url)")
+    .select("id, anime_id, user_id, content, created_at")
     .eq("anime_id", animeId)
     .order("created_at", { ascending: true })
 

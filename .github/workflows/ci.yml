@@ -28,7 +28,10 @@ jobs:
 
       - name: Install deps
         run: pnpm install --frozen-lockfile  # ← Заменил на frozen!
-
+      
+      - name: Lint code  # ← НОВЫЙ ШАГ
+        run: pnpm lint
+        
       - name: Build
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}

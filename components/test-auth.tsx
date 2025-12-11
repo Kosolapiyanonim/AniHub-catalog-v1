@@ -1,18 +1,18 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createClientSupabaseClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, XCircle, User, Mail, Calendar, Shield } from 'lucide-react'
-import type { User as SupabaseUser } from "@supabase/auth-helpers-nextjs"
+import { CheckCircle, XCircle, User, Mail, Calendar, Shield } from "lucide-react"
+import type { User as SupabaseUser } from "@supabase/supabase-js"
 
 export function TestAuth() {
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [connectionStatus, setConnectionStatus] = useState<"checking" | "connected" | "error">("checking")
-  const supabase = createClientComponentClient()
+  const supabase = createClientSupabaseClient()
 
   useEffect(() => {
     const checkConnection = async () => {
@@ -170,7 +170,7 @@ export function TestAuth() {
                 <Button variant="outline" asChild>
                   <a href="/register">Регистрация</a>
                 </Button>
-                <Button variant="outline" onClick={() => supabase.auth.signInWithOAuth({ provider: 'github' })}>
+                <Button variant="outline" onClick={() => supabase.auth.signInWithOAuth({ provider: "github" })}>
                   Войти с GitHub
                 </Button>
               </div>

@@ -1,16 +1,17 @@
 "use client"
 
 import type React from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Mail, Lock, User, Chrome, Music } from 'lucide-react'
+import { User, Chrome, Music } from "lucide-react"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createClientSupabaseClient } from "@/lib/supabase/client"
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("")
@@ -18,7 +19,7 @@ export default function RegisterPage() {
   const [fullName, setFullName] = useState("")
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const supabase = createClientSupabaseClient()
 
   const handleEmailRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -87,9 +88,7 @@ export default function RegisterPage() {
       <Card className="w-full max-w-md mx-auto bg-slate-800 text-white border-slate-700">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl">Создать аккаунт</CardTitle>
-          <CardDescription className="text-slate-400">
-            Введите свои данные для регистрации
-          </CardDescription>
+          <CardDescription className="text-slate-400">Введите свои данные для регистрации</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
           <div className="grid gap-2">
@@ -109,11 +108,20 @@ export default function RegisterPage() {
           </div>
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="m@example.com" className="bg-slate-700 border-slate-600 text-white placeholder-slate-400" />
+            <Input
+              id="email"
+              type="email"
+              placeholder="m@example.com"
+              className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+            />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="password">Пароль</Label>
-            <Input id="password" type="password" className="bg-slate-700 border-slate-600 text-white placeholder-slate-400" />
+            <Input
+              id="password"
+              type="password"
+              className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+            />
           </div>
           <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={loading}>
             {loading ? "Регистрация..." : "Зарегистрироваться"}

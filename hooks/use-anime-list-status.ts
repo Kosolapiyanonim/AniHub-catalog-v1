@@ -3,82 +3,51 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { createClientSupabaseClient } from "@/lib/supabase/client"
+import { useSupabase } from "@/components/supabase-provider"
 import { toast } from "sonner"
 
-type ListStatus = "watching" | "completed" | "planned" | "dropped" | "revisiting" | null
-
-export function useAnimeListStatus(animeId: number, userId: string | undefined) {
-  const supabase = createClientSupabaseClient()
-  const [status, setStatus] = useState<ListStatus>(null)
-  const [loading, setLoading] = useState(true)
-
-  const fetchStatus = useCallback(async () => {
-    if (!userId) {
-      setStatus(null)
-      setLoading(false)
-      return
-    }
-    setLoading(true)
-    const { data, error } = await supabase
-      .from("user_anime_lists")
-      .select("status")
-      .eq("user_id", userId)
-      .eq("anime_id", animeId)
-      .single()
-
-    if (error && error.code !== "PGRST116") {
-      // PGRST116 means no rows found
-      console.error("Error fetching anime list status:", error)
-      toast.error("Ошибка при загрузке статуса аниме.")
-    } else if (data) {
-      setStatus(data.status as ListStatus)
-    } else {
-      setStatus(null)
-    }
-    setLoading(false)
-  }, [animeId, userId, supabase])
+export function useAnimeListStatus(
+  animeId: number,
+  initialStatus?: string | null,
+  onStatusChange?: (animeId: number, newStatus: string | null) => void,
+) {
+  const { supabase, session } = useSupabase()
+  const [currentStatus, setCurrentStatus] = useState<string | null>(initialStatus || null)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    fetchStatus()
-  }, [fetchStatus])
+    setCurrentStatus(initialStatus || null)
+  }, [initialStatus])
 
-  const updateStatus = useCallback(
-    async (newStatus: ListStatus) => {
-      if (!userId) {
-        toast.error("Вы должны быть авторизованы для изменения статуса.")
+  const handleStatusChange = useCallback(
+    async (newStatus: string) => {
+      if (!session) {
+        toast.error("Нужно войти в аккаунт")
         return
       }
+
       setLoading(true)
-      if (newStatus === null) {
-        // Remove from list
-        const { error } = await supabase.from("user_anime_lists").delete().eq("user_id", userId).eq("anime_id", animeId)
+      try {
+        const response = await fetch("/api/lists", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ anime_id: animeId, status: newStatus }),
+        })
 
-        if (error) {
-          console.error("Error removing from list:", error)
-          toast.error("Ошибка при удалении из списка.")
-        } else {
-          setStatus(null)
-          toast.success("Аниме удалено из списка.")
-        }
-      } else {
-        // Add or update
-        const { error } = await supabase
-          .from("user_anime_lists")
-          .upsert({ user_id: userId, anime_id: animeId, status: newStatus }, { onConflict: "user_id,anime_id" })
+        if (!response.ok) throw new Error("Server error")
 
-        if (error) {
-          console.error("Error updating list status:", error)
-          toast.error("Ошибка при обновлении статуса аниме.")
-        } else {
-          setStatus(newStatus)
-          toast.success(`Статус аниме обновлен на "${newStatus}"`)
-        }
+        const newResolvedStatus = newStatus === "remove" ? null : newStatus
+        setCurrentStatus(newResolvedStatus)
+        if (onStatusChange) onStatusChange(animeId, newResolvedStatus)
+        toast.success("Статус обновлен!")
+      } catch (error) {
+        toast.error("Не удалось обновить статус.")
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     },
-    [animeId, userId, supabase],
+    [animeId, session, onStatusChange],
   )
 
-  return { status, loading, updateStatus }
+  return { session, currentStatus, loading, handleStatusChange }
 }

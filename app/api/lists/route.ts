@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "anime_id and status are required" }, { status: 400 })
   }
 
-  const supabase = createRouteHandlerClient()
+  const supabase = await createRouteHandlerClient()
   const {
     data: { session },
   } = await supabase.auth.getSession()
@@ -21,17 +21,16 @@ export async function POST(request: Request) {
   const user_id = session.user.id
 
   if (status === "remove") {
-    const { error } = await supabase.from("user_lists").delete().match({ user_id, anime_id })
+    const { error } = await supabase.from("user_anime_lists").delete().match({ user_id, anime_id })
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ message: "Successfully removed" })
   }
 
-  const { error } = await supabase.from("user_lists").upsert(
+  const { error } = await supabase.from("user_anime_lists").upsert(
     {
       user_id,
       anime_id,
       status,
-      updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id,anime_id" },
   )

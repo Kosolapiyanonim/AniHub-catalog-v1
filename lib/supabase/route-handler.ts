@@ -2,8 +2,8 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import type { Database } from "../types"
 
-export function createRouteHandlerClient() {
-  const cookieStore = cookies()
+export async function createRouteHandlerClient() {
+  const cookieStore = await cookies()
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -15,12 +15,16 @@ export function createRouteHandlerClient() {
         set(name: string, value: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value, ...options })
-          } catch (error) {}
+          } catch (error) {
+            // Handle cookie setting errors
+          }
         },
         remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value: "", ...options })
-          } catch (error) {}
+          } catch (error) {
+            // Handle cookie removal errors
+          }
         },
       },
     },

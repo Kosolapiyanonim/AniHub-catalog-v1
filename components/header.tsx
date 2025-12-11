@@ -20,17 +20,12 @@ import { toast } from "sonner"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import { useSearchStore } from "@/hooks/use-search-store"
 
-// Компонент-заглушка для уведомлений (если нужен в хедере, но по заданию он внизу)
-// function NotificationsDropdown() { ... }
-
-// Основной компонент хедера
 export function Header() {
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const supabase = createClientSupabaseClient()
-  const toggleSearch = useSearchStore((state) => state.toggle)
-  const [isSearchOpen, setIsSearchOpen] = useState(false) // Для CommandPalette
+  const { toggle: toggleSearch } = useSearchStore()
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -75,69 +70,50 @@ export function Header() {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-40 bg-slate-900/80 backdrop-blur border-b border-slate-800">
+      <header className="fixed inset-x-0 top-0 z-40 bg-background/80 backdrop-blur border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
-          {/* Лого - только на десктопе */}
-          <Link href="/" className="hidden md:flex text-xl font-bold text-white">
+          <Link href="/" className="hidden md:flex text-xl font-bold">
             AniHub
           </Link>
 
-          {/* Поиск (для мобильных и десктопа) */}
           <div className="flex-1 max-w-xs md:max-w-md mx-0 md:mx-4">
             <Button
               variant="outline"
-              className="h-9 w-full justify-start text-sm text-muted-foreground"
+              className="h-9 w-full justify-start text-sm text-muted-foreground bg-transparent"
               onClick={toggleSearch}
             >
               <Search className="h-4 w-4 mr-2" />
               Поиск...
-              <span className="ml-auto text-xs bg-slate-700 rounded-sm px-1.5 py-0.5 hidden md:block">Ctrl+K</span>
+              <span className="ml-auto text-xs bg-muted rounded-sm px-1.5 py-0.5 hidden md:block">Ctrl+K</span>
             </Button>
           </div>
 
-          {/* Социальные сети - видны на мобильных и десктопе */}
-          <div className="flex items-center space-x-2 md:hidden">
-            {" "}
-            {/* Только для мобильных */}
-            <Button variant="ghost" size="sm" asChild className="text-slate-400 hover:text-white">
-              <Link href="/telegram" target="_blank">
-                <img src="/icons/telegram.png" alt="Telegram" className="w-5 h-5" />
-              </Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild className="text-slate-400 hover:text-white">
-              <Link href="/tiktok" target="_blank">
-                <img src="/icons/tiktok.png" alt="TikTok" className="w-5 h-5" />
-              </Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild className="text-slate-400 hover:text-white">
-              <Link href="/instagram" target="_blank">
-                <img src="/icons/instagram.png" alt="Instagram" className="w-5 h-5" />
-              </Link>
-            </Button>
-          </div>
-
-          {/* Десктопная навигация и авторизация */}
           <div className="hidden md:flex items-center justify-end gap-2">
             <nav className="flex items-center space-x-4">
-              <Link href="/catalog" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
+              <Link
+                href="/catalog"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
                 Каталог
               </Link>
-              <Link href="/favorites" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
+              <Link
+                href="/favorites"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
                 Закладки
               </Link>
               <Link
                 href="/notifications"
-                className="text-sm font-medium text-gray-300 hover:text-white transition-colors"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 Уведомления
               </Link>
             </nav>
 
             {loading ? (
-              <div className="h-8 w-8 rounded-full bg-slate-800 animate-pulse" />
+              <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
             ) : user ? (
               <div className="flex items-center gap-2">
-                {/* <NotificationsDropdown /> Если уведомления нужны в хедере */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -194,7 +170,7 @@ export function Header() {
           </div>
         </div>
       </header>
-      <CommandPalette open={isSearchOpen} onOpenChange={setIsSearchOpen} />
+      <CommandPalette />
     </>
   )
 }

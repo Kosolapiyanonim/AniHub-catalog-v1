@@ -1,21 +1,20 @@
+// /app/api/statuses/route.ts
+import { createRouteHandlerClient } from "@/lib/supabase/route-handler"
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+
+export const dynamic = "force-dynamic"
 
 export async function GET() {
-  const supabase = createClient()
+  const supabase = createRouteHandlerClient()
 
   try {
-    const { data, error } = await supabase.from("statuses").select("name")
+    // Эта функция запрашивает все уникальные значения из колонки 'status'
+    const { data, error } = await supabase.rpc("get_distinct_statuses")
+    if (error) throw error
 
-    if (error) {
-      console.error("Error fetching statuses:", error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    const statuses = data.map((s) => s.name)
-    return NextResponse.json(statuses)
+    return NextResponse.json(data.map((item: any) => item.status))
   } catch (error) {
-    console.error("Unexpected error:", error)
-    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 })
+    const message = error instanceof Error ? error.message : "Unknown error"
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

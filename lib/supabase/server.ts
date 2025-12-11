@@ -1,34 +1,35 @@
-import { createServerClient } from "@supabase/ssr"
+import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import { cookies } from "next/headers"
+import type { Database } from "../types"
 
-/**
- * Server-side Supabase client.
- *
- * IMPORTANT:
- *  • Must be called **inside** a Server Component / Route Handler.
- *  • Uses the pattern required by Supabase Auth SSR helpers:
- *    https://supabase.com/docs/guides/getting-started/ai-prompts/nextjs-supabase-auth
- */
-export async function createClient() {
-  const cookieStore = cookies()
+export async function createServerSupabaseClient() {
+  const cookieStore = await cookies()
 
-  return createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-    cookies: {
-      // Always use getAll / setAll ─ never get / set / remove
-      getAll() {
-        return cookieStore.getAll()
-      },
-      setAll(cookiesToSet) {
-        // If called in a server action, cookies.set may throw ― ignore silently
-        try {
-          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
-        } catch {
-          /* no-op */
-        }
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value, ...options })
+          } catch (error) {
+            // Handle cookie setting errors in server components
+          }
+        },
+        remove(name: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value: "", ...options })
+          } catch (error) {
+            // Handle cookie removal errors in server components
+          }
+        },
       },
     },
-  })
+  )
 }
 
-// Optional default export so you can `import createClient from '...'`
-export default createClient
+export const createClient = createServerSupabaseClient

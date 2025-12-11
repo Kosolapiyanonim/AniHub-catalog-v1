@@ -2,241 +2,235 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { toast } from "sonner"
+import { LoadingSpinner } from "@/components/loading-spinner"
 
 export default function TestApiPage() {
-  const [apiResponse, setApiResponse] = useState<string | null>(null)
+  const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
-  const [animeId, setAnimeId] = useState("")
+  const [error, setError] = useState<string | null>(null)
+  const [testType, setTestType] = useState<string>("")
+  const [result, setResult] = useState<string>("–")
 
-  const testApi = async (endpoint: string, method = "GET", body?: any) => {
+  async function runTest(testName: string, url: string) {
     setLoading(true)
-    setApiResponse(null)
+    setError(null)
+    setData(null)
+    setTestType(testName)
+
     try {
-      const options: RequestInit = { method }
-      if (body) {
-        options.headers = { "Content-Type": "application/json" }
-        options.body = JSON.stringify(body)
+      console.log(`🧪 Running ${testName} test…`)
+      const response = await fetch(url)
+
+      const contentType = response.headers.get("content-type") ?? ""
+      if (!contentType.includes("application/json")) {
+        throw new Error(`Expected JSON response, got ${contentType}`)
       }
-      const response = await fetch(endpoint, options)
-      const data = await response.json()
-      setApiResponse(JSON.stringify(data, null, 2))
-      if (data.status === "ok") {
-        toast.success("API Test Successful!")
-      } else {
-        toast.error("API Test Failed!", { description: data.message })
+
+      const result = await response.json()
+      console.log(`📊 ${testName} response:`, result)
+
+      if (!response.ok) {
+        throw new Error(result.error || `HTTP ${response.status}`)
       }
-    } catch (error: any) {
-      console.error("Error testing API:", error)
-      setApiResponse(`Error: ${error.message}`)
-      toast.error("An unexpected error occurred during API test.")
+
+      setData(result)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error"
+      console.error(`❌ ${testName} error:`, message)
+      setError(message)
     } finally {
       setLoading(false)
     }
   }
 
+  const pingApi = async () => {
+    try {
+      const res = await fetch("/api/test")
+      const json = await res.json()
+      setResult(JSON.stringify(json, null, 2))
+    } catch (e) {
+      setResult(String(e))
+    }
+  }
+
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">Тестирование API</h1>
+    <main className="min-h-screen flex flex-col items-center justify-center gap-6 p-10">
+      <h1 className="text-3xl font-bold">/test-api</h1>
+      <p className="text-muted-foreground">
+        Это вспомогательная страница для проверки работоспособности проекта. Здесь можно разместить тестовые вызовы API
+        или отладочную информацию.
+      </p>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Проверить подключение к Supabase API</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="mb-4">
-            Нажмите кнопку ниже, чтобы проверить, правильно ли настроено подключение к Supabase API.
-          </p>
-          <Button onClick={() => testApi("/api/test")} disabled={loading}>
-            {loading ? "Тестирование..." : "Запустить тест API"}
-          </Button>
-          {apiResponse && (
-            <div className="mt-4">
-              <h3 className="text-lg font-semibold mb-2">Ответ API:</h3>
-              <Textarea value={apiResponse} readOnly rows={10} className="font-mono text-sm bg-muted p-2 rounded-md" />
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Buttons */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <Button
+          onClick={() => runTest("Environment Check", "/api/test")}
+          disabled={loading}
+          variant="outline"
+          className="h-16"
+        >
+          <div className="text-center">
+            <div className="text-lg">🔧 Environment</div>
+            <div className="text-sm opacity-70">Check API token</div>
+          </div>
+        </Button>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Тест /api/test</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => testApi("/api/test")} disabled={loading}>
-              Тест API
-            </Button>
-          </CardContent>
-        </Card>
+        <Button
+          onClick={() => runTest("Popular Anime", "/api/anime/popular?limit=5")}
+          disabled={loading}
+          className="h-16"
+        >
+          <div className="text-center">
+            <div className="text-lg">🎬 Popular</div>
+            <div className="text-sm opacity-70">Get top anime</div>
+          </div>
+        </Button>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Тест /api/catalog</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => testApi("/api/catalog?page=1&limit=5")} disabled={loading}>
-              Получить каталог (5 аниме)
-            </Button>
-          </CardContent>
-        </Card>
+        <Button
+          onClick={() => runTest("Search Test", "/api/anime/search?q=naruto")}
+          disabled={loading}
+          variant="outline"
+          className="h-16"
+        >
+          <div className="text-center">
+            <div className="text-lg">🔍 Search</div>
+            <div className="text-sm opacity-70">Find “naruto”</div>
+          </div>
+        </Button>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Тест /api/anime/[id]</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col space-y-2">
-              <Label htmlFor="anime-id">ID аниме (shikimori_id)</Label>
-              <Input
-                id="anime-id"
-                value={animeId}
-                onChange={(e) => setAnimeId(e.target.value)}
-                placeholder="Например: 1"
-                disabled={loading}
-              />
-              <Button onClick={() => testApi(`/api/anime/${animeId}`)} disabled={loading || !animeId}>
-                Получить аниме по ID
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <Button
+          onClick={() => runTest("Anime Details", "/api/anime/movie-123456")}
+          disabled={loading}
+          variant="secondary"
+          className="h-16"
+        >
+          <div className="text-center">
+            <div className="text-lg">📺 Details</div>
+            <div className="text-sm opacity-70">Get anime info</div>
+          </div>
+        </Button>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Тест /api/genres</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => testApi("/api/genres")} disabled={loading}>
-              Получить жанры
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Тест /api/years</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => testApi("/api/years")} disabled={loading}>
-              Получить года
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Тест /api/types</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => testApi("/api/types")} disabled={loading}>
-              Получить типы
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Тест /api/statuses</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => testApi("/api/statuses")} disabled={loading}>
-              Получить статусы
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Тест /api/studios</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => testApi("/api/studios")} disabled={loading}>
-              Получить студии
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Тест /api/tags</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => testApi("/api/tags")} disabled={loading}>
-              Получить теги
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Тест /api/homepage-sections</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => testApi("/api/homepage-sections")} disabled={loading}>
-              Получить секции главной
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Тест /api/search</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => testApi("/api/search?q=naruto&limit=3")} disabled={loading}>
-              Поиск "naruto" (3 результата)
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Тест /api/lists (POST)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button
-              onClick={() => testApi("/api/lists", "POST", { animeId: 1, status: "watching" })}
-              disabled={loading}
-            >
-              Добавить в список (animeId: 1, watching)
-            </Button>
-            <Button
-              onClick={() => testApi("/api/lists", "POST", { animeId: 1, status: "completed" })}
-              disabled={loading}
-              className="mt-2"
-            >
-              Обновить статус (animeId: 1, completed)
-            </Button>
-            <Button
-              onClick={() => testApi("/api/lists", "POST", { animeId: 1, status: null })}
-              disabled={loading}
-              className="mt-2"
-            >
-              Удалить из списка (animeId: 1)
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Тест /api/subscriptions (POST)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button
-              onClick={() => testApi("/api/subscriptions", "POST", { email: "test@example.com" })}
-              disabled={loading}
-            >
-              Подписаться (test@example.com)
-            </Button>
-          </CardContent>
-        </Card>
+        <Button onClick={pingApi}>Выполнить запрос</Button>
       </div>
-    </div>
+
+      {/* Loading state */}
+      {loading && (
+        <Card className="border-blue-200 bg-blue-50 mb-4">
+          <CardContent className="flex items-center justify-center py-8">
+            <LoadingSpinner size="lg" />
+            <span className="ml-4 text-lg">Running {testType} test…</span>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Error state */}
+      {error && (
+        <Card className="border-red-200 bg-red-50 mb-4">
+          <CardHeader>
+            <CardTitle className="text-red-800">❌ {testType} Failed</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-red-700 font-mono text-sm bg-red-100 p-3 rounded">{error}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Success state */}
+      {data && (
+        <Card className="mb-4 border-green-200 bg-green-50">
+          <CardHeader>
+            <CardTitle className="text-green-800">✅ {testType} Success</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Environment check */}
+              {data.hasKodikToken !== undefined && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">Environment:</span>
+                      <span className="bg-gray-100 px-2 py-1 rounded">{data.environment}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">KODIK_API_TOKEN:</span>
+                      <span className={data.hasKodikToken ? "text-green-600" : "text-red-600"}>
+                        {data.hasKodikToken ? "✅ Present" : "❌ Missing"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">PUBLIC Token:</span>
+                      <span className={data.hasPublicKodikToken ? "text-green-600" : "text-red-600"}>
+                        {data.hasPublicKodikToken ? "✅ Present" : "❌ Missing"}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-semibold mb-2">Available env vars:</div>
+                    <div className="text-sm bg-gray-100 p-2 rounded max-h-32 overflow-y-auto">
+                      {data.availableEnvVars?.join(", ") || "None"}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* API stats */}
+              {data.results && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-4">
+                    <span className="font-semibold">Results Count:</span>
+                    <span className="bg-blue-100 px-3 py-1 rounded-full">{data.results.length}</span>
+                  </div>
+                  {data.total && (
+                    <div className="flex items-center gap-4">
+                      <span className="font-semibold">Total Available:</span>
+                      <span className="bg-purple-100 px-3 py-1 rounded-full">{data.total}</span>
+                    </div>
+                  )}
+                  {data.time && (
+                    <div className="flex items-center gap-4">
+                      <span className="font-semibold">API Response Time:</span>
+                      <span className="bg-green-100 px-3 py-1 rounded-full">{data.time}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Sample data */}
+              {data.results && data.results.length > 0 && (
+                <div>
+                  <div className="font-semibold mb-2">Sample Result:</div>
+                  <div className="bg-gray-100 p-3 rounded text-sm space-y-1">
+                    <div>
+                      <strong>Title:</strong> {data.results[0].title}
+                    </div>
+                    <div>
+                      <strong>Year:</strong> {data.results[0].year}
+                    </div>
+                    <div>
+                      <strong>Type:</strong> {data.results[0].type}
+                    </div>
+                    <div>
+                      <strong>ID:</strong> {data.results[0].id}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Full JSON */}
+              <details>
+                <summary className="cursor-pointer font-semibold hover:text-blue-600">📋 Full Response Data</summary>
+                <pre className="bg-gray-100 p-4 rounded-lg mt-2 overflow-auto text-xs max-h-96 border">
+                  {JSON.stringify(data, null, 2)}
+                </pre>
+              </details>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Ping API Result */}
+      <pre className="bg-muted p-4 rounded text-sm overflow-x-auto">{result}</pre>
+    </main>
   )
 }

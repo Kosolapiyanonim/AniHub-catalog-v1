@@ -1,18 +1,22 @@
-"use client"
+'use client'
 
-import type React from "react"
+import * as React from 'react'
+import { ThemeProvider as NextThemesProvider } from 'next-themes'
+import { type ThemeProviderProps } from 'next-themes'
+import { SupabaseProvider } from './supabase-provider'
 
-import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "@/components/ui/toaster"
-import SupabaseProvider from "@/components/supabase-provider"
-
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({ children, ...props }: ThemeProviderProps) {
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+    <NextThemesProvider
+      attribute="class"
+      defaultTheme="dark" // Устанавливаем темную тему по умолчанию
+      enableSystem
+      disableTransitionOnChange
+      {...props}
+    >
       <SupabaseProvider>
         {children}
-        <Toaster />
       </SupabaseProvider>
-    </ThemeProvider>
+    </NextThemesProvider>
   )
 }

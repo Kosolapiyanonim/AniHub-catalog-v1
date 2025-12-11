@@ -1,180 +1,83 @@
-"use client"
+// components/anime-page-list-button.tsx
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Plus, Check, Minus } from "lucide-react"
-import { useSupabase } from "@/components/supabase-provider"
-import { useToast } from "@/hooks/use-toast"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+"use client";
 
-interface AnimePageListButtonProps {
-  animeId: number
+import { useAnimeListStatus } from "@/hooks/use-anime-list-status";
+import { Button } from "@/components/ui/button";
+import { Loader2, Plus, Bookmark, Trash2, Eye, CalendarCheck, XCircle, History, Clock, ChevronDown } from "lucide-react";
+import Link from "next/link";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Card } from "@/components/ui/card";
+
+const statuses = [
+    { key: "watching", label: "Смотрю", icon: Eye },
+    { key: "planned", label: "В планах", icon: Clock },
+    { key: "completed", label: "Просмотрено", icon: CalendarCheck },
+    { key: "rewatching", label: "Пересматриваю", icon: History },
+    { key: "on_hold", label: "Отложено", icon: Bookmark },
+    { key: "dropped", label: "Брошено", icon: XCircle },
+];
+const statusMap = new Map(statuses.map(s => [s.key, { label: s.label, icon: s.icon }]));
+
+interface Props {
+  animeId: number;
+  initialStatus?: string | null;
+  onStatusChange?: (newStatus: string | null) => void;
 }
 
-export function AnimePageListButton({ animeId }: AnimePageListButtonProps) {
-  const { user, supabase } = useSupabase()
-  const { toast } = useToast()
-  const [currentStatus, setCurrentStatus] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchStatus = async () => {
-      if (!user) {
-        setLoading(false)
-        return
-      }
-      setLoading(true)
-      try {
-        const response = await fetch(`/api/lists?userId=${user.id}&animeId=${animeId}`)
-        const data = await response.json()
-        if (response.ok) {
-          setCurrentStatus(data.status)
-        } else {
-          console.error("Failed to fetch list status:", data.error)
-          setCurrentStatus(null)
-        }
-      } catch (error) {
-        console.error("Error fetching list status:", error)
-        setCurrentStatus(null)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchStatus()
-  }, [user, animeId, supabase])
-
-  const handleAddToList = async (status: string) => {
-    if (!user) {
-      toast({
-        title: "Необходимо войти",
-        description: "Пожалуйста, войдите, чтобы добавлять аниме в список.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setLoading(true)
-    try {
-      const response = await fetch("/api/lists", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId: user.id, animeId, status }),
-      })
-
-      if (response.ok) {
-        setCurrentStatus(status)
-        toast({
-          title: "Успешно",
-          description: `Аниме добавлено в список "${status}".`,
-        })
-      } else {
-        const errorData = await response.json()
-        toast({
-          title: "Ошибка",
-          description: errorData.error || "Не удалось добавить аниме в список.",
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      toast({
-        title: "Ошибка",
-        description: "Произошла ошибка при добавлении аниме в список.",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
+export function AnimePageListButton({ animeId, initialStatus, onStatusChange }: Props) {
+  const { session, currentStatus, loading, handleStatusChange } = useAnimeListStatus(animeId, initialStatus, onStatusChange);
+  
+  // Если пользователь не авторизован, показываем специальный блок
+  if (!session) {
+    return (
+      <Card className="bg-slate-800 border-slate-700 text-center p-4 space-y-2">
+        <p className="text-sm text-gray-300">Войдите, чтобы добавить в список</p>
+        <div className="flex gap-2">
+          <Button asChild size="sm" className="flex-1"><Link href="/login">Войти</Link></Button>
+          <Button asChild size="sm" variant="secondary" className="flex-1"><Link href="/register">Регистрация</Link></Button>
+        </div>
+      </Card>
+    );
   }
 
-  const handleRemoveFromList = async () => {
-    if (!user) return
-
-    setLoading(true)
-    try {
-      const response = await fetch(`/api/lists?userId=${user.id}&animeId=${animeId}`, {
-        method: "DELETE",
-      })
-
-      if (response.ok) {
-        setCurrentStatus(null)
-        toast({
-          title: "Успешно",
-          description: "Аниме удалено из списка.",
-        })
-      } else {
-        const errorData = await response.json()
-        toast({
-          title: "Ошибка",
-          description: errorData.error || "Не удалось удалить аниме из списка.",
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      toast({
-        title: "Ошибка",
-        description: "Произошла ошибка при удалении аниме из списка.",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const getStatusText = (status: string | null) => {
-    switch (status) {
-      case "watching":
-        return "Смотрю"
-      case "planned":
-        return "Запланировано"
-      case "completed":
-        return "Просмотрено"
-      case "dropped":
-        return "Брошено"
-      case "on_hold":
-        return "Отложено"
-      default:
-        return "Добавить в список"
-    }
-  }
+  const statusInfo = currentStatus ? statusMap.get(currentStatus) : null;
+  const CurrentIcon = statusInfo ? statusInfo.icon : Plus;
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant={currentStatus ? "default" : "outline"}
-          size="lg"
-          className="flex items-center gap-2"
-          disabled={loading}
-        >
-          {loading ? (
-            "Загрузка..."
-          ) : currentStatus ? (
-            <>
-              <Check className="h-5 w-5" /> {getStatusText(currentStatus)}
-            </>
-          ) : (
-            <>
-              <Plus className="h-5 w-5" /> {getStatusText(currentStatus)}
-            </>
-          )}
+    <Collapsible className="w-full space-y-1">
+      <CollapsibleTrigger asChild>
+        <Button variant="outline" className="w-full justify-between" disabled={loading}>
+          <span className="flex items-center gap-2">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CurrentIcon className="h-4 w-4" />}
+            {statusInfo ? statusInfo.label : 'Добавить в список'}
+          </span>
+          <ChevronDown className="h-4 w-4 transition-transform [&[data-state=open]]:rotate-180" />
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent>
-        <DropdownMenuItem onClick={() => handleAddToList("watching")}>Смотрю</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleAddToList("planned")}>Запланировано</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleAddToList("completed")}>Просмотрено</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleAddToList("dropped")}>Брошено</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleAddToList("on_hold")}>Отложено</DropdownMenuItem>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="space-y-1 data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
+        {statuses.map((status) => (
+          <Button
+            key={status.key}
+            variant={currentStatus === status.key ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => handleStatusChange(status.key)}
+            className="w-full justify-start"
+          >
+            <status.icon className="mr-2 h-4 w-4" />{status.label}
+          </Button>
+        ))}
         {currentStatus && (
-          <>
-            <DropdownMenuItem onClick={handleRemoveFromList} className="text-red-500">
-              <Minus className="h-4 w-4 mr-2" /> Удалить из списка
-            </DropdownMenuItem>
-          </>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleStatusChange("remove")}
+            className="w-full justify-start text-red-500 hover:!text-red-500 hover:!bg-red-500/10"
+          >
+            <Trash2 className="mr-2 h-4 w-4" />Удалить из списка
+          </Button>
         )}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
+      </CollapsibleContent>
+    </Collapsible>
+  );
 }

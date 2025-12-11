@@ -1,22 +1,15 @@
-"use client"
+import { useEffect, useState } from 'react'
 
-import { useEffect, useState } from "react"
-
-/**
- * useDebounce
- * -----------
- * Keeps the given `value` unchanged until the user stops
- * changing it for `delay` ms.  Handy for search boxes, etc.
- */
-export function useDebounce<T>(value: T, delay = 300): T {
-  const [debounced, setDebounced] = useState(value)
+export function useDebounce<T>(value: T, delay?: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value)
 
   useEffect(() => {
-    const id = setTimeout(() => setDebounced(value), delay)
-    return () => clearTimeout(id)
+    const timer = setTimeout(() => setDebouncedValue(value), delay || 500)
+
+    return () => {
+      clearTimeout(timer)
+    }
   }, [value, delay])
 
-  return debounced
+  return debouncedValue
 }
-
-export default useDebounce

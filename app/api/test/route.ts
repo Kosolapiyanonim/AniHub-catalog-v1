@@ -1,24 +1,30 @@
-import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+// /app/api/test/route.ts
+
+import { NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
+
+export const dynamic = 'force-dynamic'; // Указывает Vercel не кэшировать этот маршрут
 
 export async function GET() {
-  const supabase = createClient()
-
   try {
-    const { data, error } = await supabase.from("anime").select("*").limit(1)
+    // Делаем очень простой и быстрый запрос к базе данных,
+    // чтобы проверить, есть ли соединение.
+    // Мы запрашиваем всего одну запись и только ее ID.
+    const { error } = await supabase.from('animes').select('id').limit(1);
 
+    // Если при запросе произошла ошибка, значит, с базой данных что-то не так.
     if (error) {
-      console.error("Supabase test error:", error)
-      return NextResponse.json({ status: "error", message: error.message }, { status: 500 })
+      throw error;
     }
 
-    return NextResponse.json({
-      status: "ok",
-      message: "Supabase connection successful",
-      data: data,
-    })
-  } catch (error) {
-    console.error("API test error:", error)
-    return NextResponse.json({ status: "error", message: "An unexpected error occurred" }, { status: 500 })
+    // Если все прошло успешно, отправляем ответ "ok".
+    return NextResponse.json({ status: "ok" });
+
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Неизвестная ошибка базы данных";
+    console.error("Database Test Error:", err);
+    
+    // Если что-то пошло не так, отправляем ошибку 500.
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

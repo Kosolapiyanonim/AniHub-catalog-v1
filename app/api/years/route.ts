@@ -1,21 +1,35 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { supabase } from "@/lib/supabase"
 
 export async function GET() {
-  const supabase = createClient()
-
   try {
-    const { data, error } = await supabase.from("years").select("year")
+    console.log("📅 Fetching years from database...")
+
+    // Получаем все уникальные годы из базы
+    const { data, error } = await supabase
+      .from("animes")
+      .select("year")
+      .not("year", "is", null)
+      .order("year", { ascending: false })
 
     if (error) {
-      console.error("Error fetching years:", error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      console.error("❌ Error fetching years:", error)
+      throw error
     }
 
-    const years = data.map((y) => y.year)
-    return NextResponse.json(years)
+    // Убираем дубликаты и сортируем
+    const years = [...new Set(data?.map((item) => item.year).filter(Boolean))] as number[]
+    years.sort((a, b) => b - a) // От новых к старым
+
+    console.log(`✅ Found ${years.length} unique years`)
+
+    return NextResponse.json({
+      years,
+      total: years.length,
+    })
   } catch (error) {
-    console.error("Unexpected error:", error)
-    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 })
+    const message = error instanceof Error ? error.message : "Неизвестная ошибка"
+    console.error("❌ Years API error:", message)
+    return NextResponse.json({ status: "error", message, years: [] }, { status: 500 })
   }
 }

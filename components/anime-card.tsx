@@ -1,59 +1,95 @@
-<<<<<<< HEAD
-import Image from "next/image"
-import Link from "next/link"
-import { Badge } from "@/components/ui/badge"
-import { AnimeCardListButton } from "./anime-card-list-button"
-import type { Anime } from "@/lib/types"
-=======
 // components/anime-card.tsx
-'use client';
+"use client"
 
-import Link from 'next/link';
-import Image from 'next/image';
-import { AnimeListPopover } from './AnimeListPopover';
-import { AnimeCardListButton } from './anime-card-list-button';
-import { ProgressBar } from './ui/progress-bar'; // <-- [ИЗМЕНЕНИЕ] Импортируем прогресс-бар
+import Link from "next/link"
+import Image from "next/image"
+import { AnimeListPopover } from "./AnimeListPopover"
+import { AnimeCardListButton } from "./anime-card-list-button"
+import { ProgressBar } from "./ui/progress"
 
 const formatAnimeType = (type: string | null | undefined): string => {
-    if (!type) return '';
-    const typeMap: { [key: string]: string } = { 'tv_series': 'Сериал', 'movie': 'Фильм', 'ova': 'OVA', 'ona': 'ONA', 'special': 'Спешл', 'anime-serial': 'Аниме сериал', 'anime': 'Полнометражное' };
-    return typeMap[type.toLowerCase()] || type;
-};
->>>>>>> parent of 5192222 (Update anime-card.tsx)
-
-interface AnimeCardProps {
-  anime: Anime
-  priority?: boolean
+  if (!type) return ""
+  const typeMap: { [key: string]: string } = {
+    tv_series: "Сериал",
+    tv: "Сериал",
+    movie: "Фильм",
+    ova: "OVA",
+    ona: "ONA",
+    special: "Спешл",
+    "anime-serial": "Аниме сериал",
+    anime: "Полнометражное",
+  }
+  return typeMap[type.toLowerCase()] || type
 }
 
-export function AnimeCard({ anime, priority = false }: AnimeCardProps) {
+interface AnimeCardProps {
+  anime: any
+  priority?: boolean
+  onStatusChange?: (animeId: number, newStatus: string | null) => void
+}
+
+export function AnimeCard({ anime, priority = false, onStatusChange }: AnimeCardProps) {
+  const animeId = anime?.shikimori_id || anime?.id
+
+  if (!anime || !animeId) {
+    return null
+  }
+
+  const posterUrl = anime.poster_url || anime.poster || "/placeholder.jpg"
+  const title =
+    typeof anime.title === "object" ? anime.title.ru || anime.title.en || "Без названия" : anime.title || "Без названия"
+
+  const progressPercent = anime.progress && anime.episodes_total ? (anime.progress / anime.episodes_total) * 100 : null
+
+  const popoverData = {
+    id: anime.id || animeId,
+    shikimori_id: String(animeId),
+    title: title,
+    year: anime.year,
+    type: anime.type,
+    status: anime.status,
+    episodes_aired: anime.episodes_aired || 0,
+    episodes_total: anime.episodes_total || anime.episodes || 0,
+    description: anime.description,
+    genres: anime.genres,
+    shikimori_rating: anime.shikimori_rating || anime.rating,
+    user_list_status: anime.user_list_status,
+  }
+
   return (
-    <div className="group relative overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-transform duration-300 hover:-translate-y-1">
-      <Link href={`/anime/${anime.id}`} className="absolute inset-0 z-10" prefetch={false}>
-        <span className="sr-only">View {anime.title}</span>
-      </Link>
-      <Image
-        src={anime.poster_url || "/placeholder.svg?height=300&width=200&text=Anime+Poster"}
-        alt={anime.title || "Anime Poster"}
-        width={200}
-        height={300}
-        className="h-60 w-full object-cover transition-transform duration-300 group-hover:scale-105 sm:h-72 md:h-80 lg:h-96"
-        priority={priority}
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent p-3 flex flex-col justify-end">
-        <h3 className="text-lg font-semibold text-white line-clamp-2">{anime.title}</h3>
-        <div className="flex flex-wrap gap-1 mt-1">
-          {anime.year && (
-            <Badge variant="secondary" className="bg-purple-500 text-white">
-              {anime.year}
-            </Badge>
+    <AnimeListPopover anime={popoverData} onStatusChange={onStatusChange}>
+      <Link href={`/anime/${animeId}`} className="block group">
+        <div className="aspect-[2/3] overflow-hidden rounded-lg bg-muted relative">
+          <AnimeCardListButton
+            animeId={anime.id || animeId}
+            initialStatus={anime.user_list_status}
+            onStatusChange={(newStatus) => onStatusChange?.(anime.id, newStatus)}
+          />
+          {posterUrl && posterUrl !== "/placeholder.jpg" ? (
+            <Image
+              src={posterUrl || "/placeholder.svg"}
+              alt={title}
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              priority={priority}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full text-muted-foreground text-xs p-2">
+              Постер отсутствует
+            </div>
           )}
-          {anime.type && <Badge variant="secondary">{anime.type}</Badge>}
+          {progressPercent !== null && <ProgressBar progress={progressPercent} />}
         </div>
         <div className="mt-2">
-          <AnimeCardListButton animeId={anime.id} />
+          <h3 className="text-sm font-medium truncate group-hover:text-primary">{title}</h3>
+          <p className="text-xs text-muted-foreground">
+            {formatAnimeType(anime.type)}
+            {anime.year && anime.type ? " • " : ""}
+            {anime.year}
+          </p>
         </div>
-      </div>
-    </div>
+      </Link>
+    </AnimeListPopover>
   )
 }

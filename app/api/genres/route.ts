@@ -1,21 +1,20 @@
+// /app/api/genres/route.ts
+import { createRouteHandlerClient } from "@/lib/supabase/route-handler"
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+
+export const dynamic = "force-dynamic"
 
 export async function GET() {
-  const supabase = createClient()
+  const supabase = createRouteHandlerClient()
 
   try {
-    const { data, error } = await supabase.from("genres").select("name")
+    const { data, error } = await supabase.from("genres").select("id, name, slug").order("name", { ascending: true })
 
-    if (error) {
-      console.error("Error fetching genres:", error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
+    if (error) throw error
 
-    const genres = data.map((g) => g.name)
-    return NextResponse.json(genres)
+    return NextResponse.json(data)
   } catch (error) {
-    console.error("Unexpected error:", error)
-    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 })
+    const message = error instanceof Error ? error.message : "Unknown error"
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

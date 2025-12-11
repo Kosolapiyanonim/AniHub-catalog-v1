@@ -1,49 +1,43 @@
 "use client"
 
 import type React from "react"
+import { createContext, useContext, useState, useEffect } from "react"
+import { createClientSupabaseClient } from "@/lib/supabase/client"
+import type { SupabaseClient, Session } from "@supabase/supabase-js"
+import type { Database } from "@/lib/types"
 
-import { createContext, useContext, useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
-import type { SupabaseClient, User } from "@supabase/supabase-js"
-
-interface SupabaseContextType {
-  supabase: SupabaseClient
-  user: User | null
+type SupabaseContext = {
+  supabase: SupabaseClient<Database>
+  session: Session | null
 }
 
-const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined)
+export const Context = createContext<SupabaseContext | undefined>(undefined)
 
-export default function SupabaseProvider({ children }: { children: React.ReactNode }) {
-  const [supabase] = useState(() => createClient())
-  const [user, setUser] = useState<User | null>(null)
+export function SupabaseProvider({ children }: { children: React.ReactNode }) {
+  const [supabase] = useState(() => createClientSupabaseClient())
+  const [session, setSession] = useState<Session | null>(null)
 
   useEffect(() => {
-    const getUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      setUser(user)
-    }
-    getUser()
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+    })
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_, session) => {
-      setUser(session?.user ?? null)
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
     })
 
-    return () => {
-      subscription.unsubscribe()
-    }
+    return () => subscription.unsubscribe()
   }, [supabase])
 
-  return <SupabaseContext.Provider value={{ supabase, user }}>{children}</SupabaseContext.Provider>
+  return <Context.Provider value={{ supabase, session }}>{children}</Context.Provider>
 }
 
 export const useSupabase = () => {
-  const context = useContext(SupabaseContext)
+  const context = useContext(Context)
   if (context === undefined) {
-    throw new Error("useSupabase must be used within a SupabaseProvider")
+    throw new Error("useSupabase must be used inside SupabaseProvider")
   }
   return context
 }

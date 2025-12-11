@@ -1,53 +1,133 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { CheckCircle, XCircle, Loader2 } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { CheckCircle, XCircle, Clock, Database, Wifi } from "lucide-react"
 
+/**
+ * Возможные состояния одного сервиса.
+ */
+type StatusValue = "loading" | "online" | "offline"
+
+interface ApiStatusState {
+  parser: StatusValue
+  catalog: StatusValue
+  database: StatusValue
+}
+
+/**
+ * Компонент, показывающий состояние основных сервисов сайта.
+ *
+ * Экспортируется и именованно (`ApiStatus`), и по умолчанию, чтобы
+ * любой вариант импорта работал:
+ *
+ *   import { ApiStatus } from "@/components/api-status"
+ *   import ApiStatus from "@/components/api-status"
+ */
 export function ApiStatus() {
-  const [status, setStatus] = useState<"loading" | "success" | "error">("loading")
-  const [message, setMessage] = useState("Проверка статуса API...")
+  const [status, setStatus] = useState<ApiStatusState>({
+    parser: "loading",
+    catalog: "loading",
+    database: "loading",
+  })
+  const [lastChecked, setLastChecked] = useState<string | null>(null)
 
-  useEffect(() => {
-    const checkApiStatus = async () => {
-      try {
-        const response = await fetch("/api/test")
-        const data = await response.json()
-        if (response.ok && data.status === "ok") {
-          setStatus("success")
-          setMessage("API работает корректно.")
-        } else {
-          setStatus("error")
-          setMessage(`Ошибка API: ${data.message || "Неизвестная ошибка"}`)
-        }
-      } catch (error) {
-        setStatus("error")
-        setMessage(`Ошибка подключения: ${error instanceof Error ? error.message : String(error)}`)
-      }
+  /** Запрашиваем статусы всех сервисов параллельно */
+  async function checkApiStatus() {
+    try {
+      const [parserRes, catalogRes, dbRes] = await Promise.allSettled([
+        fetch("/api/parser"),
+        fetch("/api/catalog?limit=1"),
+        fetch("/api/anime/database"),
+      ])
+
+      const isOk = (r: PromiseSettledResult<Response>) => r.status === "fulfilled" && r.value.ok
+
+      setStatus({
+        parser: isOk(parserRes) ? "online" : "offline",
+        catalog: isOk(catalogRes) ? "online" : "offline",
+        database: isOk(dbRes) ? "online" : "offline",
+      })
+    } catch (err) {
+      console.error("API status check error:", err)
+      setStatus({ parser: "offline", catalog: "offline", database: "offline" })
+    } finally {
+      setLastChecked(new Date().toLocaleTimeString())
     }
+  }
 
+  /** Первый запрос и интервал раз в 30 секунд */
+  useEffect(() => {
     checkApiStatus()
-    const interval = setInterval(checkApiStatus, 60000) // Check every minute
-    return () => clearInterval(interval)
+    const id = setInterval(checkApiStatus, 30_000)
+    return () => clearInterval(id)
   }, [])
 
-  const Icon = status === "loading" ? Loader2 : status === "success" ? CheckCircle : XCircle
-  const colorClass =
-    status === "loading" ? "text-gray-500 animate-spin" : status === "success" ? "text-green-500" : "text-red-500"
+  /* Вспомогательные элементы UI */
+  const icon = (s: StatusValue) =>
+    s === "loading" ? (
+      <Clock className="w-4 h-4 text-yellow-500 animate-spin" />
+    ) : s === "online" ? (
+      <CheckCircle className="w-4 h-4 text-green-500" />
+    ) : (
+      <XCircle className="w-4 h-4 text-red-500" />
+    )
+
+  const badge = (s: StatusValue) =>
+    s === "loading" ? (
+      <Badge variant="secondary">Проверка…</Badge>
+    ) : s === "online" ? (
+      <Badge className="bg-green-600">Работает</Badge>
+    ) : (
+      <Badge variant="destructive">Ошибка</Badge>
+    )
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="flex items-center gap-2 cursor-pointer">
-            <Icon className={`h-5 w-5 ${colorClass}`} />
-            <span className="sr-only">Статус API</span>
+    <Card className="w-full max-w-md">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Wifi className="w-5 h-5" />
+          <h3 className="font-semibold">Статус системы</h3>
+        </div>
+
+        <div className="space-y-3">
+          {/* Парсер */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {icon(status.parser)}
+              <span className="text-sm">API&nbsp;Парсера</span>
+            </div>
+            {badge(status.parser)}
           </div>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>{message}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+
+          {/* Каталог */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {icon(status.catalog)}
+              <span className="text-sm">API&nbsp;Каталога</span>
+            </div>
+            {badge(status.catalog)}
+          </div>
+
+          {/* База данных */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {icon(status.database)}
+              <Database className="w-4 h-4" />
+              <span className="text-sm">База&nbsp;данных</span>
+            </div>
+            {badge(status.database)}
+          </div>
+        </div>
+
+        {lastChecked && (
+          <div className="mt-4 pt-3 border-t text-xs text-muted-foreground">��оследняя проверка: {lastChecked}</div>
+        )}
+      </CardContent>
+    </Card>
   )
 }
+
+/* Экспорт по умолчанию — на случай `import ApiStatus from ...` */
+export default ApiStatus

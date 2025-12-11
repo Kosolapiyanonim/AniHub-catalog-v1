@@ -1,68 +1,80 @@
-import { Suspense } from "react"
-import { AnimeGrid } from "@/components/anime-grid"
-import { CatalogFilters } from "@/components/catalog-filters"
-import { getCatalogAnime } from "@/lib/data-fetchers"
-import { PaginationControls } from "@/components/pagination-controls"
-import { Skeleton } from "@/components/ui/skeleton"
+// /app/catalog/page.tsx
+"use client";
 
-interface CatalogPageProps {
-  searchParams: {
-    page?: string
-    limit?: string
-    genres?: string
-    years?: string
-    statuses?: string
-    types?: string
-    studios?: string
-    tags?: string
-    search?: string
-    sort?: string
-    order?: string
-    anime_kind?: string // New search param
-  }
+import { useState, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { AnimeCard } from "@/components/anime-card";
+import { LoadingSpinner } from "@/components/loading-spinner";
+import { Button } from "@/components/ui/button";
+import { CatalogFilters, type FiltersState, DEFAULT_FILTERS } from "@/components/catalog-filters";
+import { AnimeGrid } from "@/components/anime-grid";
+import { HeroSection } from "@/components/hero-section";
+import { getCatalogAnime, getGenres, getStatuses, getStudios, getTypes, getYears } from "@/lib/data-fetchers";
+
+interface Anime {
+  id: number;
+  shikimori_id: string;
+  title: string;
+  poster_url?: string | null;
+  year?: number | null;
+  user_list_status?: string | null;
+  // Добавляем поля для HoverCard
+  description?: string;
+  type?: string;
+  genres?: { name: string }[];
+  shikimori_rating?: number;
 }
 
-export default async function CatalogPage({ searchParams }: CatalogPageProps) {
-  const page = Number.parseInt(searchParams.page || "1")
-  const limit = Number.parseInt(searchParams.limit || "24")
-  const filters = {
-    genres: searchParams.genres?.split(",").filter(Boolean) || [],
-    years: searchParams.years?.split(",").filter(Boolean) || [],
-    statuses: searchParams.statuses?.split(",").filter(Boolean) || [],
-    types: searchParams.types?.split(",").filter(Boolean) || [],
-    studios: searchParams.studios?.split(",").filter(Boolean) || [],
-    tags: searchParams.tags?.split(",").filter(Boolean) || [],
-    search: searchParams.search || "",
-    sort: searchParams.sort || "shikimori_rating",
-    order: searchParams.order || "desc",
-    anime_kind: searchParams.anime_kind || "", // Pass new filter
-  }
+const parseUrlToFilters = (params: URLSearchParams): FiltersState => ({
+    ...DEFAULT_FILTERS,
+    title: params.get('title') || '', 
+    sort: params.get('sort') || 'shikimori_votes',
+    year_from: params.get('year_from') || '',
+    year_to: params.get('year_to') || '',
+    genres: params.get('genres')?.split(',') || [], 
+    genres_exclude: params.get('genres_exclude')?.split(',') || [],
+    studios: params.get('studios')?.split(',') || [], 
+    studios_exclude: params.get('studios_exclude')?.split(',') || [],
+    tags: params.get('tags')?.split(',') || [],
+    tags_exclude: params.get('tags_exclude')?.split(',') || [],
+    user_list_status: params.get('user_list_status') || '',
+});
 
-  const { anime, total } = await getCatalogAnime(page, limit, filters)
-  const totalPages = Math.ceil(total / limit)
+async function fetchCatalogData(searchParams: { [key: string]: string | string[] | undefined }) {
+  const { animes, totalPages } = await getCatalogAnime(searchParams);
+  const genres = await getGenres();
+  const statuses = await getStatuses();
+  const studios = await getStudios();
+  const types = await getTypes();
+  const years = await getYears();
+
+  return { animes, totalPages, genres, statuses, studios, types, years };
+}
+
+function CatalogView({ animes, totalPages, genres, statuses, studios, types, years }: { animes: Anime[], totalPages: number, genres: any[], statuses: any[], studios: any[], types: any[], years: any[] }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [currentFilters, setCurrentFilters] = useState<FiltersState>(() => parseUrlToFilters(searchParams));
+
+  const handleApplyFilters = useCallback((newFilters: FiltersState) => {
+    setCurrentFilters(newFilters);
+    router.push(`/catalog?${new URLSearchParams(Object.entries(newFilters)).toString()}`, { scroll: false });
+  }, [router]);
 
   return (
-    <div className="container mx-auto px-4 py-8 md:py-12">
-      <h1 className="text-3xl md:text-4xl font-bold mb-8 text-center">Каталог Аниме</h1>
-
-      <div className="mb-8">
-        <Suspense fallback={<Skeleton className="h-20 w-full" />}>
-          <CatalogFilters currentFilters={filters} />
-        </Suspense>
-      </div>
-
-      {anime.length === 0 ? (
-        <div className="text-center text-muted-foreground text-lg">
-          По вашему запросу ничего не найдено. Попробуйте изменить фильтры.
-        </div>
-      ) : (
-        <>
-          <AnimeGrid animeList={anime} />
-          <div className="mt-8 flex justify-center">
-            <PaginationControls currentPage={page} totalPages={totalPages} />
-          </div>
-        </>
-      )}
+    <div className="container mx-auto px-4 py-8">
+      <HeroSection title="Каталог аниме" description="Исследуйте нашу обширную коллекцию аниме." />
+      <CatalogFilters genres={genres} statuses={statuses} studios={studios} types={types} years={years} initialFilters={currentFilters} onApply={handleApplyFilters} />
+      <AnimeGrid animes={animes} totalPages={totalPages} />
     </div>
-  )
+  );
+}
+
+export default async function CatalogPage({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
+  const { animes, totalPages, genres, statuses, studios, types, years } = await fetchCatalogData(searchParams);
+
+  return (
+    <CatalogView animes={animes} totalPages={totalPages} genres={genres} statuses={statuses} studios={studios} types={types} years={years} />
+  );
 }

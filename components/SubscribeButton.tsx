@@ -1,153 +1,90 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { useSupabase } from "@/components/supabase-provider"
-import { useToast } from "@/hooks/use-toast"
-import { Loader2, Check, X } from "lucide-react"
+import { useState, useEffect, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Bell, BellRing, Loader2 } from 'lucide-react';
+import { useSupabase } from './supabase-provider';
+import { toast } from 'sonner';
 
-export function SubscribeButton() {
-  const { user, supabase } = useSupabase()
-  const { toast } = useToast()
-  const [isSubscribed, setIsSubscribed] = useState(false)
-  const [loading, setLoading] = useState(true)
+interface SubscribeButtonProps {
+  animeId: number;
+}
+
+export function SubscribeButton({ animeId }: SubscribeButtonProps) {
+  const { session } = useSupabase();
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const checkSubscription = useCallback(async () => {
+    if (!session) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/subscriptions?anime_id=${animeId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setIsSubscribed(data.subscribed);
+      }
+    } catch (error) {
+      console.error("Failed to check subscription status:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [animeId, session]);
 
   useEffect(() => {
-    const fetchSubscriptionStatus = async () => {
-      if (!user) {
-        setIsSubscribed(false)
-        setLoading(false)
-        return
-      }
-      setLoading(true)
-      try {
-        const response = await fetch(`/api/subscriptions?userId=${user.id}`)
-        const data = await response.json()
-        setIsSubscribed(!!data)
-      } catch (error) {
-        console.error("Error fetching subscription status:", error)
-        setIsSubscribed(false)
-        toast({
-          title: "Ошибка",
-          description: "Не удалось загрузить статус подписки.",
-          variant: "destructive",
-        })
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchSubscriptionStatus()
-  }, [user, supabase, toast])
+    checkSubscription();
+  }, [checkSubscription]);
 
   const handleSubscribe = async () => {
-    if (!user) {
-      toast({
-        title: "Необходимо войти",
-        description: "Пожалуйста, войдите, чтобы оформить подписку.",
-        variant: "destructive",
-      })
-      return
+    if (!session) {
+      toast.error("Нужно войти в аккаунт для подписки");
+      return;
     }
-
-    setLoading(true)
+    setLoading(true);
+    const newSubscribedState = !isSubscribed;
     try {
-      // Simulate a subscription process
-      const expiresAt = new Date()
-      expiresAt.setMonth(expiresAt.getMonth() + 1) // 1 month subscription
+      const response = await fetch('/api/subscriptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ anime_id: animeId, subscribed: newSubscribedState }),
+      });
 
-      const response = await fetch("/api/subscriptions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          plan: "premium",
-          expires_at: expiresAt.toISOString(),
-        }),
-      })
-
-      if (response.ok) {
-        setIsSubscribed(true)
-        toast({
-          title: "Подписка оформлена",
-          description: "Вы успешно оформили премиум-подписку!",
-        })
-      } else {
-        const errorData = await response.json()
-        toast({
-          title: "Ошибка",
-          description: errorData.error || "Не удалось оформить подписку.",
-          variant: "destructive",
-        })
+      if (!response.ok) {
+        throw new Error("Ошибка подписки");
       }
+
+      setIsSubscribed(newSubscribedState);
+      toast.success(newSubscribedState ? "Вы подписались на обновления" : "Вы отписались от обновлений");
     } catch (error) {
-      toast({
-        title: "Ошибка",
-        description: "Произошла ошибка при оформлении подписки.",
-        variant: "destructive",
-      })
+      toast.error("Не удалось изменить статус подписки");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const handleCancelSubscription = async () => {
-    if (!user) return
-
-    setLoading(true)
-    try {
-      const response = await fetch(`/api/subscriptions?userId=${user.id}`, {
-        method: "DELETE",
-      })
-
-      if (response.ok) {
-        setIsSubscribed(false)
-        toast({
-          title: "Подписка отменена",
-          description: "Ваша подписка успешно отменена.",
-        })
-      } else {
-        const errorData = await response.json()
-        toast({
-          title: "Ошибка",
-          description: errorData.error || "Не удалось отменить подписку.",
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      toast({
-        title: "Ошибка",
-        description: "Произошла ошибка при отмене подписки.",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (loading) {
-    return (
-      <Button disabled>
-        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        Загрузка...
-      </Button>
-    )
+  if (!session) {
+    return null;
   }
 
   return (
-    <>
-      {isSubscribed ? (
-        <Button onClick={handleCancelSubscription} variant="destructive">
-          <X className="mr-2 h-4 w-4" />
-          Отменить подписку
-        </Button>
+    <Button
+      onClick={handleSubscribe}
+      variant="ghost"
+      size="icon"
+      disabled={loading}
+      className="text-gray-400 hover:text-white"
+      title={isSubscribed ? "Отписаться от обновлений" : "Подписаться на обновления"}
+    >
+      {loading ? (
+        <Loader2 className="w-5 h-5 animate-spin" />
+      ) : isSubscribed ? (
+        <BellRing className="w-5 h-5 text-purple-400" />
       ) : (
-        <Button onClick={handleSubscribe}>
-          <Check className="mr-2 h-4 w-4" />
-          Оформить подписку
-        </Button>
+        <Bell className="w-5 h-5" />
       )}
-    </>
-  )
+    </Button>
+  );
 }

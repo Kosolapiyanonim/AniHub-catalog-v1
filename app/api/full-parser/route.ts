@@ -1,64 +1,108 @@
-import { NextResponse } from "next/server"
-import { parseAndSaveAnime } from "@/lib/parser-utils"
-import { createClient } from "@/lib/supabase/server"
+// /app/api/full-parser/route.ts
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const page = Number.parseInt(searchParams.get("page") || "1")
-  const limit = Number.parseInt(searchParams.get("limit") || "10") // Number of pages to parse in one go
+import { NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
+import type { KodikAnimeData, AnimeRecord } from "@/lib/types";
 
-  const supabase = createClient()
+async function processRelations(
+  anime_id: number,
+  items: string[],
+  relation_type: "genre" | "studio" | "country"
+) {
+  if (!items || items.length === 0) return;
+  const tableName = relation_type === "country" ? "countries" : `${relation_type}s`;
+  for (const name of items) {
+    if (!name?.trim()) continue;
+    try {
+      const { data: relData } = await supabase.from(tableName).upsert({ name: name.trim() }, { onConflict: 'name' }).select('id').single();
+      if (relData) {
+        await supabase.from('anime_relations').upsert({ anime_id, relation_id: relData.id, relation_type }, { onConflict: 'anime_id,relation_id,relation_type' });
+      }
+    } catch (error) {
+      console.error(`Ошибка связи ${relation_type} - ${name}:`, error);
+    }
+  }
+}
+
+export async function POST() {
+  const output: string[] = [];
+  const log = (message: string) => {
+    console.log(message);
+    output.push(message);
+  };
 
   try {
-    const { data: lastParsedPageData, error: fetchError } = await supabase
-      .from("parser_state")
-      .select("last_parsed_page")
-      .single()
+    log("🚀 Запуск ПОЛНОЙ синхронизации базы данных...");
+    const KODIK_TOKEN = process.env.KODIK_API_TOKEN;
+    if (!KODIK_TOKEN) throw new Error("KODIK_API_TOKEN ��е настроен");
 
-    if (fetchError && fetchError.code !== "PGRST116") {
-      // PGRST116 means "no rows found", which is fine for initial run
-      console.error("Error fetching parser state:", fetchError)
-      return NextResponse.json({ error: "Failed to fetch parser state" }, { status: 500 })
-    }
+    let currentPageUrl: string | null = "https://kodikapi.com/list";
+    let pagesParsed = 0;
+    let totalProcessed = 0;
+    
+    // Цикл для обхода всех страниц Kodik API
+    while (currentPageUrl) {
+      pagesParsed++;
+      log("-".repeat(50));
+      log(`🌊 Волна №${pagesParsed}. Запрос к Kodik...`);
 
-    let startPage = lastParsedPageData?.last_parsed_page || 1
-    if (page > 1) {
-      startPage = page // If a specific page is requested, start from there
-    }
-
-    let parsedCount = 0
-    let lastSuccessfulPage = startPage - 1
-
-    for (let i = 0; i < limit; i++) {
-      const currentPage = startPage + i
-      console.log(`Parsing page ${currentPage}...`)
-      const success = await parseAndSaveAnime(currentPage)
-      if (success) {
-        parsedCount++
-        lastSuccessfulPage = currentPage
-      } else {
-        console.warn(`Failed to parse page ${currentPage}. Stopping.`)
-        break
+      const params = new URLSearchParams({ token: KODIK_TOKEN, limit: "100", with_material_data: "true" });
+      const response = await fetch(`${currentPageUrl}?${params.toString()}`);
+      
+      if (!response.ok) {
+        log(`❗️ Ошибка от Kodik API на странице ${pagesParsed}, пропускаем...`);
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        continue;
       }
+
+      const data = await response.json();
+      const animeList: KodikAnimeData[] = data.results || [];
+      log(`🔄 Получено ${animeList.length} записей для обработки.`);
+
+      const recordsToUpsert = animeList
+        .filter(anime => anime.shikimori_id)
+        .map(anime => {
+          const material = anime.material_data || {};
+          return {
+            shikimori_id: anime.shikimori_id,
+            kodik_id: anime.id,
+            title: anime.title,
+            year: anime.year,
+            poster_url: material.anime_poster_url || material.poster_url,
+            player_link: anime.link,
+            description: material.description || material.anime_description,
+            type: anime.type,
+            status: material.anime_status,
+            episodes_count: anime.episodes_count || material.episodes_total,
+            shikimori_rating: material.shikimori_rating,
+            shikimori_votes: material.shikimori_votes,
+            updated_at_kodik: anime.updated_at,
+          };
+        });
+
+      if (recordsToUpsert.length > 0) {
+        const { error: upsertError } = await supabase.from('animes').upsert(recordsToUpsert, { onConflict: 'shikimori_id' });
+        if (upsertError) {
+          log(`❌ Ошибка массового сохранения: ${upsertError.message}`);
+        } else {
+          totalProcessed += recordsToUpsert.length;
+          log(`✅ Обработано и сохранено/обновлено ${recordsToUpsert.length} записей.`);
+        }
+      }
+      
+      currentPageUrl = data.next_page;
+      if (!currentPageUrl) log("🏁 Достигнут конец списка Kodik API.");
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Пауза 1 секунда между запросами
     }
 
-    // Update last_parsed_page in Supabase
-    const { error: updateError } = await supabase
-      .from("parser_state")
-      .upsert({ id: 1, last_parsed_page: lastSuccessfulPage }, { onConflict: "id" })
+    log("=" .repeat(50));
+    log(`🎉 Полная синхронизация завершена! Обработано страниц: ${pagesParsed}.`);
+    log(`📊 Всего обработано записей: ${totalProcessed}.`);
+    
+    return NextResponse.json({ status: 'success', output: output.join('\n') });
 
-    if (updateError) {
-      console.error("Error updating parser state:", updateError)
-      return NextResponse.json({ error: "Failed to update parser state" }, { status: 500 })
-    }
-
-    return NextResponse.json({
-      message: `Successfully parsed ${parsedCount} pages starting from page ${startPage}. Last successful page: ${lastSuccessfulPage}`,
-      parsedPages: parsedCount,
-      lastSuccessfulPage: lastSuccessfulPage,
-    })
-  } catch (error) {
-    console.error("Unexpected error during full parsing:", error)
-    return NextResponse.json({ error: "An unexpected error occurred during full parsing" }, { status: 500 })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Неизвестная ошибка";
+    return NextResponse.json({ status: 'error', message, output: output.join('\n') }, { status: 500 });
   }
 }

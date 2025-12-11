@@ -1,39 +1,33 @@
-import { AnimeGrid } from "@/components/anime-grid"
-import { getCatalogAnime } from "@/lib/data-fetchers"
-import { PaginationControls } from "@/components/pagination-controls"
+// app/popular/page.tsx
 
-interface PopularPageProps {
-  searchParams: {
-    page?: string
-    limit?: string
-  }
+"use client"
+
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { LoadingSpinner } from "@/components/loading-spinner"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Star, Calendar, Flame } from 'lucide-react'
+import { AnimeCard } from "@/components/anime-card"
+import { getPopularAnime } from "@/lib/data-fetchers";
+import { AnimeGrid } from "@/components/anime-grid";
+import { HeroSection } from "@/components/hero-section";
+
+// Интерфейс для данных аниме
+interface Anime {
+  id: number;
+  shikimori_id: string;
+  // ... и другие поля, которые приходят от /api/catalog
 }
 
-export default async function PopularPage({ searchParams }: PopularPageProps) {
-  const page = Number.parseInt(searchParams.page || "1")
-  const limit = Number.parseInt(searchParams.limit || "24")
-
-  // Fetch popular anime by default sorting by shikimori_rating in descending order
-  const { anime, total } = await getCatalogAnime(page, limit, {
-    sort: "shikimori_rating",
-    order: "desc",
-  })
-  const totalPages = Math.ceil(total / limit)
+export default async function PopularPage() {
+  const popularAnime = await getPopularAnime();
 
   return (
-    <div className="container mx-auto px-4 py-8 md:py-12">
-      <h1 className="text-3xl md:text-4xl font-bold mb-8 text-center">Популярное Аниме</h1>
-
-      {anime.length === 0 ? (
-        <div className="text-center text-muted-foreground text-lg">Популярное аниме не найдено.</div>
-      ) : (
-        <>
-          <AnimeGrid animeList={anime} />
-          <div className="mt-8 flex justify-center">
-            <PaginationControls currentPage={page} totalPages={totalPages} />
-          </div>
-        </>
-      )}
+    <div className="min-h-screen bg-slate-900 pt-16 pb-16">
+      <div className="container mx-auto px-4 py-8">
+        <HeroSection title="Популярное аниме" description="Самые просматриваемые и обсуждаемые аниме." />
+        <AnimeGrid animes={popularAnime} />
+      </div>
     </div>
-  )
+  );
 }

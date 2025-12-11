@@ -1,79 +1,50 @@
+// /app/api/subscriptions/route.ts
+import { createRouteHandlerClient } from "@/lib/supabase/route-handler"
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+
+export const dynamic = "force-dynamic"
+
+export async function POST(request: Request) {
+  const { anime_id, subscribed } = await request.json()
+  const supabase = createRouteHandlerClient()
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const user_id = session.user.id
+
+  if (subscribed) {
+    const { error } = await supabase
+      .from("user_subscriptions")
+      .upsert({ user_id, anime_id }, { onConflict: "user_id,anime_id" })
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ message: "Subscribed" })
+  } else {
+    const { error } = await supabase.from("user_subscriptions").delete().match({ user_id, anime_id })
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ message: "Unsubscribed" })
+  }
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
-  const userId = searchParams.get("userId")
+  const anime_id = searchParams.get("anime_id")
+  const supabase = createRouteHandlerClient()
 
-  const supabase = createClient()
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+  if (!session) return NextResponse.json({ subscribed: false })
 
-  if (!userId) {
-    return NextResponse.json({ error: "User ID is required" }, { status: 400 })
-  }
+  const { data, error } = await supabase
+    .from("user_subscriptions")
+    .select("anime_id")
+    .eq("user_id", session.user.id)
+    .eq("anime_id", anime_id)
+    .maybeSingle()
 
-  try {
-    const { data, error } = await supabase.from("user_subscriptions").select("*").eq("user_id", userId).single()
-
-    if (error && error.code !== "PGRST116") {
-      // PGRST116 means "no rows found", which is fine
-      console.error("Error fetching subscription:", error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    return NextResponse.json(data || null)
-  } catch (error) {
-    console.error("Unexpected error:", error)
-    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 })
-  }
-}
-
-export async function POST(request: Request) {
-  const { userId, plan, expires_at } = await request.json()
-  const supabase = createClient()
-
-  if (!userId || !plan || !expires_at) {
-    return NextResponse.json({ error: "User ID, plan, and expires_at are required" }, { status: 400 })
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from("user_subscriptions")
-      .upsert({ user_id: userId, plan: plan, expires_at: expires_at }, { onConflict: "user_id" })
-      .select()
-      .single()
-
-    if (error) {
-      console.error("Error creating/updating subscription:", error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    return NextResponse.json(data, { status: 200 })
-  } catch (error) {
-    console.error("Unexpected error:", error)
-    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 })
-  }
-}
-
-export async function DELETE(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const userId = searchParams.get("userId")
-  const supabase = createClient()
-
-  if (!userId) {
-    return NextResponse.json({ error: "User ID is required" }, { status: 400 })
-  }
-
-  try {
-    const { error } = await supabase.from("user_subscriptions").delete().eq("user_id", userId)
-
-    if (error) {
-      console.error("Error deleting subscription:", error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    return NextResponse.json({ message: "Subscription cancelled" }, { status: 200 })
-  } catch (error) {
-    console.error("Unexpected error:", error)
-    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 })
-  }
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ subscribed: !!data })
 }

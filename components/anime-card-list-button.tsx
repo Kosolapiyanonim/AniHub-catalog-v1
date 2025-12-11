@@ -1,180 +1,62 @@
-"use client"
+// components/anime-card-list-button.tsx
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Plus, Check, Minus } from "lucide-react"
-import { useSupabase } from "@/components/supabase-provider"
-import { useToast } from "@/hooks/use-toast"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+"use client";
 
-interface AnimeCardListButtonProps {
-  animeId: number
+import { useAnimeListStatus } from "@/hooks/use-anime-list-status";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Loader2, Plus, Check, Trash2, Eye, CalendarCheck, Clock, History, Bookmark, XCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const statuses = [
+    { key: "watching", label: "Смотрю", icon: Eye },
+    { key: "planned", label: "В планах", icon: Clock },
+    { key: "completed", label: "Просмотрено", icon: CalendarCheck },
+    { key: "rewatching", label: "Пересматриваю", icon: History },
+    { key: "on_hold", label: "Отложено", icon: Bookmark },
+    { key: "dropped", label: "Брошено", icon: XCircle },
+];
+const statusMap = new Map(statuses.map(s => [s.key, { label: s.label, icon: s.icon }]));
+
+interface Props {
+  animeId: number;
+  initialStatus?: string | null;
+  onStatusChange?: (animeId: number, newStatus: string | null) => void;
 }
 
-export function AnimeCardListButton({ animeId }: AnimeCardListButtonProps) {
-  const { user, supabase } = useSupabase()
-  const { toast } = useToast()
-  const [currentStatus, setCurrentStatus] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+export function AnimeCardListButton({ animeId, initialStatus, onStatusChange }: Props) {
+  const { session, currentStatus, loading, handleStatusChange } = useAnimeListStatus(animeId, initialStatus, onStatusChange);
 
-  useEffect(() => {
-    const fetchStatus = async () => {
-      if (!user) {
-        setLoading(false)
-        return
-      }
-      setLoading(true)
-      try {
-        const response = await fetch(`/api/lists?userId=${user.id}&animeId=${animeId}`)
-        const data = await response.json()
-        if (response.ok) {
-          setCurrentStatus(data.status)
-        } else {
-          console.error("Failed to fetch list status:", data.error)
-          setCurrentStatus(null)
-        }
-      } catch (error) {
-        console.error("Error fetching list status:", error)
-        setCurrentStatus(null)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchStatus()
-  }, [user, animeId, supabase])
+  if (!session) return null;
 
-  const handleAddToList = async (status: string) => {
-    if (!user) {
-      toast({
-        title: "Необходимо войти",
-        description: "Пожалуйста, войдите, чтобы добавлять аниме в список.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setLoading(true)
-    try {
-      const response = await fetch("/api/lists", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId: user.id, animeId, status }),
-      })
-
-      if (response.ok) {
-        setCurrentStatus(status)
-        toast({
-          title: "Успешно",
-          description: `Аниме добавлено в список "${status}".`,
-        })
-      } else {
-        const errorData = await response.json()
-        toast({
-          title: "Ошибка",
-          description: errorData.error || "Не удалось добавить аниме в список.",
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      toast({
-        title: "Ошибка",
-        description: "Произошла ошибка при добавлении аниме в список.",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleRemoveFromList = async () => {
-    if (!user) return
-
-    setLoading(true)
-    try {
-      const response = await fetch(`/api/lists?userId=${user.id}&animeId=${animeId}`, {
-        method: "DELETE",
-      })
-
-      if (response.ok) {
-        setCurrentStatus(null)
-        toast({
-          title: "Успешно",
-          description: "Аниме удалено из списка.",
-        })
-      } else {
-        const errorData = await response.json()
-        toast({
-          title: "Ошибка",
-          description: errorData.error || "Не удалось удалить аниме из списка.",
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      toast({
-        title: "Ошибка",
-        description: "Произошла ошибка при удалении аниме из списка.",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const getStatusText = (status: string | null) => {
-    switch (status) {
-      case "watching":
-        return "Смотрю"
-      case "planned":
-        return "Запланировано"
-      case "completed":
-        return "Просмотрено"
-      case "dropped":
-        return "Брошено"
-      case "on_hold":
-        return "Отложено"
-      default:
-        return "Добавить в список"
-    }
-  }
+  const statusInfo = currentStatus ? statusMap.get(currentStatus) : null;
+  const CurrentIcon = statusInfo ? statusInfo.icon : Plus;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant={currentStatus ? "default" : "outline"}
-          size="sm"
-          className="w-full flex items-center gap-1"
-          disabled={loading}
+        <Button 
+          variant="secondary" 
+          size="icon" 
+          className="absolute top-2 right-2 z-20 h-8 w-8 bg-black/50 text-white hover:bg-black/70 transition-opacity" 
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          title={statusInfo?.label || 'Добавить в список'}
         >
-          {loading ? (
-            "Загрузка..."
-          ) : currentStatus ? (
-            <>
-              <Check className="h-4 w-4" /> {getStatusText(currentStatus)}
-            </>
-          ) : (
-            <>
-              <Plus className="h-4 w-4" /> {getStatusText(currentStatus)}
-            </>
-          )}
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CurrentIcon className="h-4 w-4" />}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent>
-        <DropdownMenuItem onClick={() => handleAddToList("watching")}>Смотрю</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleAddToList("planned")}>Запланировано</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleAddToList("completed")}>Просмотрено</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleAddToList("dropped")}>Брошено</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleAddToList("on_hold")}>Отложено</DropdownMenuItem>
-        {currentStatus && (
-          <>
-            <DropdownMenuItem onClick={handleRemoveFromList} className="text-red-500">
-              <Minus className="h-4 w-4 mr-2" /> Удалить из списка
+      <DropdownMenuContent onClick={(e) => { e.preventDefault(); e.stopPropagation();}} className="bg-slate-800 border-slate-700 text-white">
+          {statuses.map((status) => (
+            <DropdownMenuItem key={status.key} onSelect={() => handleStatusChange(status.key)} className="cursor-pointer hover:bg-slate-700">
+                <status.icon className="mr-2 h-4 w-4" />
+                <span>{status.label}</span>
+                {currentStatus === status.key && <Check className="ml-auto h-4 w-4 text-green-500" />}
             </DropdownMenuItem>
-          </>
-        )}
+          ))}
+          {currentStatus && (
+              <><DropdownMenuSeparator className="bg-slate-700" /><DropdownMenuItem className="text-red-500 hover:!text-red-500 hover:!bg-red-500/10 cursor-pointer" onSelect={() => handleStatusChange("remove")}><Trash2 className="mr-2 h-4 w-4" /><span>Удалить из списка</span></DropdownMenuItem></>
+          )}
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

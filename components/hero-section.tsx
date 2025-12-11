@@ -1,31 +1,23 @@
-import type React from "react";
-import Link from "next/link";
-import { ChevronRight } from 'lucide-react';
-import { cn } from "@/lib/utils";
+import type React from "react"
+import Link from "next/link"
+import { ChevronRight } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 
 interface HeroSectionProps extends React.HTMLAttributes<HTMLDivElement> {
-  title: string;
-  description?: string;
-  href?: string;
-  children?: React.ReactNode;
+  title: string
+  description?: string
+  href?: string
+  children?: React.ReactNode
 }
 
-export function HeroSection({
-  title,
-  description,
-  href,
-  children,
-  className,
-  ...props
-}: HeroSectionProps) {
+export function HeroSection({ title, description, href, children, className, ...props }: HeroSectionProps) {
   return (
     <section className={cn("space-y-4", className)} {...props}>
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
-          {description && (
-            <p className="text-muted-foreground">{description}</p>
-          )}
+          {description && <p className="text-muted-foreground">{description}</p>}
         </div>
         {href && (
           <Button variant="link" asChild className="px-0">
@@ -38,5 +30,5 @@ export function HeroSection({
       </div>
       {children}
     </section>
-  );
+  )
 }

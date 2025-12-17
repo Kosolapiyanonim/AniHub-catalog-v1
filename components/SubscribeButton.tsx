@@ -22,7 +22,9 @@ export function SubscribeButton({ animeId }: SubscribeButtonProps) {
     }
     setLoading(true);
     try {
-      const response = await fetch(`/api/subscriptions?anime_id=${animeId}`);
+      const response = await fetch(`/api/subscriptions?anime_id=${animeId}`, {
+        credentials: 'include', // Ensure cookies are sent
+      });
       if (response.ok) {
         const data = await response.json();
         setIsSubscribed(data.subscribed);
@@ -50,6 +52,7 @@ export function SubscribeButton({ animeId }: SubscribeButtonProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ anime_id: animeId, subscribed: newSubscribedState }),
+        credentials: 'include', // Ensure cookies are sent
       });
 
       if (!response.ok) {

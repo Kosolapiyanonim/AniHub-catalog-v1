@@ -24,6 +24,8 @@ export interface FiltersState {
   genres_exclude: string[]
   studios: string[]
   studios_exclude: string[]
+  tags: string[]
+  tags_exclude: string[]
   kinds: string[] // <-- ИЗМЕНЕНИЕ: types заменен на kinds
   statuses: string[]
   user_list_status: string
@@ -38,6 +40,8 @@ export const DEFAULT_FILTERS: FiltersState = {
   genres_exclude: [],
   studios: [],
   studios_exclude: [],
+  tags: [],
+  tags_exclude: [],
   kinds: [], // <-- ИЗМЕНЕНИЕ
   statuses: [],
   user_list_status: "", // <-- ИЗМЕНЕНИЕ: Установлено значение по умолчанию

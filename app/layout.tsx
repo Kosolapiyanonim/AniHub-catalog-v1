@@ -20,18 +20,22 @@ export default function RootLayout({ children }: { children: React.ReactNode; })
     <html lang="ru" suppressHydrationWarning>
       <body className={`${inter.className} bg-slate-900 text-white`}>
         {/* --- Google Analytics (gtag.js) --- */}
-        <Script
-          src={`https://www.googletagmanager.com/gtag/js?id=G-3DCGBWLNEZ`}
-          strategy="afterInteractive"
-        />
-        <Script id="gtag-init" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-3DCGBWLNEZ');
-          `}
-        </Script>
+        {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="gtag-init" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}');
+              `}
+            </Script>
+          </>
+        )}
         {/* --- Конец Google Analytics --- */}
         <Providers>
           <div className="relative flex min-h-screen flex-col">

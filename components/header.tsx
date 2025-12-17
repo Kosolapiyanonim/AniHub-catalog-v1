@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
+import { getLoginUrl, getRegisterUrl } from "@/lib/auth-utils"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -18,8 +18,9 @@ import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/co
 import { Menu, Bell, User, LogOut, Settings, Heart, Search, CheckCheck, Home, Bookmark } from "lucide-react"
 import { CommandPalette } from "./command-palette"
 import { toast } from "sonner"
-import type { User as SupabaseUser } from "@supabase/auth-helpers-nextjs"
+import { useSupabase } from "@/components/supabase-provider"
 import { useSearchStore } from "@/hooks/use-search-store"
+import type { User as SupabaseUser } from "@supabase/supabase-js"
 
 function NotificationsDropdown() {
   const [hasNotifications, setHasNotifications] = useState(true)
@@ -53,13 +54,26 @@ function NotificationsDropdown() {
 }
 
 export function Header() {
-  const [user, setUser] = useState<SupabaseUser | null>(null)
-  const [loading, setLoading] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [userProfile, setUserProfile] = useState<{ username: string | null } | null>(null)
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const pathname = usePathname()
+  const { supabase, session, loading } = useSupabase()
+  const user = session?.user ?? null
 
   const toggleSearch = useSearchStore((state) => state.toggle)
+
+  // Load user profile
+  useEffect(() => {
+    if (user?.id) {
+      fetch(`/api/profile?userId=${user.id}`, { cache: "no-store" })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => setUserProfile(data))
+        .catch(() => setUserProfile(null))
+    } else {
+      setUserProfile(null)
+    }
+  }, [user?.id])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -72,39 +86,26 @@ export function Header() {
     return () => document.removeEventListener("keydown", handleKeyDown)
   }, [toggleSearch])
 
-  useEffect(() => {
-    const getUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      setUser(user)
-      setLoading(false)
-    }
-    getUser()
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_, session) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
-    return () => subscription.unsubscribe()
-  }, [supabase.auth])
-
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    toast.success("Вы вышли из аккаунта")
-    router.refresh()
-    setMobileMenuOpen(false)
+    try {
+      await supabase.auth.signOut()
+      toast.success("Вы вышли из аккаунта")
+      router.push("/")
+      router.refresh()
+      setMobileMenuOpen(false)
+    } catch (error) {
+      console.error("Error signing out:", error)
+      toast.error("Ошибка при выходе")
+    }
   }
 
   const getUserInitials = (user: SupabaseUser) => {
-    const name = user.user_metadata?.full_name || user.email
+    const name = userProfile?.username || user.user_metadata?.full_name || user.email
     return name?.charAt(0).toUpperCase() || "U"
   }
 
   const getUserName = (user: SupabaseUser) => {
-    return user.user_metadata?.full_name || user.email?.split("@")[0] || "Пользователь"
+    return userProfile?.username || user.user_metadata?.full_name || user.email?.split("@")[0] || "Пользователь"
   }
 
   return (
@@ -198,12 +199,12 @@ export function Header() {
               </div>
             ) : (
               <div className="hidden sm:flex items-center space-x-2">
-                <Link href="/login" passHref>
+                <Link href={getLoginUrl(pathname)} passHref>
                   <Button variant="ghost" size="sm">
                     Войти
                   </Button>
                 </Link>
-                <Link href="/register" passHref>
+                <Link href={getRegisterUrl(pathname)} passHref>
                   <Button size="sm">Регистрация</Button>
                 </Link>
               </div>
@@ -312,13 +313,13 @@ export function Header() {
                     </div>
                   ) : (
                     <div className="pt-4 border-t border-slate-700 space-y-2">
-                      <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                      <Link href={getLoginUrl(pathname)} onClick={() => setMobileMenuOpen(false)}>
                         <Button variant="outline" className="w-full justify-start h-12 border-slate-700">
                           <User className="mr-3 h-5 w-5" />
                           Войти
                         </Button>
                       </Link>
-                      <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
+                      <Link href={getRegisterUrl(pathname)} onClick={() => setMobileMenuOpen(false)}>
                         <Button className="w-full justify-start h-12">
                           <User className="mr-3 h-5 w-5" />
                           Регистрация

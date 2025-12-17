@@ -3,9 +3,9 @@
 import type React from "react"
 
 import { useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { useSupabase } from "@/components/supabase-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -20,7 +20,11 @@ export default function RegisterPage() {
   const [fullName, setFullName] = useState("")
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const searchParams = useSearchParams()
+  const { supabase } = useSupabase()
+  
+  // Get redirect URL from query params, default to "/"
+  const redirectTo = searchParams.get("redirect") || "/"
 
   const handleEmailRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -41,7 +45,7 @@ export default function RegisterPage() {
         toast.error(error.message)
       } else {
         toast.success("Проверьте email для подтверждения регистрации!")
-        router.push("/login")
+        router.push(`/login${redirectTo !== "/" ? `?redirect=${encodeURIComponent(redirectTo)}` : ""}`)
       }
     } catch (error) {
       toast.error("Произошла ошибка при регистрации")
@@ -55,7 +59,7 @@ export default function RegisterPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${location.origin}/auth/callback`,
+          redirectTo: `${location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`,
         },
       })
 
@@ -72,7 +76,7 @@ export default function RegisterPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "spotify",
         options: {
-          redirectTo: `${location.origin}/auth/callback`,
+          redirectTo: `${location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`,
         },
       })
 
@@ -166,7 +170,7 @@ export default function RegisterPage() {
 
           <div className="text-center text-sm">
             <span className="text-muted-foreground">Уже есть аккаунт? </span>
-            <Link href="/login" className="text-primary hover:underline">
+            <Link href={`/login${redirectTo !== "/" ? `?redirect=${encodeURIComponent(redirectTo)}` : ""}`} className="text-primary hover:underline">
               Войти
             </Link>
           </div>

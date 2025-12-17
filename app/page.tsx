@@ -16,7 +16,7 @@ export default async function HomePage() {
           <AnimeCarousel
             title="Популярное"
             items={sections.popular}
-            href="/catalog?sort=popular"
+            viewAllLink="/catalog?sort=popular"
           />
         )}
 
@@ -24,7 +24,7 @@ export default async function HomePage() {
           <AnimeCarousel
             title="В тренде"
             items={sections.trending}
-            href="/catalog?sort=trending"
+            viewAllLink="/catalog?sort=trending"
           />
         )}
 
@@ -32,7 +32,7 @@ export default async function HomePage() {
           <AnimeCarousel
             title="Последние обновления"
             items={sections.latestUpdates}
-            href="/catalog?sort=updated"
+            viewAllLink="/catalog?sort=updated"
           />
         )}
       </main>

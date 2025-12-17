@@ -3,9 +3,9 @@
 import type React from "react"
 
 import { useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { useSupabase } from "@/components/supabase-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,23 +19,44 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const searchParams = useSearchParams()
+  const { supabase } = useSupabase()
+  
+  // Get redirect URL from query params, default to "/"
+  const redirectTo = searchParams.get("redirect") || "/"
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (error) {
         toast.error(error.message)
-      } else {
+      } else if (data.session) {
+        // Sync session to server cookies
+        try {
+          await fetch("/api/auth/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              access_token: data.session.access_token,
+              refresh_token: data.session.refresh_token,
+            }),
+            credentials: 'include',
+          })
+        } catch (syncError) {
+          console.error("Failed to sync session:", syncError)
+        }
+        
         toast.success("Добро пожаловать!")
-        router.push("/")
+        // Wait a bit for session to sync and cookies to be set
+        await new Promise(resolve => setTimeout(resolve, 300))
+        router.push(redirectTo)
         router.refresh()
       }
     } catch (error) {
@@ -50,7 +71,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${location.origin}/auth/callback`,
+          redirectTo: `${location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`,
         },
       })
 
@@ -67,7 +88,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "spotify",
         options: {
-          redirectTo: `${location.origin}/auth/callback`,
+          redirectTo: `${location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`,
         },
       })
 
@@ -145,7 +166,7 @@ export default function LoginPage() {
 
           <div className="text-center text-sm">
             <span className="text-muted-foreground">Нет аккаунта? </span>
-            <Link href="/register" className="text-primary hover:underline">
+            <Link href={`/register${redirectTo !== "/" ? `?redirect=${encodeURIComponent(redirectTo)}` : ""}`} className="text-primary hover:underline">
               Зарегистрироваться
             </Link>
           </div>

@@ -1,6 +1,6 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
+import createClientAuth from "@/lib/supabase/server"
 
 const parseIds = (param: string | null): number[] | null => {
   if (!param) return null
@@ -15,8 +15,35 @@ export const dynamic = "force-dynamic"
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
-  const cookieStore = cookies()
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+  
+  // Создаем публичный клиент для основных запросов (не зависит от JWT в cookies)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return NextResponse.json({ error: "Supabase configuration missing" }, { status: 500 })
+  }
+  
+  const supabase = createClient(supabaseUrl, supabaseAnonKey)
+  
+  // Создаем auth client только для проверки пользователя (опционально)
+  let user = null
+  try {
+    const authClient = await createClientAuth()
+    const { data: { user: authUser }, error: userError } = await authClient.auth.getUser()
+    
+    if (userError && userError.message?.includes('JWT')) {
+      // JWT expired - игнорируем, работаем без пользователя
+      console.log("JWT expired, continuing without user")
+    } else if (userError) {
+      console.log("Auth check failed, continuing without user:", userError)
+    } else {
+      user = authUser
+    }
+  } catch (authError: any) {
+    // Игнорируем ошибки авторизации - работаем без пользователя
+    console.log("Auth check failed, continuing without user:", authError)
+  }
 
   const page = Number.parseInt(searchParams.get("page") || "1", 10)
   const limit = Number.parseInt(searchParams.get("limit") || "25", 10)
@@ -25,29 +52,32 @@ export async function GET(request: Request) {
   const order = searchParams.get("order") || "desc"
 
   try {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
 
     // --- [НОВЫЙ БЛОК] СНАЧАЛА ПОЛУЧАЕМ ID ИЗ СПИСКА ПОЛЬЗОВАТЕЛЯ, ЕСЛИ ФИЛЬТР АКТИВЕН ---
     const user_list_status = searchParams.get("user_list_status")
     let userListIds: number[] | null = null
 
-    if (user_list_status && session) {
-      const { data: animeIdsInList, error: listError } = await supabase
-        .from("user_lists")
-        .select("anime_id")
-        .eq("user_id", session.user.id)
-        .eq("status", user_list_status)
+    if (user_list_status && user) {
+      try {
+        const authClient = await createClientAuth()
+        const { data: animeIdsInList, error: listError } = await authClient
+          .from("user_lists")
+          .select("anime_id")
+          .eq("user_id", user.id)
+          .eq("status", user_list_status)
 
-      if (listError) throw listError
+        if (listError) throw listError
 
-      if (!animeIdsInList || animeIdsInList.length === 0) {
-        // Если в списке пользователя по этому статусу ничего нет, возвращаем пустой результат
-        return NextResponse.json({ results: [], total: 0, hasMore: false })
+        if (!animeIdsInList || animeIdsInList.length === 0) {
+          // Если в списке пользователя по этому статусу ничего нет, возвращаем пустой результат
+          return NextResponse.json({ results: [], total: 0, hasMore: false })
+        }
+        // Сохраняем ID аниме из списка пользователя
+        userListIds = animeIdsInList.map((item) => item.anime_id)
+      } catch (listError) {
+        // Если не удалось получить списки пользователя, игнорируем фильтр
+        console.log("Failed to fetch user list for filter:", listError)
       }
-      // Сохраняем ID аниме из списка пользователя
-      userListIds = animeIdsInList.map((item) => item.anime_id)
     }
     // --- КОНЕЦ НОВОГО БЛОКА ---
 
@@ -89,7 +119,11 @@ export async function GET(request: Request) {
     query = query.range(offset, offset + limit - 1)
 
     const { data: results, count, error: queryError } = await query
-    if (queryError) throw queryError
+    
+    if (queryError) {
+      console.error("Catalog query error:", queryError)
+      throw queryError
+    }
 
     // --- ОБРАБОТКА ДАННЫХ И ИНТЕГРАЦИЯ СПИСКОВ ---
     // Этот код был неполным в вашем примере, я его дополнил, чтобы он работал
@@ -99,19 +133,26 @@ export async function GET(request: Request) {
       studios: anime.studios.map((s: any) => s.studios).filter(Boolean),
     }))
 
-    if (session && finalResults && finalResults.length > 0) {
-      const resultIds = finalResults.map((r) => r.id)
-      const { data: userListsData } = await supabase
-        .from("user_lists")
-        .select("anime_id, status")
-        .eq("user_id", session.user.id)
-        .in("anime_id", resultIds)
+    // Добавляем user_list_status только если есть пользователь
+    if (user && finalResults && finalResults.length > 0) {
+      try {
+        const authClient = await createClientAuth()
+        const resultIds = finalResults.map((r) => r.id)
+        const { data: userListsData } = await authClient
+          .from("user_lists")
+          .select("anime_id, status")
+          .eq("user_id", user.id)
+          .in("anime_id", resultIds)
 
-      if (userListsData) {
-        const statusMap = new Map(userListsData.map((item) => [item.anime_id, item.status]))
-        finalResults.forEach((anime: any) => {
-          anime.user_list_status = statusMap.get(anime.id) || null
-        })
+        if (userListsData) {
+          const statusMap = new Map(userListsData.map((item) => [item.anime_id, item.status]))
+          finalResults.forEach((anime: any) => {
+            anime.user_list_status = statusMap.get(anime.id) || null
+          })
+        }
+      } catch (listError) {
+        // Игнорируем ошибки при получении списков пользователя
+        console.log("Failed to fetch user lists:", listError)
       }
     }
 

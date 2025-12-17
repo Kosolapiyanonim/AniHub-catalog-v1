@@ -6,7 +6,7 @@ import { useSearchStore } from "@/hooks/use-search-store"
 import { useEffect, useState } from "react"
 import { useDebounce } from "@/hooks/use-debounce"
 import { searchAnime } from "@/lib/anime-api"
-import { Anime } from "@/lib/types"
+import { CatalogAnime } from "@/lib/types"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -14,7 +14,7 @@ export function SearchDialog() {
   const { isOpen, close } = useSearchStore()
   const [searchQuery, setSearchQuery] = useState("")
   const debouncedSearchQuery = useDebounce(searchQuery, 500)
-  const [searchResults, setSearchResults] = useState<Anime[]>([])
+  const [searchResults, setSearchResults] = useState<CatalogAnime[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
@@ -25,8 +25,8 @@ export function SearchDialog() {
       }
       setIsLoading(true)
       try {
-        const results = await searchAnime(debouncedSearchQuery)
-        setSearchResults(results)
+        const response = await searchAnime(debouncedSearchQuery)
+        setSearchResults(response.results)
       } catch (error) {
         console.error("Failed to fetch search results:", error)
         setSearchResults([])
@@ -60,20 +60,20 @@ export function SearchDialog() {
             )}
             <CommandGroup heading="Результаты поиска">
               {searchResults.map((anime) => (
-                <Link href={`/anime/${anime.id}`} key={anime.id} onClick={close}>
+                <Link href={`/anime/${anime.shikimori_id}`} key={anime.id} onClick={close}>
                   <CommandItem className="flex items-center gap-3 p-2 cursor-pointer hover:bg-accent hover:text-accent-foreground">
                     <Image
-                      src={anime.poster || "/placeholder.svg"}
-                      alt={anime.title_ru || anime.title_en || "Anime poster"}
+                      src={anime.poster_url || "/placeholder.svg"}
+                      alt={anime.title || "Anime poster"}
                       width={48}
                       height={64}
                       className="rounded object-cover"
                     />
                     <div className="flex flex-col">
-                      <span className="font-medium">{anime.title_ru || anime.title_en}</span>
+                      <span className="font-medium">{anime.title}</span>
                       {anime.genres && anime.genres.length > 0 && (
                         <span className="text-sm text-muted-foreground">
-                          {anime.genres.map(g => g.name_ru || g.name_en).join(", ")}
+                          {anime.genres.join(", ")}
                         </span>
                       )}
                     </div>

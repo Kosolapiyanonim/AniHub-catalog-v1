@@ -1,7 +1,6 @@
 // /app/api/lists/route.ts
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { createClientForRouteHandler, getAuthenticatedUser } from "@/lib/supabase/server";
 
 export const dynamic = 'force-dynamic';
 
@@ -11,19 +10,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "anime_id and status are required" }, { status: 400 });
   }
 
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Create response object first to capture cookie updates
+  const response = new NextResponse();
+  const supabase = await createClientForRouteHandler(response);
+  // Use secure authentication (getUser + fallback to getSession for token refresh)
+  const user = await getAuthenticatedUser(supabase);
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: response.headers });
   }
 
-  const user_id = session.user.id;
+  const user_id = user.id;
 
   if (status === 'remove') {
     const { error } = await supabase.from("user_lists").delete().match({ user_id, anime_id });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ message: "Successfully removed" });
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500, headers: response.headers });
+    }
+    return NextResponse.json({ message: "Successfully removed" }, { headers: response.headers });
   }
 
   const { error } = await supabase.from("user_lists").upsert({
@@ -34,7 +38,7 @@ export async function POST(request: Request) {
   }, { onConflict: 'user_id,anime_id' });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500, headers: response.headers });
   }
-  return NextResponse.json({ message: "List updated successfully" });
+  return NextResponse.json({ message: "List updated successfully" }, { headers: response.headers });
 }

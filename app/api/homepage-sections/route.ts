@@ -1,8 +1,7 @@
 // /app/api/homepage-sections/route.ts
 
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import createClient from "@/lib/supabase/server";
 
 // Единственное правильное объявление
 export const dynamic = 'force-dynamic';
@@ -20,11 +19,10 @@ const getBestQuality = (translations: { quality: string | null }[]): string | nu
 };
 
 export async function GET() {
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+  const supabase = await createClient();
 
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { user } } = await supabase.auth.getUser();
 
     const twoMonthsAgo = new Date();
     twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
@@ -46,12 +44,12 @@ export async function GET() {
       supabase.from("animes_with_details").select(ANIME_CARD_SELECT).not('shikimori_id', 'is', null).order("updated_at_kodik", { ascending: false }).order("weighted_rating", { ascending: false }).limit(12),
     ]);
 
-    let heroWithDetails = [];
-    if (heroAnimesResponse.data) {
-      const heroAnimeIds = heroAnimesResponse.data.map(a => a.id);
+    let heroWithDetails: Array<{ best_quality: string | null } & Record<string, any>> = [];
+    if (heroAnimesResponse.data && Array.isArray(heroAnimesResponse.data) && heroAnimesResponse.data.length > 0) {
+      const heroAnimeIds = heroAnimesResponse.data.map((a: any) => a.id);
       const { data: translations } = await supabase.from("translations").select("anime_id, quality").in("anime_id", heroAnimeIds);
       const translationsMap = new Map<number, { quality: string | null }[]>();
-      if (translations) {
+      if (translations && Array.isArray(translations)) {
         for (const t of translations) {
           if (!translationsMap.has(t.anime_id)) {
             translationsMap.set(t.anime_id, []);
@@ -59,7 +57,7 @@ export async function GET() {
           translationsMap.get(t.anime_id)!.push(t);
         }
       }
-      heroWithDetails = heroAnimesResponse.data.map(anime => ({
+      heroWithDetails = heroAnimesResponse.data.map((anime: any) => ({
         ...anime,
         best_quality: getBestQuality(translationsMap.get(anime.id) || [])
       }));
@@ -67,14 +65,13 @@ export async function GET() {
 
     let continueWatching = null;
     let myUpdates = null;
-    if (session) {
-        const user = session.user;
+    if (user) {
         const [continueWatchingResponse, myUpdatesResponse] = await Promise.all([
             supabase.from("user_lists").select(`progress, animes!inner(${ANIME_CARD_SELECT})`).eq("user_id", user.id).eq("status", "watching").not('animes.shikimori_id', 'is', null).order("updated_at", { ascending: false }).limit(6),
             supabase.from("user_subscriptions").select(`animes!inner(${ANIME_CARD_SELECT})`).eq("user_id", user.id).not('animes.shikimori_id', 'is', null).order('created_at', { ascending: false }).limit(12)
         ]);
-        continueWatching = continueWatchingResponse.data?.map(item => item.animes ? {...item.animes, progress: item.progress } : null).filter(Boolean) || [];
-        myUpdates = myUpdatesResponse.data?.map(item => item.animes).filter(Boolean) || [];
+        continueWatching = continueWatchingResponse.data?.map(item => (item.animes ? {...item.animes, progress: item.progress } : null)).filter((item): item is NonNullable<typeof item> => item !== null) || [];
+        myUpdates = myUpdatesResponse.data?.map(item => item.animes).filter((item): item is NonNullable<typeof item> => item !== null) || [];
     }
     
     const responseData = {

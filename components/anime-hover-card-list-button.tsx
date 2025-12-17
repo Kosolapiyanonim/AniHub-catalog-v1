@@ -6,6 +6,8 @@ import { useAnimeListStatus } from "@/hooks/use-anime-list-status";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, Eye, CalendarCheck, Clock } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { getLoginUrl } from "@/lib/auth-utils";
 
 const statuses = [
     { key: "watching", label: "Смотрю", icon: Eye },
@@ -21,10 +23,11 @@ interface Props {
 
 export function AnimeHoverCardListButton({ animeId, initialStatus, onStatusChange }: Props) {
   const { session, currentStatus, loading, handleStatusChange } = useAnimeListStatus(animeId, initialStatus, onStatusChange);
+  const pathname = usePathname();
   
   if (!session) {
     return (
-      <Link href="/login" className="w-full pt-2">
+      <Link href={getLoginUrl(pathname)} className="w-full pt-2">
         <Button variant="outline" className="w-full"><Plus className="mr-2 h-4 w-4" /> Добавить в список</Button>
       </Link>
     );

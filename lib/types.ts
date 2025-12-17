@@ -124,3 +124,34 @@ export interface YearsResponse {
   years: number[]
   total: number
 }
+
+// Экспорт типа Anime для использования в компонентах
+// Этот тип соответствует структуре данных из Supabase
+export interface Anime {
+  id: number
+  kodik_id?: string
+  shikimori_id: string
+  kinopoisk_id?: string
+  title: string
+  title_orig?: string
+  year?: number
+  poster_url?: string
+  background_image_url?: string
+  player_link?: string
+  description?: string
+  type?: string
+  status?: string
+  episodes_count?: number
+  episodes_total?: number
+  episodes_aired?: number
+  rating_mpaa?: string
+  kinopoisk_rating?: number
+  imdb_rating?: number
+  shikimori_rating?: number
+  kinopoisk_votes?: number
+  shikimori_votes?: number
+  screenshots?: any
+  updated_at_kodik?: string
+  created_at: string
+  best_quality?: string | null
+}

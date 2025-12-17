@@ -1,7 +1,6 @@
 // lib/data-fetchers.ts
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import type { SupabaseClient, Session } from "@supabase/supabase-js";
+import createClient from "@/lib/supabase/server";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 
 // --- [ИСПРАВЛЕНИЕ] Единый набор полей для всех карточек, чтобы избежать ошибок ---
 const ANIME_CARD_SELECT = `
@@ -17,13 +16,13 @@ const HERO_ANIME_SELECT = `
     genres:anime_genres(genres(name))
 `;
 
-const enrichWithUserStatus = async (supabase: SupabaseClient, session: Session | null, animeList: any[] | null) => {
-  if (!session || !animeList || animeList.length === 0) return animeList;
+const enrichWithUserStatus = async (supabase: SupabaseClient, user: User | null, animeList: any[] | null) => {
+  if (!user || !animeList || animeList.length === 0) return animeList;
   const animeIds = animeList.map(a => a.id);
   const { data: userListsData } = await supabase
     .from("user_lists")
     .select("anime_id, status")
-    .eq("user_id", session.user.id)
+    .eq("user_id", user.id)
     .in("anime_id", animeIds);
   if (!userListsData) return animeList;
   const statusMap = new Map(userListsData.map(item => [item.anime_id, item.status]));
@@ -34,11 +33,10 @@ const enrichWithUserStatus = async (supabase: SupabaseClient, session: Session |
 };
 
 export async function getHomePageData() {
-  const cookieStore = cookies();
-  const supabase = createServerComponentClient({ cookies: () => cookieStore });
+  const supabase = await createClient();
   // enrichWithUserStatus // <-- ЭТА СТРОКА УДАЛЕНА
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { user } } = await supabase.auth.getUser();
 
     // --- [ИСПРАВЛЕНИЕ] Все запросы теперь идут к стабильной таблице 'animes' ---
     const [
@@ -74,10 +72,10 @@ export async function getHomePageData() {
     };
 
     return {
-      hero: await enrichWithUserStatus(supabase, session, heroData),
-      trending: await enrichWithUserStatus(supabase, session, processCarouselData(trendingResponse)),
-      popular: await enrichWithUserStatus(supabase, session, processCarouselData(popularResponse)),
-      latestUpdates: await enrichWithUserStatus(supabase, session, processCarouselData(latestUpdatesResponse)),
+      hero: await enrichWithUserStatus(supabase, user, heroData),
+      trending: await enrichWithUserStatus(supabase, user, processCarouselData(trendingResponse)),
+      popular: await enrichWithUserStatus(supabase, user, processCarouselData(popularResponse)),
+      latestUpdates: await enrichWithUserStatus(supabase, user, processCarouselData(latestUpdatesResponse)),
     };
 
   } catch (error) {

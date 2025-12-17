@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import { useTheme } from 'next-themes'
+import { usePathname } from 'next/navigation'
+import { getLoginUrl } from '@/lib/auth-utils'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -18,6 +20,7 @@ interface MobileMenuContentProps {
 
 export function MobileMenuContent({ onClose }: MobileMenuContentProps) {
   const { theme, setTheme } = useTheme()
+  const pathname = usePathname()
 
   return (
     <div className="flex flex-col h-full p-4 bg-slate-900 text-white">
@@ -25,7 +28,7 @@ export function MobileMenuContent({ onClose }: MobileMenuContentProps) {
       <div className="mb-4">
         <Button size="lg" className="w-full bg-blue-600 hover:bg-blue-700 text-lg" asChild>
           <SheetClose asChild>
-            <Link href="/login">Вход / Регистрация</Link>
+            <Link href={getLoginUrl(pathname)}>Вход / Регистрация</Link>
           </SheetClose>
         </Button>
       </div>

@@ -10,6 +10,8 @@ import Link from 'next/link';
 import { useSupabase } from './supabase-provider';
 import { toast } from 'sonner';
 import { Check, Loader2, Bookmark, Info, Star, Eye, CalendarCheck, XCircle, History, Clock, Plus, Trash2, X } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { getLoginUrl } from '@/lib/auth-utils';
 
 const statuses = [
     { key: "watching", label: "Смотрю", icon: Eye },
@@ -44,6 +46,7 @@ interface AnimeListPopoverProps {
 
 export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListPopoverProps) {
   const { session } = useSupabase();
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState(anime.user_list_status);
   const [loading, setLoading] = useState(false);
@@ -62,6 +65,7 @@ export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListP
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ anime_id: anime.id, status: newStatus }),
+        credentials: 'include', // Ensure cookies are sent
       });
       if (!response.ok) throw new Error("Server error");
       const newResolvedStatus = newStatus === 'remove' ? null : newStatus;
@@ -86,10 +90,8 @@ export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListP
       setIsOpen(false);
     }, 200);
   };
-  
-  if (!session) return <>{children}</>;
 
-  const statusInfo = currentStatus ? statusMap.get(currentStatus) : null;
+  const statusInfo = session && currentStatus ? statusMap.get(currentStatus) : null;
   const CurrentIcon = statusInfo ? statusInfo.icon : Plus;
 
   return (
@@ -126,34 +128,45 @@ export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListP
             {anime.genres?.slice(0, 3).map(g => <Badge key={g.name} variant="secondary">{g.name}</Badge>)}
         </div>
         
-        <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="item-1" className="border-b-0">
-                <AccordionTrigger className="p-0 hover:no-underline text-sm font-medium rounded-md hover:bg-slate-800 px-2 -mx-2">
-                    <div className="flex items-center">
-                        {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CurrentIcon className="w-4 h-4 mr-2" />}
-                        <span>{statusInfo ? statusInfo.label : "Добавить в список"}</span>
-                    </div>
-                </AccordionTrigger>
-                <AccordionContent className="pt-2">
-                    <div className="grid grid-cols-2 gap-1">
-                        {statuses.map(status => (
-                            <Button key={status.key} variant={currentStatus === status.key ? "secondary" : "ghost"} size="sm" onClick={() => handleStatusChange(status.key)} className="justify-start">
-                                <status.icon className="h-4 w-4 mr-2" />
-                                {status.label}
+        {session ? (
+          <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="item-1" className="border-b-0">
+                  <AccordionTrigger className="p-0 hover:no-underline text-sm font-medium rounded-md hover:bg-slate-800 px-2 -mx-2">
+                      <div className="flex items-center">
+                          {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CurrentIcon className="w-4 h-4 mr-2" />}
+                          <span>{statusInfo ? statusInfo.label : "Добавить в список"}</span>
+                      </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-2">
+                      <div className="grid grid-cols-2 gap-1">
+                          {statuses.map(status => (
+                              <Button key={status.key} variant={currentStatus === status.key ? "secondary" : "ghost"} size="sm" onClick={() => handleStatusChange(status.key)} className="justify-start">
+                                  <status.icon className="h-4 w-4 mr-2" />
+                                  {status.label}
+                              </Button>
+                          ))}
+                      </div>
+                      {currentStatus && (
+                          <>
+                            <div className="my-1 h-px bg-slate-700" />
+                            <Button variant="ghost" size="sm" onClick={() => handleStatusChange("remove")} className="w-full justify-start text-red-500 hover:!text-red-500 hover:!bg-red-500/10">
+                                <Trash2 className="h-4 w-4 mr-2" />Удалить из списка
                             </Button>
-                        ))}
-                    </div>
-                    {currentStatus && (
-                        <>
-                          <div className="my-1 h-px bg-slate-700" />
-                          <Button variant="ghost" size="sm" onClick={() => handleStatusChange("remove")} className="w-full justify-start text-red-500 hover:!text-red-500 hover:!bg-red-500/10">
-                              <Trash2 className="h-4 w-4 mr-2" />Удалить из списка
-                          </Button>
-                        </>
-                    )}
-                </AccordionContent>
-            </AccordionItem>
-        </Accordion>
+                          </>
+                      )}
+                  </AccordionContent>
+              </AccordionItem>
+          </Accordion>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-sm text-gray-400 text-center">Войдите, чтобы добавить в список</p>
+            <Button variant="outline" size="sm" className="w-full" asChild>
+              <Link href={getLoginUrl(pathname)}>
+                <Plus className="w-4 h-4 mr-2" />Войти для добавления в список
+              </Link>
+            </Button>
+          </div>
+        )}
 
         <Button variant="outline" size="sm" className="w-full" asChild>
             <Link href={`/anime/${anime.shikimori_id}`}><Info className="w-4 h-4 mr-2" />Подробнее</Link>

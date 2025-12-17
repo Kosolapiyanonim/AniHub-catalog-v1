@@ -191,6 +191,27 @@ export async function POST(request: Request) {
       ]);
       log("✅ Связи успешно обработаны.");
 
+      // 6. Сохраняем озвучки
+      const allTranslations = animeListFromKodik
+        .map(anime => {
+          const anime_id = animeIdMap.get(anime.shikimori_id!);
+          if (!anime_id || !anime.translation) return null;
+          return {
+            anime_id,
+            kodik_translation_id: anime.translation.id,
+            title: anime.translation.title,
+            type: anime.translation.type,
+            quality: anime.quality,
+            player_link: anime.link.startsWith('//') ? `https:${anime.link}` : anime.link,
+          };
+        })
+        .filter(Boolean) as any[];
+
+      if (allTranslations.length > 0) {
+        await supabase.from('translations').upsert(allTranslations, { onConflict: 'anime_id,kodik_translation_id' });
+        log(`🎙️ Сохранено ${allTranslations.length} озвучек.`);
+      }
+
       // Статистика
       const newCount = upsertedAnimes.filter(a => !existingIdsSet.has(a.shikimori_id)).length;
       const updatedCount = upsertedAnimes.length - newCount;

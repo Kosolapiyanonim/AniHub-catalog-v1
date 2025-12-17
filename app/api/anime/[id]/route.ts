@@ -1,8 +1,8 @@
 // app/api/anime/[id]/route.ts
 
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import createClientAuth from "@/lib/supabase/server";
 
 export const dynamic = 'force-dynamic';
 
@@ -15,12 +15,35 @@ export async function GET(
     return NextResponse.json({ error: "Shikimori ID is required" }, { status: 400 });
   }
 
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+  // Создаем публичный клиент для основных запросов (не зависит от JWT в cookies)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return NextResponse.json({ error: "Supabase configuration missing" }, { status: 500 });
+  }
+  
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
   try {
-    // --- ШАГ 1: Получаем сессию пользователя ---
-    const { data: { session } } = await supabase.auth.getSession();
+    // --- ШАГ 1: Получаем пользователя (опционально) ---
+    let user = null;
+    try {
+      const authClient = await createClientAuth();
+      const { data: { user: authUser }, error: userError } = await authClient.auth.getUser();
+      
+      if (userError && userError.message?.includes('JWT')) {
+        // JWT expired - игнорируем, работаем без пользователя
+        console.log("JWT expired, continuing without user");
+      } else if (userError) {
+        console.log("Auth check failed, continuing without user:", userError);
+      } else {
+        user = authUser;
+      }
+    } catch (authError) {
+      // Игнорируем ошибки авторизации - работаем без пользователя
+      console.log("Auth check failed, continuing without user:", authError);
+    }
 
     // --- ШАГ 2: Получаем основную информацию об аниме ---
     const { data: anime, error: animeError } = await supabase
@@ -43,16 +66,22 @@ export async function GET(
 
     // --- ШАГ 3: Получаем статус аниме в списке пользователя (если он авторизован) ---
     let userListStatus: string | null = null;
-    if (session) {
-      const { data: listData } = await supabase
-        .from('user_lists')
-        .select('status')
-        .eq('user_id', session.user.id)
-        .eq('anime_id', anime.id)
-        .single();
-      
-      if (listData) {
-        userListStatus = listData.status;
+    if (user) {
+      try {
+        const authClient = await createClientAuth();
+        const { data: listData } = await authClient
+          .from('user_lists')
+          .select('status')
+          .eq('user_id', user.id)
+          .eq('anime_id', anime.id)
+          .single();
+        
+        if (listData) {
+          userListStatus = listData.status;
+        }
+      } catch (listError) {
+        // Игнорируем ошибки при получении списков пользователя
+        console.log("Failed to fetch user list status:", listError);
       }
     }
 
@@ -95,7 +124,7 @@ export async function GET(
       tags: (anime.tags || []).map((t: any) => t.tags).filter(Boolean),
       translations: translations,
       related: relatedAnimesWithInfo,
-      user_list_status: userListStatus, // <-- Вот добавленная информация
+      user_list_status: userListStatus,
     };
 
     return NextResponse.json(responseData);

@@ -25,6 +25,19 @@ const createLogger = () => {
   return { log, logs, getElapsed: () => ((Date.now() - startTime) / 1000).toFixed(2) };
 };
 
+export async function GET(request: Request) {
+  return NextResponse.json({
+    status: 'ok',
+    message: 'Parser API is online. Use POST method to parse.',
+    endpoint: '/api/parse-single-page',
+    method: 'POST',
+    example: {
+      curl: 'curl -X POST http://localhost:3008/api/parse-single-page -H "Content-Type: application/json" -d "{}"',
+      body: '{} or {"nextPageUrl": "..."}'
+    }
+  });
+}
+
 export async function POST(request: Request) {
     const logger = createLogger();
     

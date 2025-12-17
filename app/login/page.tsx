@@ -1,8 +1,8 @@
+"use client"
+
 import { Suspense } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { LoginForm } from "./login-form"
-
-export const dynamic = 'force-dynamic'
 
 function LoginPageFallback() {
   return (

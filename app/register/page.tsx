@@ -1,8 +1,8 @@
+"use client"
+
 import { Suspense } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { RegisterForm } from "./register-form"
-
-export const dynamic = 'force-dynamic'
 
 function RegisterPageFallback() {
   return (

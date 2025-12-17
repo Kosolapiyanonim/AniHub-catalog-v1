@@ -6,5 +6,3 @@ test('главная открывается и отображает контен
   await expect(page).toHaveTitle(/Ani|Каталог|Anime|Аниме/i)
   await expect(page.getByRole('main')).toBeVisible()
 })
-
-

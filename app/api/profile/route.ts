@@ -121,4 +121,3 @@ export async function PATCH(request: Request) {
 
   return NextResponse.json(data, { headers: response.headers })
 }
-

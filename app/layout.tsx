@@ -13,6 +13,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "AniHub - Смотри аниме онлайн бесплатно",
   description: "Смотри любимое аниме онлайн бесплатно в высоком качестве на AniHub. Большая коллекция, удобный поиск и регулярные обновления.",
+    generator: 'v0.app'
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode; }) {

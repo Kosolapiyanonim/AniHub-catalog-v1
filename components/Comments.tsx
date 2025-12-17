@@ -398,5 +398,3 @@ function CommentItem({
     </li>
   )
 }
-
-

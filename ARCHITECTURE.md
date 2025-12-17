@@ -278,4 +278,3 @@ const supabase = await createClient(); // из lib/supabase/server.ts
 ### Shikimori GraphQL (опционально)
 - **Назначение:** Обогащение данных (связи, теги)
 - **Используется в:** `scripts/enrich-animes-from-shikimori-graphql.ts`
-

@@ -55,4 +55,3 @@ SELECT id, COALESCE(raw_user_meta_data->>'username', 'user_' || substr(id::text,
 FROM auth.users
 WHERE id NOT IN (SELECT id FROM profiles)
 ON CONFLICT (id) DO NOTHING;
-

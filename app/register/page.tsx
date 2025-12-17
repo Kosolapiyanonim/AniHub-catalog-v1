@@ -1,180 +1,17 @@
-"use client"
-
-import type React from "react"
-
-import { useState, Suspense } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import Link from "next/link"
-import { useSupabase } from "@/components/supabase-provider"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Suspense } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { Mail, Lock, User, Chrome, Music } from "lucide-react"
-import { toast } from "sonner"
+import { RegisterForm } from "./register-form"
 
-function RegisterForm() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [fullName, setFullName] = useState("")
-  const [loading, setLoading] = useState(false)
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const { supabase } = useSupabase()
-  
-  // Get redirect URL from query params, default to "/"
-  const redirectTo = searchParams.get("redirect") || "/"
+export const dynamic = 'force-dynamic'
 
-  const handleEmailRegister = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-          },
-        },
-      })
-
-      if (error) {
-        toast.error(error.message)
-      } else {
-        toast.success("Проверьте email для подтверждения регистрации!")
-        router.push(`/login${redirectTo !== "/" ? `?redirect=${encodeURIComponent(redirectTo)}` : ""}`)
-      }
-    } catch (error) {
-      toast.error("Произошла ошибка при регистрации")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleGoogleLogin = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`,
-        },
-      })
-
-      if (error) {
-        toast.error(error.message)
-      }
-    } catch (error) {
-      toast.error("Ошибка входа через Google")
-    }
-  }
-
-  const handleSpotifyLogin = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "spotify",
-        options: {
-          redirectTo: `${location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`,
-        },
-      })
-
-      if (error) {
-        toast.error(error.message)
-      }
-    } catch (error) {
-      toast.error("Ошибка входа через Spotify")
-    }
-  }
-
+function RegisterPageFallback() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Регистрация в AniHub</CardTitle>
-          <CardDescription className="text-center">Создайте аккаунт, чтобы сохранять любимые аниме</CardDescription>
+          <CardDescription className="text-center">Загрузка...</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <form onSubmit={handleEmailRegister} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Полное имя</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="Ваше имя"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="pl-10"
-                  required
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
-                  required
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Пароль</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
-                  required
-                  minLength={6}
-                />
-              </div>
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Регистрация..." : "Зарегистрироваться"}
-            </Button>
-          </form>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <Separator className="w-full" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Или войдите через</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Button variant="outline" onClick={handleGoogleLogin}>
-              <Chrome className="mr-2 h-4 w-4" />
-              Google
-            </Button>
-            <Button variant="outline" onClick={handleSpotifyLogin}>
-              <Music className="mr-2 h-4 w-4" />
-              Spotify
-            </Button>
-          </div>
-
-          <div className="text-center text-sm">
-            <span className="text-muted-foreground">Уже есть аккаунт? </span>
-            <Link href={`/login${redirectTo !== "/" ? `?redirect=${encodeURIComponent(redirectTo)}` : ""}`} className="text-primary hover:underline">
-              Войти
-            </Link>
-          </div>
-        </CardContent>
       </Card>
     </div>
   )
@@ -182,16 +19,7 @@ function RegisterForm() {
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">Регистрация в AniHub</CardTitle>
-            <CardDescription className="text-center">Загрузка...</CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
-    }>
+    <Suspense fallback={<RegisterPageFallback />}>
       <RegisterForm />
     </Suspense>
   )

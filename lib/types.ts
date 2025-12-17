@@ -1,6 +1,6 @@
 // Базовые типы для Kodik API
 export interface KodikTranslation {
-  id: string
+  id: number
   title: string
   type: string
 }
@@ -15,14 +15,19 @@ export interface KodikMaterialData {
   anime_description?: string
   year?: number
   kinopoisk_rating?: number
+  imdb_rating?: number
   shikimori_rating?: number
   shikimori_votes?: number
+  kinopoisk_votes?: number
   anime_genres?: string[]
   anime_studios?: string[]
   countries?: string[]
   anime_status?: string
+  anime_kind?: string
   episodes_count?: number
+  episodes_total?: number
   duration?: number
+  rating_mpaa?: string
 }
 
 export interface KodikAnimeData {
@@ -35,7 +40,12 @@ export interface KodikAnimeData {
   quality?: string
   translation: KodikTranslation
   episodes_count?: number
+  last_episode?: number
   shikimori_id?: string
+  kinopoisk_id?: string
+  poster_url?: string
+  screenshots?: string[]
+  updated_at?: string
   material_data?: KodikMaterialData
 }
 

@@ -5,26 +5,29 @@ import type { KodikAnimeData } from "@/lib/types"
 export function transformToAnimeRecord(anime: KodikAnimeData) {
   const material = anime.material_data || {}
 
-  const poster = material.poster_url || anime.poster_url
+  const poster = material.anime_poster_url || material.poster_url || null
   return {
-    poster_url: poster || null,
-    screenshots: anime.screenshots || [],
     shikimori_id: anime.shikimori_id,
+    kinopoisk_id: anime.kinopoisk_id || null,
     title: material.anime_title || anime.title,
-    title_orig: anime.title_orig,
-    year: anime.year,
-    description: material.description || "Описание отсутствует.",
-    status: material.anime_status,
+    title_orig: anime.title_orig || null,
+    year: anime.year || null,
+    poster_url: poster,
+    description: material.anime_description || material.description || "Описание отсутствует.",
     type: anime.type,
-    // ИЗМЕНЕНИЕ: Добавляем новое поле anime_kind
-    anime_kind: material.anime_kind,
+    anime_kind: material.anime_kind || null,
+    status: material.anime_status || null,
+    episodes_count: anime.episodes_count || 0,
     episodes_total: material.episodes_total || anime.episodes_count || 0,
     episodes_aired: anime.last_episode || 0,
-    shikimori_rating: material.shikimori_rating,
-    shikimori_votes: material.shikimori_votes,
-    rating_mpaa: material.rating_mpaa,
-    updated_at_kodik: anime.updated_at,
-    raw_data: anime,
+    rating_mpaa: material.rating_mpaa || null,
+    kinopoisk_rating: material.kinopoisk_rating || null,
+    imdb_rating: material.imdb_rating || null,
+    shikimori_rating: material.shikimori_rating || null,
+    kinopoisk_votes: material.kinopoisk_votes || null,
+    shikimori_votes: material.shikimori_votes || null,
+    screenshots: anime.screenshots || [],
+    updated_at_kodik: anime.updated_at || null,
   }
 }
 
@@ -32,9 +35,9 @@ export function transformToAnimeRecord(anime: KodikAnimeData) {
 export async function processAllRelationsForAnime(supabase: any, anime: KodikAnimeData, animeId: number) {
   const material = anime.material_data || {}
   await Promise.all([
-    processRelation(supabase, "genre", "genres", animeId, material.genres || []),
-    processRelation(supabase, "studio", "studios", animeId, material.studios || []),
-    processRelation(supabase, "tag", "tags", animeId, material.mydramalist_tags || []),
+    processRelation(supabase, "genre", "genres", animeId, material.anime_genres || []),
+    processRelation(supabase, "studio", "studios", animeId, material.anime_studios || []),
+    processRelation(supabase, "country", "countries", animeId, material.countries || []),
   ])
 }
 

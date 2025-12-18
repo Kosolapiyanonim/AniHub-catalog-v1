@@ -5,9 +5,18 @@
  * - admin: Full access, can delete any comments, manage users
  * - manager: Moderate access, can manage content
  * - viewer: Default role, basic user permissions
+ * 
+ * Future: VIP ranks can be added as a separate field (e.g., vip_tier: 'bronze' | 'silver' | 'gold' | 'platinum')
+ * or as additional roles if they need different permissions
  */
 
 export type UserRole = 'admin' | 'manager' | 'viewer'
+
+/**
+ * Future VIP tier types (for future implementation)
+ * Can be added as a separate field in profiles table
+ */
+export type VipTier = 'bronze' | 'silver' | 'gold' | 'platinum' | null
 
 export interface UserProfile {
   id: string

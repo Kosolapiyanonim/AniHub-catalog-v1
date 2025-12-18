@@ -1,8 +1,7 @@
 // src/app/api/search/route.ts
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
@@ -23,24 +22,39 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: validation.error.format() }, { status: 400 })
   }
 
-  const validatedQuery = validation.data.query
-  const cookieStore = cookies()
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
-  const ftsQuery = validatedQuery.trim().split(' ').join(' & ')
+  const validatedQuery = validation.data.query.trim()
+  
+  // Используем публичный клиент, как в catalog API
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return NextResponse.json({ error: 'Supabase configuration missing' }, { status: 500 })
+  }
+  
+  const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-  // --- [ИЗМЕНЕНИЕ] Выполняем два запроса параллельно ---
+  // Используем ILIKE поиск, как в catalog API (строка 101)
+  // Ищем по title и title_orig одновременно
+  // Формат: title.ilike.%query%,title_orig.ilike.%query%
+  
+  // Выполняем два запроса параллельно
   const [dataResponse, countResponse] = await Promise.all([
     // Запрос №1: получаем 8 записей с детальной информацией
     supabase
       .from('animes')
-      .select('title, poster_url, year, shikimori_id, type, status, raw_data')
-      .textSearch('ts_document', ftsQuery, { type: 'websearch', config: 'russian' })
+      .select('title, poster_url, year, shikimori_id, type, status, raw_data', { count: 'exact' })
+      .or(`title.ilike.%${validatedQuery}%,title_orig.ilike.%${validatedQuery}%`)
+      .not('shikimori_id', 'is', null)
+      .not('poster_url', 'is', null)
       .limit(8),
     // Запрос №2: получаем только общее количество
     supabase
       .from('animes')
       .select('*', { count: 'exact', head: true })
-      .textSearch('ts_document', ftsQuery, { type: 'websearch', config: 'russian' }),
+      .or(`title.ilike.%${validatedQuery}%,title_orig.ilike.%${validatedQuery}%`)
+      .not('shikimori_id', 'is', null)
+      .not('poster_url', 'is', null),
   ])
   
   const { data, error: dataError } = dataResponse
@@ -51,6 +65,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 
-  // --- [ИЗМЕНЕНИЕ] Возвращаем и данные, и общее количество ---
-  return NextResponse.json({ data, total: count ?? 0 })
+  // Возвращаем и данные, и общее количество
+  return NextResponse.json({ data: data || [], total: count ?? 0 })
 }

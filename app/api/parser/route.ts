@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import type { KodikAnimeData, AnimeRecord } from "@/lib/types";
+import { normalizeShikimoriImageUrl } from "@/lib/normalizeShikimoriImageUrl";
 
 // ====================================================================
 // GET-обработчик для проверки статуса (решает ошибку 405)
@@ -131,13 +132,16 @@ export async function POST(request: Request) {
       // 3. Формируем и вставляем/обновляем ОСНОВНЫЕ записи аниме
       const animeRecordsToUpsert = uniqueAnimeList.map(anime => {
           const material = anime.material_data || {};
+          const poster = material.anime_poster_url || material.poster_url || null;
+          // Нормализуем poster_url: если normalize вернул null, но исходное значение было, оставляем исходное
+          const normalizedPoster = normalizeShikimoriImageUrl(poster) ?? poster ?? null;
           return { /* ... формирование объекта AnimeRecord ... */
             shikimori_id: anime.shikimori_id,
             kinopoisk_id: anime.kinopoisk_id,
             title: material.anime_title || anime.title,
             title_orig: anime.title_orig,
             year: anime.year,
-            poster_url: material.anime_poster_url || material.poster_url,
+            poster_url: normalizedPoster,
             description: material.anime_description || material.description || "Описание отсутствует.",
             type: anime.type,
             status: material.anime_status,

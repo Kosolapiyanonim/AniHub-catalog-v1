@@ -56,12 +56,21 @@ function NotificationsDropdown() {
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userProfile, setUserProfile] = useState<{ username: string | null } | null>(null)
+  const [scrolled, setScrolled] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
   const { supabase, session, loading } = useSupabase()
   const user = session?.user ?? null
 
   const toggleSearch = useSearchStore((state) => state.toggle)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20)
+    }
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
 
   // Load user profile
   useEffect(() => {
@@ -110,30 +119,30 @@ export function Header() {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-40 bg-slate-900/95 backdrop-blur-sm border-b border-slate-800">
+      <header className={`fixed inset-x-0 top-0 z-40 transition-all duration-300 ${scrolled ? "bg-background/95 backdrop-blur-md border-b border-border shadow-lg shadow-black/10" : "bg-transparent border-b border-transparent"}`}>
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="text-xl font-bold text-white hover:text-purple-400 transition-colors">
+          <Link href="/" className="text-xl font-display font-bold text-foreground hover:text-primary transition-colors">
             AniHub
           </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-6">
-            <Link href="/catalog" className="text-sm font-medium hover:text-purple-400 transition-colors">
+            <Link href="/catalog" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
               Каталог
             </Link>
             <Button
               variant="outline"
-              className="h-9 text-sm text-muted-foreground border-slate-700 hover:bg-slate-800"
+              className="h-9 text-sm text-muted-foreground border-border hover:bg-secondary hover:text-foreground"
               onClick={toggleSearch}
             >
               <Search className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Поиск...</span>
-              <span className="ml-2 sm:ml-4 text-xs bg-slate-700 rounded-sm px-1.5 py-0.5 hidden md:inline">
+              <span className="ml-2 sm:ml-4 text-xs bg-secondary rounded-md px-1.5 py-0.5 hidden md:inline">
                 Ctrl+K
               </span>
             </Button>
-            <Link href="/popular" className="text-sm font-medium hover:text-purple-400 transition-colors">
+            <Link href="/popular" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
               Популярное
             </Link>
           </nav>
@@ -217,16 +226,16 @@ export function Header() {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[280px] sm:w-[350px] bg-slate-900 border-slate-800">
+              <SheetContent side="right" className="w-[280px] sm:w-[350px] bg-background border-border">
                 <SheetHeader>
-                  <SheetTitle className="text-left text-white">Меню</SheetTitle>
+                  <SheetTitle className="text-left text-foreground font-display">Меню</SheetTitle>
                 </SheetHeader>
 
                 <div className="flex flex-col space-y-4 mt-8">
                   {/* Search Button */}
                   <Button
                     variant="outline"
-                    className="justify-start h-12 border-slate-700 hover:bg-slate-800"
+                    className="justify-start h-12 border-border hover:bg-secondary"
                     onClick={() => {
                       toggleSearch()
                       setMobileMenuOpen(false)
@@ -239,7 +248,7 @@ export function Header() {
                   {/* Navigation Links */}
                   <Link
                     href="/"
-                    className="flex items-center py-3 px-2 text-white hover:text-purple-400 transition-colors"
+                    className="flex items-center py-3 px-2 text-foreground hover:text-primary transition-colors rounded-lg hover:bg-secondary"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <Home className="mr-3 h-5 w-5" />
@@ -248,7 +257,7 @@ export function Header() {
 
                   <Link
                     href="/catalog"
-                    className="flex items-center py-3 px-2 text-white hover:text-purple-400 transition-colors"
+                    className="flex items-center py-3 px-2 text-foreground hover:text-primary transition-colors rounded-lg hover:bg-secondary"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <Bookmark className="mr-3 h-5 w-5" />
@@ -257,7 +266,7 @@ export function Header() {
 
                   <Link
                     href="/popular"
-                    className="flex items-center py-3 px-2 text-white hover:text-purple-400 transition-colors"
+                    className="flex items-center py-3 px-2 text-foreground hover:text-primary transition-colors rounded-lg hover:bg-secondary"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <Heart className="mr-3 h-5 w-5" />
@@ -266,15 +275,15 @@ export function Header() {
 
                   {/* User Section */}
                   {user ? (
-                    <div className="pt-4 border-t border-slate-700 space-y-2">
+                    <div className="pt-4 border-t border-border space-y-2">
                       <div className="px-2 py-2">
-                        <p className="text-sm font-medium text-white truncate">{getUserName(user)}</p>
-                        <p className="text-xs text-slate-400 truncate">{user.email}</p>
+                        <p className="text-sm font-medium text-foreground truncate">{getUserName(user)}</p>
+                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                       </div>
 
                       <Link
                         href={`/profile/${user.id}`}
-                        className="flex items-center py-3 px-2 text-white hover:text-purple-400 transition-colors"
+                        className="flex items-center py-3 px-2 text-foreground hover:text-primary transition-colors rounded-lg hover:bg-secondary"
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         <User className="mr-3 h-5 w-5" />
@@ -283,7 +292,7 @@ export function Header() {
 
                       <Link
                         href={`/profile/${user.id}/lists`}
-                        className="flex items-center py-3 px-2 text-white hover:text-purple-400 transition-colors"
+                        className="flex items-center py-3 px-2 text-foreground hover:text-primary transition-colors rounded-lg hover:bg-secondary"
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         <Heart className="mr-3 h-5 w-5" />
@@ -292,7 +301,7 @@ export function Header() {
 
                       <Link
                         href="/settings"
-                        className="flex items-center py-3 px-2 text-white hover:text-purple-400 transition-colors"
+                        className="flex items-center py-3 px-2 text-foreground hover:text-primary transition-colors rounded-lg hover:bg-secondary"
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         <Settings className="mr-3 h-5 w-5" />
@@ -312,9 +321,9 @@ export function Header() {
                       </div>
                     </div>
                   ) : (
-                    <div className="pt-4 border-t border-slate-700 space-y-2">
+                    <div className="pt-4 border-t border-border space-y-2">
                       <Link href={getLoginUrl(pathname)} onClick={() => setMobileMenuOpen(false)}>
-                        <Button variant="outline" className="w-full justify-start h-12 border-slate-700">
+                        <Button variant="outline" className="w-full justify-start h-12 border-border">
                           <User className="mr-3 h-5 w-5" />
                           Войти
                         </Button>

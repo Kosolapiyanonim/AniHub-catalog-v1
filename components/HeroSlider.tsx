@@ -45,7 +45,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
   if (!validItems || validItems.length === 0) {
     return (
       <div
-        className={`relative w-full ${isFullscreen ? "h-[calc(100vh-4rem)]" : "h-[70vh] min-h-[500px]"} flex items-center justify-center bg-gradient-to-br from-slate-900 to-indigo-950 text-white ${!isFullscreen ? "container mx-auto px-4 rounded-lg" : ""}`}
+        className={`relative w-full ${isFullscreen ? "h-screen" : "h-[70vh] min-h-[500px]"} flex items-center justify-center bg-gradient-to-br from-background to-secondary text-foreground ${!isFullscreen ? "md:container md:mx-auto md:px-4 md:rounded-lg" : ""}`}
       >
         <p className="text-xl text-center px-4">Отметьте аниме в базе для отображения в Hero-секции...</p>
       </div>
@@ -54,7 +54,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
 
   return (
     <div
-      className={`relative w-full ${isFullscreen ? "h-[calc(100vh-4rem)]" : "h-[70vh] min-h-[500px]"} overflow-hidden ${!isFullscreen ? "container mx-auto px-4" : ""}`}
+      className={`relative w-full ${isFullscreen ? "h-screen" : "h-[70vh] min-h-[500px]"} overflow-hidden ${!isFullscreen ? "md:container md:mx-auto md:px-4" : ""}`}
     >
       {/* Кнопка переключения режима - только на десктопе */}
       <Button
@@ -119,11 +119,11 @@ export function HeroSlider({ items }: HeroSliderProps) {
                       sizes="100vw"
                     />
                     {/* Усиленный градиент для лучшей читаемости */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-slate-900/20"></div>
-                    <div className="absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t from-slate-900 via-slate-900/80 to-transparent"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/20"></div>
+                    <div className="absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
                   </div>
 
-                  <div className="relative z-10 h-full w-full flex flex-col justify-end p-4 sm:p-6 pb-20">
+                  <div className="relative z-10 h-full w-full flex flex-col justify-end px-4 sm:px-6 pb-8">
                     <div className="text-white mb-6">
                       <Badge
                         variant="secondary"
@@ -208,7 +208,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
 
                 {/* --- ДЕСКТОПНАЯ ВЕРСИЯ --- */}
                 <div
-                  className={`hidden md:block relative w-full ${isFullscreen ? "h-[calc(100vh-4rem)]" : "h-[70vh] min-h-[500px]"} ${!isFullscreen ? "rounded-lg overflow-hidden" : ""}`}
+                  className={`hidden md:block relative w-full ${isFullscreen ? "h-screen" : "h-[70vh] min-h-[500px]"} ${!isFullscreen ? "rounded-lg overflow-hidden" : ""}`}
                 >
                   <div className="absolute inset-0 z-0">
                     <div className="absolute inset-y-0 left-0 w-1/2 filter blur-md scale-110">
@@ -222,8 +222,8 @@ export function HeroSlider({ items }: HeroSliderProps) {
                       />
                     </div>
                     {/* Усиленный градиент для лучшей читаемости */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-slate-900/75 to-slate-900/30"></div>
-                    <div className="absolute bottom-0 left-0 right-0 h-2/5 bg-gradient-to-t from-slate-900 via-slate-900/80 to-transparent"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-background via-background/75 to-background/30"></div>
+                    <div className="absolute bottom-0 left-0 right-0 h-2/5 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
                   </div>
 
                   <div className="relative z-10 h-full w-full flex flex-row items-center p-8 lg:p-12 xl:p-16">

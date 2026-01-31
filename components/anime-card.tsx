@@ -32,7 +32,7 @@ export function AnimeCard({ anime, priority = false, onStatusChange }: AnimeCard
   return (
     <AnimeListPopover anime={anime} onStatusChange={onStatusChange}>
       <Link href={`/anime/${anime.shikimori_id}`} className="block group">
-        <div className="aspect-[2/3] overflow-hidden rounded-lg bg-slate-800 relative">
+        <div className="aspect-[2/3] overflow-hidden rounded-lg bg-card relative shadow-md shadow-black/20 ring-1 ring-border/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-primary/10 group-hover:ring-primary/30">
           <AnimeCardListButton
             animeId={anime.id}
             initialStatus={anime.user_list_status}
@@ -44,18 +44,18 @@ export function AnimeCard({ anime, priority = false, onStatusChange }: AnimeCard
                   alt={anime.title}
                   fill
                   sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-                  className="object-cover transition-transform duration-300 group-hover:scale-105"
+                  className="object-cover transition-transform duration-500 group-hover:scale-110"
                   priority={priority}
               />
           ) : (
-              <div className="flex items-center justify-center h-full text-slate-500 text-xs p-2">Постер отсутствует</div>
+              <div className="flex items-center justify-center h-full text-muted-foreground text-xs p-2">Постер отсутствует</div>
           )}
-          {/* --- [ИЗМЕНЕНИЕ] Отображаем прогресс-бар, если он есть --- */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           {progressPercent !== null && <Progress value={progressPercent} />}
         </div>
-        <div className="mt-2">
-            <h3 className="text-sm font-medium text-white truncate group-hover:text-purple-400">{anime.title}</h3>
-            <p className="text-xs text-slate-400">
+        <div className="mt-3">
+            <h3 className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors duration-200">{anime.title}</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
                 {formatAnimeType(anime.type)}
                 {anime.year && anime.type ? ' • ' : ''}
                 {anime.year}

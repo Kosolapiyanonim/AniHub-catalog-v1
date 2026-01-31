@@ -1,14 +1,16 @@
 import type React from "react";
 import type { Metadata } from "next";
-import { Inter } from 'next/font/google';
+import { Inter, Space_Grotesk } from 'next/font/google';
 import Script from "next/script";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { Header } from "@/components/header";
-import { MobileBottomNav } from "@/components/mobile-bottom-nav"; // Импортируем MobileBottomNav
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
+import { ScrollToTop } from "@/components/scroll-to-top";
 import { Suspense } from "react";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter" });
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk" });
 
 export const metadata: Metadata = {
   title: "AniHub - Смотри аниме онлайн бесплатно",
@@ -19,7 +21,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode; }) {
   return (
     <html lang="ru" suppressHydrationWarning>
-      <body className={`${inter.className} bg-slate-900 text-white`}>
+      <body className={`${inter.variable} ${spaceGrotesk.variable} font-sans antialiased bg-background text-foreground`}>
         {/* --- Google Analytics (gtag.js) --- */}
         {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
           <>
@@ -45,8 +47,9 @@ export default function RootLayout({ children }: { children: React.ReactNode; })
             </Suspense>
             <main className="flex-1 pb-16">{children}</main> {/* Добавлен padding-bottom для нижней навигации */}
             <Suspense>
-              <MobileBottomNav /> {/* Добавлена мобильная нижняя навигация */}
+              <MobileBottomNav />
             </Suspense>
+            <ScrollToTop />
           </div>
         </Providers>
       </body>

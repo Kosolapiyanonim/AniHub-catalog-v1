@@ -8,7 +8,9 @@ export default async function HomePage() {
 
   return (
     <>
-      <HeroSlider items={sections.hero} />
+      <div className="-mt-16">
+        <HeroSlider items={sections.hero} />
+      </div>
       
       <main className="container mx-auto px-4 py-12 space-y-16">
         {sections.popular && sections.popular.length > 0 && (

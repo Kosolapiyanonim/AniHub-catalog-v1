@@ -45,7 +45,8 @@ export default function RootLayout({ children }: { children: React.ReactNode; })
             <Suspense>
               <Header />
             </Suspense>
-            <main className="flex-1 pb-16">{children}</main> {/* Добавлен padding-bottom для нижней навигации */}
+            <div className="h-16" /> {/* Spacer for fixed header */}
+            <main className="flex-1 pb-16 md:pb-0">{children}</main>
             <Suspense>
               <MobileBottomNav />
             </Suspense>

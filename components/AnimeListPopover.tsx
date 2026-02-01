@@ -52,10 +52,23 @@ export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListP
   const [loading, setLoading] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setCurrentStatus(anime.user_list_status);
   }, [anime.user_list_status]);
+
+  useEffect(() => {
+    if (isOpen) {
+      // Prevent body scroll when popover is open
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
 
   const handleStatusChange = async (newStatus: string) => {
     if (!session) return toast.error("Нужно войти в аккаунт");
@@ -65,7 +78,7 @@ export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListP
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ anime_id: anime.id, status: newStatus }),
-        credentials: 'include', // Ensure cookies are sent
+        credentials: 'include',
       });
       if (!response.ok) throw new Error("Server error");
       const newResolvedStatus = newStatus === 'remove' ? null : newStatus;
@@ -76,7 +89,6 @@ export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListP
       toast.error("Не удалось обновить статус.");
     } finally {
       setLoading(false);
-      setIsOpen(false);
     }
   };
 
@@ -88,7 +100,7 @@ export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListP
   const handleMouseLeave = () => {
     timerRef.current = setTimeout(() => {
       setIsOpen(false);
-    }, 200);
+    }, 50);
   };
 
   const statusInfo = session && currentStatus ? statusMap.get(currentStatus) : null;
@@ -100,77 +112,126 @@ export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListP
         {children}
       </PopoverTrigger>
       <PopoverContent 
-        className="w-80 bg-popover/95 backdrop-blur-sm border-border text-popover-foreground p-4 space-y-3" 
+        ref={popoverRef}
+        className="w-96 bg-popover backdrop-blur-lg border border-border text-popover-foreground p-0 shadow-2xl rounded-xl overflow-hidden dark:bg-popover/98 dark:border-border/50" 
         onMouseEnter={handleMouseEnter} 
         onMouseLeave={handleMouseLeave}
-        side="right" align="start" sideOffset={10}
+        side="right" align="start" sideOffset={12}
       >
-        <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => setIsOpen(false)}>
-            <X className="h-4 w-4" />
-        </Button>
+        <div className="max-h-[600px] overflow-y-auto">
+          {/* Header */}
+          <div className="sticky top-0 bg-popover backdrop-blur-sm p-4 border-b border-border/30 flex items-start justify-between gap-3 dark:bg-gradient-to-b dark:from-popover dark:to-popover/95">
+            <div className="flex-1 pr-2">
+              <h4 className="font-bold text-base leading-tight text-foreground">{anime.title}</h4>
+              <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
+                {anime.shikimori_rating && <><Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" /><span className="font-medium">{anime.shikimori_rating}</span></>}
+                {anime.year && <span className="before:content-['•'] before:mr-2">{anime.year}</span>}
+                {anime.type && <span className="before:content-['•'] before:mr-2">{anime.type}</span>}
+              </div>
+            </div>
+            <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-foreground" onClick={() => setIsOpen(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
 
-        <h4 className="font-bold text-lg pr-6">{anime.title}</h4>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            {anime.shikimori_rating && <><Star className="w-4 h-4 text-yellow-500" /><span>{anime.shikimori_rating}</span></>}
-            {anime.year && <span>• {anime.year}</span>}
-        </div>
-        
-        <p className={`text-sm text-muted-foreground ${!isDescriptionExpanded && 'line-clamp-3'}`}>
-            {anime.description || "Описание отсутствует."}
-        </p>
-        {(anime.description?.length || 0) > 150 && (
-            <button className="text-xs text-primary hover:underline" onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
-                {isDescriptionExpanded ? "Свернуть" : "Развернуть"}
-            </button>
-        )}
-        
-        <div className="flex flex-wrap gap-1">
-            {anime.genres?.slice(0, 3).map(g => <Badge key={g.name} variant="secondary">{g.name}</Badge>)}
-        </div>
-        
-        {session ? (
-          <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="item-1" className="border-b-0">
-                  <AccordionTrigger className="p-0 hover:no-underline text-sm font-medium rounded-md hover:bg-secondary px-2 -mx-2">
-                      <div className="flex items-center">
-                          {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CurrentIcon className="w-4 h-4 mr-2" />}
-                          <span>{statusInfo ? statusInfo.label : "Добавить в список"}</span>
-                      </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="pt-2">
-                      <div className="grid grid-cols-2 gap-1">
-                          {statuses.map(status => (
-                              <Button key={status.key} variant={currentStatus === status.key ? "secondary" : "ghost"} size="sm" onClick={() => handleStatusChange(status.key)} className="justify-start">
-                                  <status.icon className="h-4 w-4 mr-2" />
-                                  {status.label}
-                              </Button>
-                          ))}
-                      </div>
-                      {currentStatus && (
-                          <>
-                            <div className="my-1 h-px bg-border" />
-                            <Button variant="ghost" size="sm" onClick={() => handleStatusChange("remove")} className="w-full justify-start text-red-500 hover:!text-red-500 hover:!bg-red-500/10">
-                                <Trash2 className="h-4 w-4 mr-2" />Удалить из списка
-                            </Button>
-                          </>
-                      )}
-                  </AccordionContent>
-              </AccordionItem>
-          </Accordion>
-        ) : (
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground text-center">Войдите, чтобы добавить в список</p>
-            <Button variant="outline" size="sm" className="w-full" asChild>
-              <Link href={getLoginUrl(pathname)}>
-                <Plus className="w-4 h-4 mr-2" />Войти для добавления в список
+          {/* Content */}
+          <div className="p-4 space-y-3">
+            {/* Description */}
+            {anime.description && (
+              <div className="text-xs leading-relaxed text-muted-foreground space-y-1">
+                <p className={!isDescriptionExpanded ? 'line-clamp-2' : ''}>
+                  {anime.description}
+                </p>
+                {(anime.description?.length || 0) > 100 && (
+                  <button 
+                    className="inline-block text-primary text-[0.65rem] font-semibold hover:underline cursor-pointer"
+                    onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                  >
+                    {isDescriptionExpanded ? "Свернуть" : "Еще"}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Genres */}
+            {anime.genres && anime.genres.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {anime.genres.slice(0, 4).map(g => (
+                  <Badge key={g.name} variant="secondary" className="text-xs">{g.name}</Badge>
+                ))}
+              </div>
+            )}
+
+            <div className="h-px bg-border/30" />
+
+            {/* Status Section */}
+            {session ? (
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Мой статус</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {statuses.slice(0, 3).map(status => (
+                    <Button 
+                      key={status.key} 
+                      variant={currentStatus === status.key ? "default" : "outline"} 
+                      size="sm" 
+                      onClick={() => handleStatusChange(status.key)}
+                      disabled={loading}
+                      className="h-8 text-xs"
+                    >
+                      <status.icon className="h-3.5 w-3.5 mr-1" />
+                      <span className="hidden sm:inline">{status.label}</span>
+                    </Button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {statuses.slice(3).map(status => (
+                    <Button 
+                      key={status.key} 
+                      variant={currentStatus === status.key ? "default" : "outline"} 
+                      size="sm" 
+                      onClick={() => handleStatusChange(status.key)}
+                      disabled={loading}
+                      className="h-8 text-xs"
+                    >
+                      <status.icon className="h-3.5 w-3.5 mr-1" />
+                      <span className="hidden sm:inline">{status.label}</span>
+                    </Button>
+                  ))}
+                </div>
+                {currentStatus && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => handleStatusChange("remove")}
+                    disabled={loading}
+                    className="w-full h-8 text-xs text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />Удалить
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-2 space-y-2">
+                <p className="text-xs text-muted-foreground">Войдите в аккаунт</p>
+                <p className="text-[0.7rem] text-muted-foreground/70">чтобы добавить в список</p>
+                <Button variant="outline" size="sm" className="w-full h-8 text-xs" asChild>
+                  <Link href={getLoginUrl(pathname)}>
+                    <Plus className="h-3 w-3 mr-1" />Войти
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="border-t border-border/30 p-3 bg-popover/70 dark:bg-popover/50">
+            <Button variant="outline" size="sm" className="w-full h-8 text-xs" asChild>
+              <Link href={`/anime/${anime.shikimori_id}`}>
+                <Info className="h-3.5 w-3.5 mr-1.5" />Подробнее
               </Link>
             </Button>
           </div>
-        )}
-
-        <Button variant="outline" size="sm" className="w-full" asChild>
-            <Link href={`/anime/${anime.shikimori_id}`}><Info className="w-4 h-4 mr-2" />Подробнее</Link>
-        </Button>
+        </div>
       </PopoverContent>
     </Popover>
   );

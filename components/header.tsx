@@ -17,6 +17,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Menu, Bell, User, LogOut, Settings, Heart, Search, CheckCheck, Home, Bookmark } from "lucide-react"
 import { CommandPalette } from "./command-palette"
+import { ThemeToggle } from "./theme-toggle"
 import { toast } from "sonner"
 import { useSupabase } from "@/components/supabase-provider"
 import { useSearchStore } from "@/hooks/use-search-store"
@@ -154,10 +155,13 @@ export function Header() {
             </Button>
           </div>
 
-          {/* Right side */}
-          <div className="flex items-center gap-2">
+{/* Right side */}
+            <div className="flex items-center gap-2">
+            <div className="hidden sm:block">
+              <ThemeToggle />
+            </div>
             {loading ? (
-              <div className="h-9 w-9 rounded-full bg-slate-800 animate-pulse" />
+              <div className="h-9 w-9 rounded-full bg-muted animate-pulse" />
             ) : user ? (
               <div className="flex items-center space-x-2">
                 <div className="hidden sm:block">
@@ -316,12 +320,17 @@ export function Header() {
                         Выйти
                       </button>
 
-                      <div className="sm:hidden pt-2">
+                      <div className="sm:hidden pt-2 flex items-center gap-2">
                         <NotificationsDropdown />
+                        <ThemeToggle />
                       </div>
                     </div>
                   ) : (
                     <div className="pt-4 border-t border-border space-y-2">
+                      <div className="sm:hidden flex items-center justify-between px-2 py-2">
+                        <span className="text-sm text-muted-foreground">Тема оформления</span>
+                        <ThemeToggle />
+                      </div>
                       <Link href={getLoginUrl(pathname)} onClick={() => setMobileMenuOpen(false)}>
                         <Button variant="outline" className="w-full justify-start h-12 border-border">
                           <User className="mr-3 h-5 w-5" />

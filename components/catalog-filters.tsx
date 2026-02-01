@@ -111,7 +111,7 @@ export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps)
               checked={selected.includes(item)}
               onCheckedChange={(checked) => handleCheckboxChange(item, !!checked)}
             />
-            <Label htmlFor={`filter-${item}`} className="capitalize text-gray-300">
+            <Label htmlFor={`filter-${item}`} className="capitalize text-muted-foreground">
               {item}
             </Label>
           </div>
@@ -123,20 +123,20 @@ export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps)
   // Вспомогательный компонент для секции фильтра
   const FilterSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <AccordionItem value={title.toLowerCase().replace(/\s/g, "-")}>
-      <AccordionTrigger className="text-white hover:no-underline">{title}</AccordionTrigger>
+      <AccordionTrigger className="text-foreground hover:no-underline">{title}</AccordionTrigger>
       <AccordionContent className="pt-2">{children}</AccordionContent>
     </AccordionItem>
   )
 
   return (
-    <Card className="sticky top-20 bg-slate-800 border-slate-700">
+    <Card className="sticky top-20 bg-card border-border">
       <CardHeader>
         <div className="flex justify-between items-center">
-          <CardTitle className="flex items-center gap-2 text-white">
+          <CardTitle className="flex items-center gap-2 text-foreground">
             <SlidersHorizontal className="w-5 h-5" />
             Фильтры
           </CardTitle>
-          <Button onClick={handleReset} variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+          <Button onClick={handleReset} variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
             Сбросить
           </Button>
         </div>
@@ -152,20 +152,20 @@ export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps)
             placeholder="Название аниме..."
             value={filters.title}
             onChange={(e) => setFilters((prev) => ({ ...prev, title: e.target.value }))}
-            className="bg-slate-700 border-slate-600 text-white placeholder:text-gray-400"
+            className="bg-secondary border-border text-foreground placeholder:text-muted-foreground"
           />
         </div>
 
         {/* Сортировка */}
         <div className="space-y-2">
-          <Label htmlFor="sort-by" className="text-gray-300">
+          <Label htmlFor="sort-by" className="text-muted-foreground">
             Сортировать по
           </Label>
           <Select value={filters.sort} onValueChange={(val) => setFilters((prev) => ({ ...prev, sort: val }))}>
-            <SelectTrigger className="w-full bg-slate-700 border-slate-600 text-white">
+            <SelectTrigger className="w-full bg-secondary border-border text-foreground">
               <SelectValue placeholder="Выберите опцию" />
             </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700 text-white">
+            <SelectContent className="bg-popover border-border text-popover-foreground">
               <SelectItem value="shikimori_votes">Популярности</SelectItem>
               <SelectItem value="year">Году выпуска</SelectItem>
               <SelectItem value="shikimori_rating">Рейтингу</SelectItem>
@@ -175,7 +175,7 @@ export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps)
           </Select>
         </div>
 
-        <Button onClick={handleApply} className="w-full bg-primary hover:bg-primary/90 text-white">
+        <Button onClick={handleApply} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
           Применить
         </Button>
 
@@ -206,14 +206,14 @@ export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps)
                 placeholder="От"
                 value={filters.year_from}
                 onChange={(e) => setFilters((prev) => ({ ...prev, year_from: e.target.value }))}
-                className="w-1/2 bg-slate-700 border-slate-600 text-white placeholder:text-gray-400"
+                className="w-1/2 bg-secondary border-border text-foreground placeholder:text-muted-foreground"
               />
               <Input
                 type="number"
                 placeholder="До"
                 value={filters.year_to}
                 onChange={(e) => setFilters((prev) => ({ ...prev, year_to: e.target.value }))}
-                className="w-1/2 bg-slate-700 border-slate-600 text-white placeholder:text-gray-400"
+                className="w-1/2 bg-secondary border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
           </FilterSection>
@@ -257,10 +257,10 @@ export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps)
                 value={filters.user_list_status}
                 onValueChange={(val) => setFilters((prev) => ({ ...prev, user_list_status: val }))}
               >
-                <SelectTrigger className="w-full bg-slate-700 border-slate-600 text-white">
+                <SelectTrigger className="w-full bg-secondary border-border text-foreground">
                   <SelectValue placeholder="Выберите статус" />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                <SelectContent className="bg-popover border-border text-popover-foreground">
                   <SelectItem value="all">Все</SelectItem> {/* <-- ИЗМЕНЕНИЕ: Значение не пустое */}
                   <SelectItem value="watching">Смотрю</SelectItem>
                   <SelectItem value="planned">Запланировано</SelectItem>

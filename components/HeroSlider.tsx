@@ -174,8 +174,8 @@ export function HeroSlider({ items }: HeroSliderProps) {
                             sizes="(max-width: 640px) 50vw, 33vw"
                           />
                         ) : (
-                          <div className="bg-slate-800 w-full h-full flex items-center justify-center">
-                            <span className="text-slate-500 text-[0.6rem]">Нет постера</span>
+                          <div className="bg-muted w-full h-full flex items-center justify-center">
+                            <span className="text-muted-foreground text-[0.6rem]">Нет постера</span>
                           </div>
                         )}
                       </div>
@@ -325,8 +325,8 @@ export function HeroSlider({ items }: HeroSliderProps) {
                             sizes="(max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
                           />
                         ) : (
-                          <div className="bg-slate-800 w-full h-full flex items-center justify-center">
-                            <span className="text-slate-500 text-xs">Нет постера</span>
+                          <div className="bg-muted w-full h-full flex items-center justify-center">
+                            <span className="text-muted-foreground text-xs">Нет постера</span>
                           </div>
                         )}
                       </div>

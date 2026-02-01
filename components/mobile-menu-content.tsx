@@ -23,10 +23,10 @@ export function MobileMenuContent({ onClose }: MobileMenuContentProps) {
   const pathname = usePathname()
 
   return (
-    <div className="flex flex-col h-full p-4 bg-slate-900 text-white">
+    <div className="flex flex-col h-full p-4 bg-background text-foreground">
       {/* Вход / Регистрация - перемещено наверх */}
       <div className="mb-4">
-        <Button size="lg" className="w-full bg-blue-600 hover:bg-blue-700 text-lg" asChild>
+        <Button size="lg" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-lg" asChild>
           <SheetClose asChild>
             <Link href={getLoginUrl(pathname)}>Вход / Регистрация</Link>
           </SheetClose>
@@ -35,13 +35,13 @@ export function MobileMenuContent({ onClose }: MobileMenuContentProps) {
 
       <div className="flex-1 space-y-4">
         {/* Theme Switcher - улучшенный дизайн */}
-        <div className="flex items-center justify-between p-2 rounded-lg bg-slate-800 border border-slate-700">
-          <span className="font-medium text-slate-300">Тема</span>
-          <div className="flex items-center gap-1 bg-slate-700 rounded-md p-0.5">
+        <div className="flex items-center justify-between p-2 rounded-lg bg-secondary border border-border">
+          <span className="font-medium text-muted-foreground">Тема</span>
+          <div className="flex items-center gap-1 bg-muted rounded-md p-0.5">
             <Button
               variant="ghost"
               size="sm"
-              className={`h-8 px-3 rounded-md ${theme === 'light' ? 'bg-slate-600 text-white' : 'text-slate-400 hover:bg-slate-600/50'}`}
+              className={`h-8 px-3 rounded-md ${theme === 'light' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-secondary'}`}
               onClick={() => setTheme('light')}
             >
               <Sun className="h-4 w-4 mr-2" /> Светлая
@@ -49,7 +49,7 @@ export function MobileMenuContent({ onClose }: MobileMenuContentProps) {
             <Button
               variant="ghost"
               size="sm"
-              className={`h-8 px-3 rounded-md ${theme === 'dark' ? 'bg-slate-600 text-white' : 'text-slate-400 hover:bg-slate-600/50'}`}
+              className={`h-8 px-3 rounded-md ${theme === 'dark' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-secondary'}`}
               onClick={() => setTheme('dark')}
             >
               <Moon className="h-4 w-4 mr-2" /> Темная
@@ -57,7 +57,7 @@ export function MobileMenuContent({ onClose }: MobileMenuContentProps) {
           </div>
         </div>
 
-        <Separator className="bg-slate-700" />
+        <Separator className="bg-border" />
 
         <nav className="flex flex-col space-y-2">
           <SheetClose asChild>
@@ -133,7 +133,7 @@ export function MobileMenuContent({ onClose }: MobileMenuContentProps) {
 
       {/* Кнопка закрытия меню */}
       <SheetClose asChild>
-        <Button variant="ghost" className="mt-auto w-full justify-start text-slate-400 hover:text-white">
+        <Button variant="ghost" className="mt-auto w-full justify-start text-muted-foreground hover:text-foreground">
           <ArrowRightToLine className="w-5 h-5 mr-2" />
           Закрыть меню
         </Button>

@@ -100,7 +100,7 @@ export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListP
         {children}
       </PopoverTrigger>
       <PopoverContent 
-        className="w-80 bg-slate-900/80 backdrop-blur-sm border-slate-700 text-white p-4 space-y-3" 
+        className="w-80 bg-popover/95 backdrop-blur-sm border-border text-popover-foreground p-4 space-y-3" 
         onMouseEnter={handleMouseEnter} 
         onMouseLeave={handleMouseLeave}
         side="right" align="start" sideOffset={10}
@@ -110,16 +110,16 @@ export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListP
         </Button>
 
         <h4 className="font-bold text-lg pr-6">{anime.title}</h4>
-        <div className="flex items-center gap-2 text-sm text-gray-400">
-            {anime.shikimori_rating && <><Star className="w-4 h-4 text-yellow-400" /><span>{anime.shikimori_rating}</span></>}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            {anime.shikimori_rating && <><Star className="w-4 h-4 text-yellow-500" /><span>{anime.shikimori_rating}</span></>}
             {anime.year && <span>• {anime.year}</span>}
         </div>
         
-        <p className={`text-sm text-gray-300 ${!isDescriptionExpanded && 'line-clamp-3'}`}>
+        <p className={`text-sm text-muted-foreground ${!isDescriptionExpanded && 'line-clamp-3'}`}>
             {anime.description || "Описание отсутствует."}
         </p>
         {(anime.description?.length || 0) > 150 && (
-            <button className="text-xs text-purple-400 hover:underline" onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
+            <button className="text-xs text-primary hover:underline" onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
                 {isDescriptionExpanded ? "Свернуть" : "Развернуть"}
             </button>
         )}
@@ -131,7 +131,7 @@ export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListP
         {session ? (
           <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="item-1" className="border-b-0">
-                  <AccordionTrigger className="p-0 hover:no-underline text-sm font-medium rounded-md hover:bg-slate-800 px-2 -mx-2">
+                  <AccordionTrigger className="p-0 hover:no-underline text-sm font-medium rounded-md hover:bg-secondary px-2 -mx-2">
                       <div className="flex items-center">
                           {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CurrentIcon className="w-4 h-4 mr-2" />}
                           <span>{statusInfo ? statusInfo.label : "Добавить в список"}</span>
@@ -148,7 +148,7 @@ export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListP
                       </div>
                       {currentStatus && (
                           <>
-                            <div className="my-1 h-px bg-slate-700" />
+                            <div className="my-1 h-px bg-border" />
                             <Button variant="ghost" size="sm" onClick={() => handleStatusChange("remove")} className="w-full justify-start text-red-500 hover:!text-red-500 hover:!bg-red-500/10">
                                 <Trash2 className="h-4 w-4 mr-2" />Удалить из списка
                             </Button>
@@ -159,7 +159,7 @@ export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListP
           </Accordion>
         ) : (
           <div className="space-y-2">
-            <p className="text-sm text-gray-400 text-center">Войдите, чтобы добавить в список</p>
+            <p className="text-sm text-muted-foreground text-center">Войдите, чтобы добавить в список</p>
             <Button variant="outline" size="sm" className="w-full" asChild>
               <Link href={getLoginUrl(pathname)}>
                 <Plus className="w-4 h-4 mr-2" />Войти для добавления в список

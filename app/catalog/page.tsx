@@ -121,14 +121,14 @@ function CatalogView() {
 
         <main className="flex-1">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-3xl font-bold text-white">Каталог аниме</h1>
+            <h1 className="text-3xl font-bold text-foreground">Каталог аниме</h1>
             {!loading && <span className="text-muted-foreground text-sm">Найдено: {total}</span>}
           </div>
 
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {Array.from({ length: 25 }).map((_, i) => (
-                <div key={i} className="aspect-[2/3] bg-slate-800 rounded-lg animate-pulse" />
+                <div key={i} className="aspect-[2/3] bg-muted rounded-lg animate-pulse" />
               ))}
             </div>
           ) : animes.length > 0 ? (
@@ -148,8 +148,8 @@ function CatalogView() {
             </>
           ) : (
             <div className="text-center py-16">
-                <p className="text-lg text-gray-400">По вашим фильтрам ничего не найдено</p>
-                <p className="text-sm text-gray-500 mt-2">Попробуйте изменить или сбросить фильтры</p>
+                <p className="text-lg text-muted-foreground">По вашим фильтрам ничего не найдено</p>
+                <p className="text-sm text-muted-foreground/70 mt-2">Попробуйте изменить или сбросить фильтры</p>
             </div>
           )}
         </main>

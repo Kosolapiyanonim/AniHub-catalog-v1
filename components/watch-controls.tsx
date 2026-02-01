@@ -54,11 +54,11 @@ export default function WatchControls({
   return (
     <>
       {/* Episodes */}
-      <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+      <Card className="bg-card/50 dark:bg-slate-800/50 border-border dark:border-slate-700 backdrop-blur-sm">
         <CardContent className="p-0">
-          <div className="p-4 border-b border-slate-700">
-            <h3 className="font-semibold text-white">Эпизоды</h3>
-            <p className="text-sm text-slate-400">
+          <div className="p-4 border-b border-border dark:border-slate-700">
+            <h3 className="font-semibold text-foreground">Эпизоды</h3>
+            <p className="text-sm text-muted-foreground">
               {episodesAired ?? 0} из {episodesTotal ?? "??"}
             </p>
           </div>
@@ -69,16 +69,16 @@ export default function WatchControls({
                   key={i}
                   className={`w-full text-left p-3 rounded-lg mb-1 transition-colors ${
                     i === 0
-                      ? "bg-purple-600/20 border border-purple-500/30 text-purple-300"
-                      : "hover:bg-slate-700/50 text-slate-300"
+                      ? "bg-primary/15 dark:bg-purple-600/20 border border-primary/30 dark:border-purple-500/30 text-primary dark:text-purple-300"
+                      : "hover:bg-secondary dark:hover:bg-slate-700/50 text-foreground dark:text-slate-300"
                   }`}
                   onClick={() => setEpisode(i + 1)}
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-medium">Эпизод {i + 1}</span>
-                    <span className="text-xs text-slate-500">24:00</span>
+                    <span className="text-xs text-muted-foreground dark:text-slate-500">24:00</span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1">Серия {i + 1}</p>
+                  <p className="text-xs text-muted-foreground dark:text-slate-400 mt-1">Серия {i + 1}</p>
                 </button>
               ))}
             </div>
@@ -87,11 +87,11 @@ export default function WatchControls({
       </Card>
 
       {/* Translations */}
-      <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+      <Card className="bg-card/50 dark:bg-slate-800/50 border-border dark:border-slate-700 backdrop-blur-sm">
         <CardContent className="p-0">
-          <div className="p-4 border-b border-slate-700">
-            <h3 className="font-semibold text-white">Озвучки</h3>
-            <p className="text-sm text-slate-400">{translations.length} доступно</p>
+          <div className="p-4 border-b border-border dark:border-slate-700">
+            <h3 className="font-semibold text-foreground">Озвучки</h3>
+            <p className="text-sm text-muted-foreground">{translations.length} доступно</p>
           </div>
           <ScrollArea className="h-48">
             <div className="p-2">
@@ -100,8 +100,8 @@ export default function WatchControls({
                   key={String(translation.id)}
                   className={`w-full text-left p-3 rounded-lg mb-1 transition-colors ${
                     index === selectedIndex
-                      ? "bg-blue-600/20 border border-blue-500/30 text-blue-300"
-                      : "hover:bg-slate-700/50 text-slate-300"
+                      ? "bg-primary/15 dark:bg-blue-600/20 border border-primary/30 dark:border-blue-500/30 text-primary dark:text-blue-300"
+                      : "hover:bg-secondary dark:hover:bg-slate-700/50 text-foreground dark:text-slate-300"
                   }`}
                   onClick={() => setSelectedIndex(index)}
                 >
@@ -111,7 +111,7 @@ export default function WatchControls({
                       {translation.quality || translation.type || "—"}
                     </Badge>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1">{translation.type || "voice"}</p>
+                  <p className="text-xs text-muted-foreground dark:text-slate-400 mt-1">{translation.type || "voice"}</p>
                 </button>
               ))}
             </div>

@@ -54,15 +54,15 @@ export function AnimeGrid() {
         <div className="space-y-16">
             {/* Скелетный загрузчик для секций */}
             <div className="space-y-8">
-                <div className="h-8 w-1/3 bg-slate-800 rounded-md animate-pulse" />
+                <div className="h-8 w-1/3 bg-muted rounded-md animate-pulse" />
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-                    {Array.from({ length: 6 }).map((_, i) => <div key={i} className="aspect-[2/3] bg-slate-800 rounded-lg animate-pulse" />)}
+                    {Array.from({ length: 6 }).map((_, i) => <div key={i} className="aspect-[2/3] bg-muted rounded-lg animate-pulse" />)}
                 </div>
             </div>
             <div className="space-y-8">
-                <div className="h-8 w-1/3 bg-slate-800 rounded-md animate-pulse" />
+                <div className="h-8 w-1/3 bg-muted rounded-md animate-pulse" />
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
-                    {Array.from({ length: 4 }).map((_, i) => <div key={i} className="aspect-[2/3] bg-slate-800 rounded-lg animate-pulse" />)}
+                    {Array.from({ length: 4 }).map((_, i) => <div key={i} className="aspect-[2/3] bg-muted rounded-lg animate-pulse" />)}
                 </div>
             </div>
         </div>
@@ -76,7 +76,7 @@ export function AnimeGrid() {
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <TrendingUp className="w-8 h-8 text-yellow-400" />
-            <h2 className="text-3xl font-bold text-white">Популярные</h2>
+            <h2 className="text-3xl font-bold text-foreground">Популярные</h2>
           </div>
           <Button variant="outline" asChild>
             <Link href="/popular">Смотреть все</Link>
@@ -94,7 +94,7 @@ export function AnimeGrid() {
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <Star className="w-8 h-8 text-yellow-400" />
-            <h2 className="text-3xl font-bold text-white">Топ рейтинг</h2>
+            <h2 className="text-3xl font-bold text-foreground">Топ рейтинг</h2>
           </div>
           <Button variant="outline" asChild>
             <Link href="/popular">Смотреть все</Link>
@@ -112,7 +112,7 @@ export function AnimeGrid() {
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <Calendar className="w-8 h-8 text-blue-400" />
-            <h2 className="text-3xl font-bold text-white">Новинки</h2>
+            <h2 className="text-3xl font-bold text-foreground">Новинки</h2>
           </div>
           <Button variant="outline" asChild>
             <Link href="/catalog">Каталог</Link>

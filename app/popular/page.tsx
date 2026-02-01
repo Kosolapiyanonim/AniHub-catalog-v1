@@ -57,7 +57,7 @@ export default function PopularPage() {
       return (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {Array.from({ length: 20 }).map((_, i) => (
-            <div key={i} className="aspect-[2/3] bg-slate-800 rounded-lg animate-pulse" />
+            <div key={i} className="aspect-[2/3] bg-muted rounded-lg animate-pulse" />
           ))}
         </div>
       )
@@ -75,10 +75,10 @@ export default function PopularPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 pt-16 pb-16">
+    <div className="min-h-screen bg-background pt-16 pb-16">
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-8">
-          <h1 className="text-4xl font-bold text-white">Популярное аниме</h1>
+          <h1 className="text-4xl font-bold text-foreground">Популярное аниме</h1>
         </div>
 
         <Tabs defaultValue="rating" className="w-full">

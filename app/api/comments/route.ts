@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClientForRouteHandler, getAuthenticatedUser } from "@/lib/supabase/server"
+import { getUserRole, canDeleteAnyComment } from "@/lib/role-utils"
 
 export const dynamic = "force-dynamic"
 
@@ -211,7 +212,12 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Comment not found" }, { status: 404, headers: response.headers })
   }
 
-  if (comment.user_id !== user.id) {
+  // Check user role to determine if they can delete this comment
+  const userRole = await getUserRole(supabase, user.id)
+  const isCommentOwner = comment.user_id === user.id
+  const canDelete = isCommentOwner || canDeleteAnyComment(userRole)
+
+  if (!canDelete) {
     return NextResponse.json({ error: "You can only delete your own comments" }, { status: 403, headers: response.headers })
   }
 

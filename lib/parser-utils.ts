@@ -1,18 +1,22 @@
 // /lib/parser-utils.ts
 import type { KodikAnimeData } from "@/lib/types"
+import { normalizeShikimoriImageUrl } from "@/lib/normalizeShikimoriImageUrl"
 
 // Трансформирует данные из Kodik в формат таблицы 'animes'
 export function transformToAnimeRecord(anime: KodikAnimeData) {
   const material = anime.material_data || {}
 
   const poster = material.anime_poster_url || material.poster_url || null
+  // Нормализуем poster_url: если normalize вернул null, но исходное значение было, оставляем исходное
+  // Это безопасно, так как если normalize не смог обработать URL, лучше сохранить исходный
+  const normalizedPoster = normalizeShikimoriImageUrl(poster) ?? poster ?? null
   return {
     shikimori_id: anime.shikimori_id,
     kinopoisk_id: anime.kinopoisk_id || null,
     title: material.anime_title || anime.title,
     title_orig: anime.title_orig || null,
     year: anime.year || null,
-    poster_url: poster,
+    poster_url: normalizedPoster,
     description: material.anime_description || material.description || "Описание отсутствует.",
     type: anime.type,
     anime_kind: material.anime_kind || null,

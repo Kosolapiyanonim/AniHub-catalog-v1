@@ -23,7 +23,7 @@ export async function GET(request: Request) {
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, username, avatar_url, created_at, updated_at")
+    .select("id, username, avatar_url, role, created_at, updated_at")
     .eq("id", targetUserId)
     .single()
 
@@ -36,7 +36,7 @@ export async function GET(request: Request) {
           id: user.id,
           username: `user_${user.id.slice(0, 8)}`,
         })
-        .select("id, username, avatar_url, created_at, updated_at")
+        .select("id, username, avatar_url, role, created_at, updated_at")
         .single()
 
       if (insertError) {
@@ -112,7 +112,7 @@ export async function PATCH(request: Request) {
     .from("profiles")
     .update(updateData)
     .eq("id", user.id)
-    .select("id, username, avatar_url, created_at, updated_at")
+    .select("id, username, avatar_url, role, created_at, updated_at")
     .single()
 
   if (error) {

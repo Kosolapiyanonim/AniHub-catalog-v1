@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Reply, MessageSquare, ChevronDown, ChevronRight, Trash2 } from "lucide-react"
 import { toast } from "sonner"
+import type { UserRole } from "@/lib/role-utils"
 
 type CommentItem = {
   id: number
@@ -30,6 +31,7 @@ export default function Comments({ animeId }: { animeId: number }) {
   const [replyingTo, setReplyingTo] = useState<number | null>(null)
   const [replyContent, setReplyContent] = useState<Record<number, string>>({})
   const [expandedReplies, setExpandedReplies] = useState<Set<number>>(new Set())
+  const [userRole, setUserRole] = useState<UserRole | null>(null)
   const isAuthed = !!session?.user
 
   useEffect(() => {
@@ -50,6 +52,18 @@ export default function Comments({ animeId }: { animeId: number }) {
     }
     load()
   }, [animeId])
+
+  // Load user role
+  useEffect(() => {
+    if (isAuthed && session?.user?.id) {
+      fetch(`/api/profile?userId=${session.user.id}`, { cache: "no-store" })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => setUserRole(data?.role || null))
+        .catch(() => setUserRole(null))
+    } else {
+      setUserRole(null)
+    }
+  }, [isAuthed, session?.user?.id])
 
   const handleSubmit = async () => {
     if (!isAuthed) return
@@ -188,6 +202,7 @@ export default function Comments({ animeId }: { animeId: number }) {
               animeId={animeId}
               isAuthed={isAuthed}
               currentUserId={session?.user?.id}
+              currentUserRole={userRole}
               replyingTo={replyingTo}
               setReplyingTo={setReplyingTo}
               replyContent={replyContent}
@@ -213,6 +228,7 @@ function CommentItem({
   animeId,
   isAuthed,
   currentUserId,
+  currentUserRole,
   replyingTo,
   setReplyingTo,
   replyContent,
@@ -230,6 +246,7 @@ function CommentItem({
   animeId: number
   isAuthed: boolean
   currentUserId?: string
+  currentUserRole?: UserRole | null
   replyingTo: number | null
   setReplyingTo: (id: number | null) => void
   replyContent: Record<number, string>
@@ -247,6 +264,7 @@ function CommentItem({
   const hasReplies = comment.replies && comment.replies.length > 0
   const isExpanded = expandedReplies.has(comment.id)
   const isOwnComment = currentUserId === comment.user_id
+  const canDelete = isOwnComment || currentUserRole === 'admin'
   
   const toggleReplies = () => {
     setExpandedReplies(prev => {
@@ -303,12 +321,13 @@ function CommentItem({
               <Reply className="h-3 w-3 mr-1" />
               {isReplying ? "Отмена" : "Ответить"}
             </Button>
-            {isOwnComment && (
+            {canDelete && (
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-7 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10"
                 onClick={() => onDelete(comment.id)}
+                title={isOwnComment ? "Удалить свой комментарий" : "Удалить комментарий (админ)"}
               >
                 <Trash2 className="h-3 w-3 mr-1" />
                 Удалить
@@ -376,6 +395,7 @@ function CommentItem({
                     animeId={animeId}
                     isAuthed={isAuthed}
                     currentUserId={currentUserId}
+                    currentUserRole={currentUserRole}
                     replyingTo={replyingTo}
                     setReplyingTo={setReplyingTo}
                     replyContent={replyContent}

@@ -8,20 +8,25 @@
 ├─────────────────────────────────────────────────────────────────────┤
 │  Страницы (/app)          │  Компоненты (/components)               │
 │  - page.tsx (главная)     │  - AnimeCard, AnimeCarousel             │
-│  - /catalog               │  - HeroSlider                           │
+│  - /catalog               │  - HeroSlider, HeroSection               │
 │  - /anime/[id]            │  - CatalogFilters                       │
-│  - /anime/[id]/watch      │  - Comments, SubscribeButton            │
+│  - /anime/[id]/watch      │  - Comments (с replies), SubscribeButton│
 │  - /login, /register      │  - supabase-provider (auth context)     │
-│  - /admin/parser          │                                         │
+│  - /admin/parser          │  - CommandPalette, SearchDialog         │
+│  - /admin/users           │                                         │
+│  - /admin/hero            │                                         │
 ├─────────────────────────────────────────────────────────────────────┤
 │                         API ROUTES (/app/api)                       │
 │  - /api/catalog           - Каталог с фильтрами                     │
 │  - /api/anime/[id]        - Детальная информация                    │
 │  - /api/search            - Полнотекстовый поиск                    │
 │  - /api/lists             - Списки пользователя                     │
-│  - /api/comments          - Комментарии                             │
+│  - /api/comments          - Комментарии (с replies, soft delete)    │
 │  - /api/subscriptions     - Подписки на уведомления                 │
 │  - /api/parser            - Парсинг из Kodik API                    │
+│  - /api/admin/users       - Управление ролями пользователей        │
+│  - /api/admin/hero        - Управление Hero-секцией                 │
+│  - /api/auth/sync         - Синхронизация сессии                    │
 ├─────────────────────────────────────────────────────────────────────┤
 │                         SUPABASE (Backend)                          │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────────┐  │
@@ -29,7 +34,9 @@
 │  │  - Email    │  │  - animes   │  │  - Public read              │  │
 │  │  - Google   │  │  - genres   │  │  - Auth user write (lists)  │  │
 │  │  - Spotify  │  │  - studios  │  │  - Service role (parser)    │  │
-│  └─────────────┘  │  - user_*   │  └─────────────────────────────┘  │
+│  │  - Auto     │  │  - profiles │  │  - Role-based access (admin) │  │
+│  │    refresh  │  │    (roles)  │  └─────────────────────────────┘  │
+│  └─────────────┘  │  - user_*   │                                   │
 │                   └─────────────┘                                   │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -43,7 +50,7 @@
 
 | Секция | Источник | Таблица Supabase | Сортировка |
 |--------|----------|------------------|------------|
-| Hero Slider | `getHomepageSections()` | `animes` | `is_featured_in_hero = true` |
+| Hero Slider | `getHomepageSections()` | `animes` | `is_featured_in_hero = true` (управляется через `/admin/hero`) |
 | Популярное | `getHomepageSections()` | `animes` | `shikimori_votes DESC` |
 | В тренде | `getHomepageSections()` | `animes` | `shikimori_rating DESC` |
 | Последние обновления | `getHomepageSections()` | `animes` | `updated_at_kodik DESC` |
@@ -178,6 +185,59 @@ app/anime/[id]/watch/page.tsx (Server Component)
 
 ---
 
+### 8. Админ: Управление пользователями (`/admin/users`)
+**Файл:** `app/admin/users/page.tsx`
+
+| Функция | API | Описание |
+|---------|-----|----------|
+| Просмотр пользователей | `GET /api/admin/users` | Список всех пользователей с ролями |
+| Поиск пользователей | `GET /api/admin/users?search=...` | Поиск по имени или ID |
+| Изменение роли | `PATCH /api/admin/users` | Обновление роли пользователя |
+
+**Требования:** Роль `admin`
+
+**Поток данных:**
+```
+/admin/users (client component)
+  └─> fetch("/api/admin/users")
+      └─> app/api/admin/users/route.ts
+          ├─> Проверка роли (isAdmin)
+          ├─> SELECT FROM profiles
+          └─> Возврат списка с ролями
+```
+
+**Роли пользователей:**
+- `admin` - Полный доступ, может удалять любые комментарии, управлять ролями
+- `manager` - Зарезервировано для будущего использования
+- `viewer` - Обычный пользователь (роль по умолчанию)
+
+---
+
+### 9. Админ: Управление Hero-секцией (`/admin/hero`)
+**Файл:** `app/admin/hero/page.tsx`
+
+| Действие | API | Описание |
+|----------|-----|----------|
+| Просмотр текущих | `GET /api/admin/hero` | Список аниме в Hero-секции |
+| Добавить аниме | `POST /api/admin/hero` | Добавить аниме в Hero (action: "add") |
+| Удалить аниме | `POST /api/admin/hero` | Удалить из Hero (action: "remove") |
+| Установить список | `POST /api/admin/hero` | Заменить весь список (action: "set") |
+
+**Поток данных:**
+```
+/admin/hero → POST /api/admin/hero
+  └─> app/api/admin/hero/route.ts
+      ├─> Использует service_role для обхода RLS
+      └─> UPDATE animes SET is_featured_in_hero = true/false
+```
+
+**Особенности:**
+- Hero-секция отображает аниме с `is_featured_in_hero = true`
+- Управление через веб-интерфейс для администраторов
+- Поддержка скриншотов для фона Hero-слайдера
+
+---
+
 ## Схема базы данных
 
 ### Основные таблицы
@@ -205,9 +265,19 @@ app/anime/[id]/watch/page.tsx (Server Component)
 
 | Таблица | Описание | RLS |
 |---------|----------|-----|
+| `profiles` | Профили пользователей | Только владелец |
 | `user_lists` | Списки пользователя (watching, completed, dropped...) | Только владелец |
 | `user_subscriptions` | Подписки на уведомления | Только владелец |
-| `comments` | Комментарии к аниме | Читают все, пишут авторизованные |
+| `comments` | Комментарии к аниме (с поддержкой replies) | Читают все, пишут авторизованные |
+
+### Дополнительные поля
+
+| Таблица | Новое поле | Описание |
+|---------|------------|----------|
+| `profiles` | `role` | Роль пользователя: `admin`, `manager`, `viewer` |
+| `animes` | `is_featured_in_hero` | Флаг для Hero-секции на главной странице |
+| `comments` | `parent_id` | ID родительского комментария (для replies) |
+| `comments` | `deleted_at` | Мягкое удаление (soft delete) |
 
 ---
 
@@ -223,7 +293,7 @@ app/anime/[id]/watch/page.tsx (Server Component)
 | `/api/genres` | GET | Список жанров |
 | `/api/studios` | GET | Список студий |
 | `/api/years` | GET | Список годов |
-| `/api/comments` | GET | Комментарии к аниме |
+| `/api/comments` | GET | Комментарии к аниме (с replies, фильтрация deleted_at) |
 
 ### Требуют авторизации
 
@@ -231,19 +301,33 @@ app/anime/[id]/watch/page.tsx (Server Component)
 |----------|-------|----------|
 | `/api/lists` | POST | Добавить/обновить аниме в список |
 | `/api/subscriptions` | POST/GET | Управление подписками |
-| `/api/comments` | POST | Добавить комментарий |
+| `/api/comments` | POST | Добавить комментарий (с поддержкой parentId для replies) |
+| `/api/comments` | DELETE | Удалить комментарий (soft delete если есть replies, иначе физическое удаление) |
+| `/api/profile` | GET/PATCH | Получить/обновить профиль пользователя (включая роль) |
 
-### Административные (service_role)
+### Административные (требуют роль admin)
+
+| Endpoint | Метод | Описание |
+|----------|-------|----------|
+| `/api/admin/users` | GET | Получить список пользователей с ролями |
+| `/api/admin/users` | PATCH | Обновить роль пользователя |
+| `/api/admin/hero` | GET | Получить список аниме для Hero-секции |
+| `/api/admin/hero` | POST | Управление Hero-секцией (add/remove/set) |
+
+### Административные (service_role для парсинга)
 
 | Endpoint | Метод | Описание |
 |----------|-------|----------|
 | `/api/parser` | POST | Запуск парсера Kodik |
 | `/api/parse-single-page` | POST | Парсинг одной страницы |
 | `/api/full-parser` | POST | Полный парсинг |
+| `/api/auth/sync` | POST | Синхронизация сессии после клиентской авторизации |
 
 ---
 
 ## Контекст авторизации
+
+### Клиентская авторизация
 
 **Провайдер:** `components/supabase-provider.tsx`
 
@@ -257,14 +341,63 @@ const { supabase, session } = useSupabase();
 // - session.user.user_metadata.full_name
 ```
 
-**Серверная авторизация:**
-```tsx
-// В API routes:
-const { data: { session } } = await supabase.auth.getSession();
+**Автоматическое обновление токенов:**
+- Провайдер автоматически обновляет JWT токены каждые 50 минут
+- Обновление при возврате фокуса на вкладку
+- Слушатель изменений состояния авторизации (`onAuthStateChange`)
 
-// В Server Components:
-const supabase = await createClient(); // из lib/supabase/server.ts
+### Серверная авторизация
+
+**В API routes (Route Handlers):**
+```tsx
+import { createClientForRouteHandler, getAuthenticatedUser } from "@/lib/supabase/server"
+
+const response = new NextResponse()
+const supabase = await createClientForRouteHandler(response)
+const user = await getAuthenticatedUser(supabase) // Гибридный подход: getUser + getSession
+
+if (!user) {
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: response.headers })
+}
 ```
+
+**В Server Components:**
+```tsx
+import createClient from "@/lib/supabase/server"
+
+const supabase = await createClient()
+const { data: { user } } = await supabase.auth.getUser()
+```
+
+### Middleware для обновления сессий
+
+**Файл:** `middleware.ts`
+
+- Автоматически обновляет JWT токены на каждом запросе
+- Использует `getSession()` для автоматического обновления истекших токенов
+- Обрабатывает все маршруты кроме статических файлов и API routes
+
+### Система ролей
+
+**Утилиты:** `lib/role-utils.ts`
+
+```tsx
+import { getUserRole, isAdmin, canDeleteAnyComment } from "@/lib/role-utils"
+
+const userRole = await getUserRole(supabase, userId)
+if (isAdmin(userRole)) {
+  // Пользователь - администратор
+}
+
+if (canDeleteAnyComment(userRole)) {
+  // Может удалять любые комментарии
+}
+```
+
+**Роли:**
+- `admin` - Полный доступ, управление пользователями, удаление любых комментариев
+- `manager` - Зарезервировано для будущего использования
+- `viewer` - Обычный пользователь (по умолчанию)
 
 ---
 
@@ -278,3 +411,147 @@ const supabase = await createClient(); // из lib/supabase/server.ts
 ### Shikimori GraphQL (опционально)
 - **Назначение:** Обогащение данных (связи, теги)
 - **Используется в:** `scripts/enrich-animes-from-shikimori-graphql.ts`
+
+---
+
+## Новые функции и улучшения
+
+### 1. Система комментариев с ответами (Replies)
+
+**Файлы:** `app/api/comments/route.ts`, `components/Comments.tsx`
+
+**Особенности:**
+- Поддержка вложенных комментариев (replies) через поле `parent_id`
+- Мягкое удаление (soft delete): комментарии с ответами помечаются `deleted_at` вместо физического удаления
+- Физическое удаление: комментарии без ответов удаляются полностью
+- Rate limiting: максимум 5 комментариев в минуту с cooldown 30 секунд
+- Права доступа на основе ролей:
+  - Обычные пользователи могут удалять только свои комментарии
+  - Администраторы могут удалять любые комментарии
+
+**Поток данных:**
+```
+GET /api/comments?animeId=X
+  └─> SELECT FROM comments WHERE anime_id = X AND deleted_at IS NULL
+      ├─> Группировка по parent_id
+      └─> Возврат иерархической структуры (comments с replies)
+
+POST /api/comments
+  └─> Проверка rate limit
+      └─> INSERT INTO comments (anime_id, user_id, content, parent_id)
+
+DELETE /api/comments?id=X
+  └─> Проверка прав (владелец или admin)
+      ├─> Если есть replies → UPDATE SET deleted_at
+      └─> Если нет replies → DELETE
+```
+
+### 2. Управление Hero-секцией
+
+**Файлы:** `app/admin/hero/page.tsx`, `app/api/admin/hero/route.ts`
+
+**Функции:**
+- Визуальный интерфейс для управления аниме в Hero-секции
+- Добавление/удаление аниме из Hero
+- Замена всего списка одной операцией
+- Использование скриншотов для фона слайдера
+- Сортировка по рейтингу Shikimori
+
+**Поток данных:**
+```
+GET /api/admin/hero
+  └─> SELECT FROM animes WHERE is_featured_in_hero = true
+      └─> Возврат текущих + список популярных для выбора
+
+POST /api/admin/hero
+  └─> Использует service_role для обхода RLS
+      └─> UPDATE animes SET is_featured_in_hero = true/false
+```
+
+### 3. Управление ролями пользователей
+
+**Файлы:** `app/admin/users/page.tsx`, `app/api/admin/users/route.ts`, `lib/role-utils.ts`
+
+**Функции:**
+- Веб-интерфейс для управления ролями
+- Поиск пользователей по имени или ID
+- Изменение роли через выпадающий список
+- Защита от изменения собственной роли администратором
+- Визуальные индикаторы ролей (badges)
+
+**Поток данных:**
+```
+GET /api/admin/users
+  └─> Проверка роли (isAdmin)
+      └─> SELECT FROM profiles ORDER BY created_at DESC
+
+PATCH /api/admin/users
+  └─> Проверка роли (isAdmin)
+      ├─> Валидация роли
+      ├─> Защита от самоизменения роли
+      └─> UPDATE profiles SET role = ?
+```
+
+### 4. Улучшенная система аутентификации
+
+**Файлы:** `lib/supabase/server.ts`, `middleware.ts`, `components/supabase-provider.tsx`
+
+**Улучшения:**
+- **Гибридный подход к аутентификации:**
+  - `getAuthenticatedUser()` сначала использует `getUser()` для проверки подлинности
+  - При истечении токена автоматически переключается на `getSession()` для обновления
+  - Устраняет предупреждения Supabase о безопасности
+
+- **Автоматическое обновление токенов:**
+  - Middleware обновляет токены на каждом запросе
+  - Клиентский провайдер обновляет каждые 50 минут
+  - Обновление при возврате фокуса на вкладку
+
+- **Синхронизация сессий:**
+  - API endpoint `/api/auth/sync` для синхронизации после клиентской авторизации
+  - Обеспечивает корректную работу серверных компонентов после входа
+
+**Поток данных:**
+```
+Клиентская авторизация (Email/Password)
+  └─> supabase.auth.signInWithPassword()
+      └─> POST /api/auth/sync (синхронизация с сервером)
+          └─> Установка cookies для серверных компонентов
+
+OAuth авторизация (Google/Spotify)
+  └─> supabase.auth.signInWithOAuth()
+      └─> /auth/callback
+          └─> Обмен кода на сессию
+              └─> Редирект на главную
+```
+
+### 5. Обогащение данных главной страницы
+
+**Файлы:** `lib/data-fetchers.ts`, `app/api/homepage-sections/route.ts`
+
+**Улучшения:**
+- Использование поля `is_featured_in_hero` для Hero-секции
+- Поддержка скриншотов для фона Hero-слайдера
+- Параллельная загрузка всех секций через `Promise.all`
+- Обогащение данных статусом пользователя (`user_list_status`)
+
+**Поток данных:**
+```
+getHomepageSections()
+  └─> Promise.all([
+        SELECT FROM animes WHERE is_featured_in_hero = true,
+        SELECT FROM animes ORDER BY shikimori_rating DESC,
+        SELECT FROM animes ORDER BY shikimori_votes DESC,
+        SELECT FROM animes ORDER BY updated_at_kodik DESC
+      ])
+      └─> enrichWithUserStatus() добавляет user_list_status
+```
+
+---
+
+## Документация
+
+Дополнительная документация находится в папке `docs/`:
+- `USER_ROLES.md` - Подробное описание системы ролей
+- `AUTH_TOKEN_REFRESH.md` - Руководство по обновлению JWT токенов
+- `TESTING_TOKEN_REFRESH.md` - Тестирование обновления токенов

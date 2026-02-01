@@ -4,6 +4,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import type { KodikAnimeData } from "@/lib/types";
+import { normalizeShikimoriImageUrl } from "@/lib/normalizeShikimoriImageUrl";
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 минут для Vercel Pro
@@ -126,13 +127,16 @@ export async function POST(request: Request) {
       // 2. Формируем записи для upsert
       const recordsToUpsert = uniqueAnimeList.map(anime => {
         const material = anime.material_data || {};
+        const poster = material.anime_poster_url || material.poster_url || null;
+        // Нормализуем poster_url: если normalize вернул null, но исходное значение было, оставляем исходное
+        const normalizedPoster = normalizeShikimoriImageUrl(poster) ?? poster ?? null;
         return {
           shikimori_id: anime.shikimori_id,
           kinopoisk_id: anime.kinopoisk_id,
           title: material.anime_title || anime.title,
           title_orig: anime.title_orig,
           year: anime.year,
-          poster_url: material.anime_poster_url || material.poster_url,
+          poster_url: normalizedPoster,
           description: material.anime_description || material.description || "Описание отсутствует.",
           type: anime.type,
           anime_kind: material.anime_kind,

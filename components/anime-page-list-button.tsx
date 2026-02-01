@@ -34,8 +34,8 @@ export function AnimePageListButton({ animeId, initialStatus, onStatusChange }: 
   // Если пользователь не авторизован, показываем специальный блок
   if (!session) {
     return (
-      <Card className="bg-slate-800 border-slate-700 text-center p-4 space-y-2">
-        <p className="text-sm text-gray-300">Войдите, чтобы добавить в список</p>
+      <Card className="bg-card border-border text-center p-4 space-y-2">
+        <p className="text-sm text-muted-foreground">Войдите, чтобы добавить в список</p>
         <div className="flex gap-2">
           <Button asChild size="sm" className="flex-1"><Link href={getLoginUrl(pathname)}>Войти</Link></Button>
           <Button asChild size="sm" variant="secondary" className="flex-1"><Link href={getRegisterUrl(pathname)}>Регистрация</Link></Button>

@@ -78,13 +78,13 @@ export function SubscribeButton({ animeId }: SubscribeButtonProps) {
       variant="ghost"
       size="icon"
       disabled={loading}
-      className="text-gray-400 hover:text-white"
+      className="text-muted-foreground dark:text-gray-400 hover:text-foreground dark:hover:text-white"
       title={isSubscribed ? "Отписаться от обновлений" : "Подписаться на обновления"}
     >
       {loading ? (
         <Loader2 className="w-5 h-5 animate-spin" />
       ) : isSubscribed ? (
-        <BellRing className="w-5 h-5 text-purple-400" />
+        <BellRing className="w-5 h-5 text-purple-400 dark:text-purple-400" />
       ) : (
         <Bell className="w-5 h-5" />
       )}

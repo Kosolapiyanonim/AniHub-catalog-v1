@@ -38,23 +38,23 @@ export function AnimeCardListButton({ animeId, initialStatus, onStatusChange }: 
         <Button 
           variant="secondary" 
           size="icon" 
-          className="absolute top-2 right-2 z-20 h-8 w-8 bg-black/50 text-white hover:bg-black/70 transition-opacity" 
+          className="absolute top-2 right-2 z-20 h-8 w-8 bg-black/50 dark:bg-black/50 text-white hover:bg-black/70 dark:hover:bg-black/70 transition-opacity" 
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
           title={statusInfo?.label || 'Добавить в список'}
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CurrentIcon className="h-4 w-4" />}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent onClick={(e) => { e.preventDefault(); e.stopPropagation();}} className="bg-slate-800 border-slate-700 text-white">
+      <DropdownMenuContent onClick={(e) => { e.preventDefault(); e.stopPropagation();}} className="bg-popover dark:bg-slate-800 border-border dark:border-slate-700 text-foreground dark:text-white">
           {statuses.map((status) => (
-            <DropdownMenuItem key={status.key} onSelect={() => handleStatusChange(status.key)} className="cursor-pointer hover:bg-slate-700">
+            <DropdownMenuItem key={status.key} onSelect={() => handleStatusChange(status.key)} className="cursor-pointer hover:bg-secondary dark:hover:bg-slate-700">
                 <status.icon className="mr-2 h-4 w-4" />
                 <span>{status.label}</span>
                 {currentStatus === status.key && <Check className="ml-auto h-4 w-4 text-green-500" />}
             </DropdownMenuItem>
           ))}
           {currentStatus && (
-              <><DropdownMenuSeparator className="bg-slate-700" /><DropdownMenuItem className="text-red-500 hover:!text-red-500 hover:!bg-red-500/10 cursor-pointer" onSelect={() => handleStatusChange("remove")}><Trash2 className="mr-2 h-4 w-4" /><span>Удалить из списка</span></DropdownMenuItem></>
+              <><DropdownMenuSeparator className="bg-border dark:bg-slate-700" /><DropdownMenuItem className="text-red-500 hover:!text-red-500 hover:!bg-red-500/10 cursor-pointer" onSelect={() => handleStatusChange("remove")}><Trash2 className="mr-2 h-4 w-4" /><span>Удалить из списка</span></DropdownMenuItem></>
           )}
       </DropdownMenuContent>
     </DropdownMenu>

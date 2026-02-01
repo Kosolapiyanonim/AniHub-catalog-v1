@@ -4,34 +4,36 @@
 
 @layer base {
   :root {
+    /* Light Theme - Primary */
     --background: 0 0% 100%;
-    --foreground: 222 47% 8%;
-    --card: 210 30% 98%;
-    --card-foreground: 222 47% 8%;
+    --foreground: 222 47% 10%;
+    --card: 210 100% 97%;
+    --card-foreground: 222 47% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 8%;
+    --popover-foreground: 222 47% 10%;
     --primary: 263 70% 50%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 14% 94%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 220 14% 94%;
-    --muted-foreground: 220 9% 50%;
+    --secondary: 210 100% 94%;
+    --secondary-foreground: 222 47% 12%;
+    --muted: 220 14% 91%;
+    --muted-foreground: 220 9% 52%;
     --accent: 174 72% 40%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 88%;
-    --input: 220 13% 91%;
+    --border: 210 40% 88%;
+    --input: 210 40% 90%;
     --ring: 263 70% 50%;
     --radius: 0.75rem;
   }
 
   .dark {
-    --background: 222 47% 11%;
+    /* Dark Theme */
+    --background: 222 47% 10%;
     --foreground: 210 40% 98%;
     --card: 222 47% 13%;
     --card-foreground: 210 40% 98%;
-    --popover: 222 47% 11%;
+    --popover: 222 47% 12%;
     --popover-foreground: 210 40% 98%;
     --primary: 263 70% 58%;
     --primary-foreground: 210 40% 98%;
@@ -40,7 +42,7 @@
     --muted: 222 47% 18%;
     --muted-foreground: 215 20% 65%;
     --accent: 174 72% 46%;
-    --accent-foreground: 222 47% 11%;
+    --accent-foreground: 222 47% 10%;
     --destructive: 0 62% 30%;
     --destructive-foreground: 210 40% 98%;
     --border: 222 47% 20%;
@@ -141,6 +143,14 @@ body,
   @apply bg-secondary text-foreground px-1.5 py-0.5 rounded text-sm;
 }
 
+.dark .prose {
+  @apply text-foreground;
+}
+
+.dark .prose a {
+  @apply text-primary hover:text-primary/80;
+}
+
 /* Improve text contrast in light mode */
 :root:not(.dark) {
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -171,4 +181,151 @@ body.overflow-hidden {
 /* Smooth scroll restoration */
 html {
   scroll-behavior: smooth;
+}
+
+/* Light mode optimizations */
+:root:not(.dark) {
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+:root.dark {
+  --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+}
+
+/* Smooth text selection in light mode */
+:root:not(.dark)::selection {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+/* Image and video containers adapt to theme */
+img, video {
+  @apply bg-muted dark:bg-slate-800;
+}
+
+/* Better visibility for input placeholders */
+::placeholder {
+  @apply text-muted-foreground/60;
+}
+
+/* Scrollbar styling for light and dark modes */
+:root:not(.dark) ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+:root:not(.dark) ::-webkit-scrollbar-track {
+  background: hsl(var(--secondary));
+}
+
+:root:not(.dark) ::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+:root:not(.dark) ::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+:root.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+:root.dark ::-webkit-scrollbar-track {
+  background: hsl(var(--secondary));
+}
+
+:root.dark ::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+:root.dark ::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+/* Adaptive styling for cards and containers */
+@media (prefers-color-scheme: light) {
+  .dark\:bg-slate-900,
+  .dark\:bg-slate-800,
+  .dark\:bg-slate-700 {
+    background-color: transparent;
+  }
+}
+
+/* Ensure proper contrast in light mode for cards */
+:root:not(.dark) .card,
+:root:not(.dark) [class*="bg-card"] {
+  box-shadow: var(--card-shadow);
+  border: 1px solid hsl(var(--border));
+}
+
+/* Better typography for light mode */
+:root:not(.dark) body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ensure badges and badges are visible */
+:root:not(.dark) [class*="badge"] {
+  background-color: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+}
+
+/* Button styling consistency */
+:root:not(.dark) button {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Input focus states */
+:root:not(.dark) input:focus,
+:root:not(.dark) textarea:focus,
+:root:not(.dark) select:focus {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Mobile-specific theme improvements */
+@media (max-width: 768px) {
+  :root:not(.dark) {
+    font-size: 16px;
+  }
+  
+  :root:not(.dark) body {
+    -webkit-text-size-adjust: 100%;
+  }
+}
+
+/* Tablet and desktop responsive adjustments */
+@media (min-width: 768px) {
+  :root:not(.dark) {
+    /* Better spacing for larger screens */
+  }
+}
+
+/* Theme transition performance */
+* {
+  transition-property: background-color, border-color, color;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
+
+/* Disable transitions on page load */
+.no-transition,
+.no-transition * {
+  transition: none !important;
+}
+
+/* Print styles for light theme */
+@media print {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 47% 10%;
+  }
+  
+  body {
+    background-color: white;
+    color: #222;
+  }
 }

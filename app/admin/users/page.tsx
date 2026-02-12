@@ -143,7 +143,7 @@ export default function UsersManagementPage() {
 
   if (error && !loading) {
     return (
-      <div className="container mx-auto p-6">
+      <div>
         <Card>
           <CardContent className="pt-6">
             <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -162,7 +162,7 @@ export default function UsersManagementPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="space-y-6">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">

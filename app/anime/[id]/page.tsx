@@ -15,6 +15,7 @@ import { SubscribeButton } from "@/components/SubscribeButton";
 import Comments from "@/components/Comments";
 // --- [ИЗМЕНЕНИЕ] Импортируем правильную кнопку для этой страницы ---
 import { AnimePageListButton } from "@/components/anime-page-list-button";
+import { useImageProxy } from "@/hooks/use-image-proxy";
 
 // Интерфейсы данных
 interface RelatedAnime {
@@ -73,6 +74,9 @@ export default function AnimePage() {
     }
   }, [anime]);
 
+  // Use image proxy for poster
+  const proxiedPosterUrl = useImageProxy(anime?.poster_url);
+
   if (loading) {
     return <div className="min-h-screen bg-slate-900 flex items-center justify-center"><LoadingSpinner size="lg" /></div>;
   }
@@ -91,7 +95,7 @@ export default function AnimePage() {
           <aside className="lg:col-span-1">
             <div className="sticky top-24 space-y-4">
               <div className="aspect-[3/4] relative rounded-lg overflow-hidden bg-slate-800">
-                <Image src={anime.poster_url || "/placeholder.svg"} alt={anime.title} fill className="object-cover" priority />
+                <Image src={proxiedPosterUrl || "/placeholder.svg"} alt={anime.title} fill className="object-cover" priority />
                 <Button variant="secondary" size="sm" className="absolute top-2 right-2 flex items-center gap-1 opacity-80 hover:opacity-100">
                     <Star className="w-4 h-4" /> Оценить
                 </Button>

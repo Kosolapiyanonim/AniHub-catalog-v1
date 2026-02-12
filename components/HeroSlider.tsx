@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Play, Info, Star, Clapperboard, Calendar, Maximize, Minimize } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
 import type { Anime } from "@/lib/types"
+import { getProxiedImageUrl } from "@/lib/image-utils"
 
 interface HeroSliderProps {
   items?: Anime[] | null
@@ -80,8 +81,13 @@ export function HeroSlider({ items }: HeroSliderProps) {
       >
         <CarouselContent className="flex h-full -ml-0">
           {validItems.map((anime, index) => {
-            const backgroundImageUrl =
-              anime.background_image_url || anime.poster_url || "/placeholder.svg?height=1080&width=1920"
+            const rawBackgroundImageUrl = anime.background_image_url || anime.poster_url || "/placeholder.svg?height=1080&width=1920"
+            const backgroundImageUrl = rawBackgroundImageUrl.startsWith("/") 
+              ? rawBackgroundImageUrl 
+              : getProxiedImageUrl(rawBackgroundImageUrl) || rawBackgroundImageUrl
+            const proxiedPosterUrl = anime.poster_url 
+              ? (getProxiedImageUrl(anime.poster_url) || anime.poster_url)
+              : null
 
             let episodeStatusText = ""
             if (anime.episodes_total === 1 && anime.episodes_aired === 1) {
@@ -165,9 +171,9 @@ export function HeroSlider({ items }: HeroSliderProps) {
 
                     <div className="flex flex-col items-center gap-4">
                       <div className="relative w-28 h-42 sm:w-32 sm:h-48 rounded-lg overflow-hidden shadow-xl ring-1 ring-white/20">
-                        {anime.poster_url ? (
+                        {proxiedPosterUrl ? (
                           <Image
-                            src={anime.poster_url || "/placeholder.svg"}
+                            src={proxiedPosterUrl}
                             alt={`Постер для ${anime.title}`}
                             fill
                             className="object-cover transition-transform duration-500 ease-in-out"
@@ -316,9 +322,9 @@ export function HeroSlider({ items }: HeroSliderProps) {
                         className={`relative ${isFullscreen ? "w-40 h-60 sm:w-48 sm:h-72 md:w-56 md:h-80 lg:w-64 lg:h-96 xl:w-72 xl:h-[32rem] 2xl:w-80 2xl:h-[36rem]" : "w-32 h-48 sm:w-40 sm:h-60 md:w-48 md:h-72 lg:w-56 lg:h-80"} rounded-xl overflow-hidden shadow-2xl ring-1 ring-white/20 transform transition-all duration-700 hover:scale-105 group`}
                       >
                         <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-purple-500/20 via-transparent to-cyan-500/20 pointer-events-none z-10 opacity-70 group-hover:opacity-100 transition-opacity duration-500"></div>
-                        {anime.poster_url ? (
+                        {proxiedPosterUrl ? (
                           <Image
-                            src={anime.poster_url || "/placeholder.svg"}
+                            src={proxiedPosterUrl}
                             alt={`Постер для ${anime.title}`}
                             fill
                             className="object-cover transition-transform duration-700 ease-in-out"

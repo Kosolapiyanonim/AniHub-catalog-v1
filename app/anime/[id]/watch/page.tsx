@@ -22,6 +22,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import KodikPlayer from "../../../../components/kodik-player"
 import Comments from "@/components/Comments"
 import WatchControls from "@/components/watch-controls"
+import { getProxiedImageUrl } from "@/lib/image-utils"
 
 export default async function WatchPage({ params }: { params: { id: string } }) {
   const supabase = await createClient()
@@ -56,6 +57,9 @@ export default async function WatchPage({ params }: { params: { id: string } }) 
     .select("*")
     .eq("anime_id", animeData.id)
     .order("title")
+
+  // Get proxied poster URL
+  const proxiedPosterUrl = getProxiedImageUrl(animeData.poster_url) || "/placeholder.svg"
 
   if (!translations || translations.length === 0) {
     return (
@@ -104,7 +108,7 @@ export default async function WatchPage({ params }: { params: { id: string } }) 
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 relative rounded overflow-hidden">
                   <Image
-                    src={animeData.poster_url || "/placeholder.svg"}
+                    src={proxiedPosterUrl}
                     alt={animeData.title}
                     fill
                     className="object-cover"

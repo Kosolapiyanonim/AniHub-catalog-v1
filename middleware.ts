@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import { getUserRole, isManagerOrHigher } from "@/lib/role-utils"
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -31,7 +32,29 @@ export async function middleware(request: NextRequest) {
   // getSession() will automatically refresh the access token if it's expired and a valid refresh token exists
   // getUser() only checks the token and doesn't refresh it, causing "JWT expired" errors
 
-  await supabase.auth.getSession()
+  const { data: { session } } = await supabase.auth.getSession()
+
+  // Check if user is trying to access admin routes
+  const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
+
+  if (isAdminRoute) {
+    // If not authenticated, redirect to login
+    if (!session?.user) {
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('redirect', request.nextUrl.pathname)
+      return NextResponse.redirect(loginUrl)
+    }
+
+    // Check user role
+    const userRole = await getUserRole(supabase, session.user.id)
+    
+    // If user doesn't have admin or manager role, redirect to home with error
+    if (!isManagerOrHigher(userRole)) {
+      const homeUrl = new URL('/', request.url)
+      homeUrl.searchParams.set('error', 'access_denied')
+      return NextResponse.redirect(homeUrl)
+    }
+  }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
   // creating a new response object with NextResponse.next() make sure to:

@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { AnimeListPopover } from './AnimeListPopover';
 import { AnimeCardListButton } from './anime-card-list-button';
 import { Progress } from './ui/progress'; // <-- [ИЗМЕНЕНИЕ] Импортируем прогресс-бар
+import { useImageProxy } from '@/hooks/use-image-proxy';
 
 const formatAnimeType = (type: string | null | undefined): string => {
     if (!type) return '';
@@ -29,6 +30,9 @@ export function AnimeCard({ anime, priority = false, onStatusChange }: AnimeCard
     ? (anime.progress / anime.episodes_total) * 100 
     : null;
 
+  // Use image proxy for poster
+  const proxiedPosterUrl = useImageProxy(anime.poster_url)
+
   return (
     <AnimeListPopover anime={anime} onStatusChange={onStatusChange}>
       <Link href={`/anime/${anime.shikimori_id}`} className="block group">
@@ -38,9 +42,9 @@ export function AnimeCard({ anime, priority = false, onStatusChange }: AnimeCard
             initialStatus={anime.user_list_status}
             onStatusChange={(animeId, newStatus) => onStatusChange?.(animeId, newStatus)}
           />
-          {anime.poster_url ? (
+          {proxiedPosterUrl ? (
               <Image
-                  src={anime.poster_url}
+                  src={proxiedPosterUrl}
                   alt={anime.title}
                   fill
                   sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"

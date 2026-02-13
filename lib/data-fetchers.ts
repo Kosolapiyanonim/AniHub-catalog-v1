@@ -16,23 +16,103 @@ const HERO_ANIME_SELECT = `
     genres:anime_genres(genres(name))
 `;
 
+type HomepageStage = "hero_critical" | "sections_deferred" | "user_enrichment" | "homepage_full";
+
+const toErrorDetails = (error: unknown) => {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack?.split("\n").slice(0, 3).join("\n"),
+    };
+  }
+
+  return {
+    name: "UnknownError",
+    message: typeof error === "string" ? error : JSON.stringify(error),
+  };
+};
+
+const createHomepageLogger = (stage: HomepageStage) => {
+  const startedAt = Date.now();
+  const traceId = `hp_${stage}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+  const info = (message: string, meta: Record<string, unknown> = {}) => {
+    console.log("[HOMEPAGE][INFO]", {
+      traceId,
+      stage,
+      elapsedMs: Date.now() - startedAt,
+      message,
+      ...meta,
+    });
+  };
+
+  const error = (message: string, err: unknown, meta: Record<string, unknown> = {}) => {
+    console.error("[HOMEPAGE][ERROR]", {
+      traceId,
+      stage,
+      elapsedMs: Date.now() - startedAt,
+      message,
+      error: toErrorDetails(err),
+      ...meta,
+    });
+  };
+
+  return { traceId, info, error };
+};
+
 const enrichWithUserStatus = async (supabase: SupabaseClient, user: User | null, animeList: any[] | null) => {
-  if (!user || !animeList || animeList.length === 0) return animeList;
+  const logger = createHomepageLogger("user_enrichment");
 
-  const animeIds = animeList.map((anime) => anime.id);
-  const { data: userListsData } = await supabase
-    .from("user_lists")
-    .select("anime_id, status")
-    .eq("user_id", user.id)
-    .in("anime_id", animeIds);
+  if (!user || !animeList || animeList.length === 0) {
+    logger.info("Пропущено обогащение user status", {
+      reason: !user ? "no_user" : "empty_anime_list",
+      inputSize: animeList?.length ?? 0,
+    });
+    return animeList;
+  }
 
-  if (!userListsData) return animeList;
+  try {
+    const animeIds = animeList.map((anime) => anime.id);
+    const { data: userListsData, error: userListsError } = await supabase
+      .from("user_lists")
+      .select("anime_id, status")
+      .eq("user_id", user.id)
+      .in("anime_id", animeIds);
 
-  const statusMap = new Map(userListsData.map((item) => [item.anime_id, item.status]));
-  return animeList.map((anime) => ({
-    ...anime,
-    user_list_status: statusMap.get(anime.id) || null,
-  }));
+    if (userListsError) {
+      logger.error("Ошибка запроса user_lists", userListsError, {
+        userId: user.id,
+        animeIdsCount: animeIds.length,
+      });
+      return animeList;
+    }
+
+    if (!userListsData) {
+      logger.info("user_lists вернул пустой ответ", { userId: user.id, animeIdsCount: animeIds.length });
+      return animeList;
+    }
+
+    const statusMap = new Map(userListsData.map((item) => [item.anime_id, item.status]));
+    const enriched = animeList.map((anime) => ({
+      ...anime,
+      user_list_status: statusMap.get(anime.id) || null,
+    }));
+
+    logger.info("User status успешно добавлен", {
+      userId: user.id,
+      sourceSize: animeList.length,
+      statusesFound: userListsData.length,
+    });
+
+    return enriched;
+  } catch (error) {
+    logger.error("Непредвиденная ошибка в enrichWithUserStatus", error, {
+      userId: user.id,
+      inputSize: animeList.length,
+    });
+    return animeList;
+  }
 };
 
 const mapHeroData = (heroRows: any[] | null) =>
@@ -42,27 +122,36 @@ const mapHeroData = (heroRows: any[] | null) =>
     background_image_url: anime.screenshots && anime.screenshots.length > 0 ? anime.screenshots[0] : anime.poster_url,
   })) || [];
 
-const mapCarouselData = (response: any) =>
-  response.data?.map((anime: any) => ({
+const mapCarouselData = (rows: any[] | null) =>
+  rows?.map((anime: any) => ({
     ...anime,
     genres: anime.genres.map((g: any) => g.genres).filter(Boolean),
   })) || [];
 
 const getHomepageHeroCriticalDataCached = unstable_cache(
   async () => {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("animes")
-      .select(HERO_ANIME_SELECT)
-      .eq("is_featured_in_hero", true)
-      .limit(10);
+    const logger = createHomepageLogger("hero_critical");
 
-    if (error) {
-      console.error("Ошибка загрузки hero-секции:", error);
+    try {
+      const supabase = await createClient();
+      const { data, error } = await supabase
+        .from("animes")
+        .select(HERO_ANIME_SELECT)
+        .eq("is_featured_in_hero", true)
+        .limit(10);
+
+      if (error) {
+        logger.error("Ошибка загрузки hero-секции", error);
+        return [];
+      }
+
+      const mapped = mapHeroData(data);
+      logger.info("Hero-данные загружены", { itemsCount: mapped.length });
+      return mapped;
+    } catch (error) {
+      logger.error("Критическая ошибка загрузки hero", error);
       return [];
     }
-
-    return mapHeroData(data);
   },
   ["homepage-hero-critical"],
   { revalidate: 300, tags: ["homepage", "homepage:hero"] },
@@ -70,42 +159,87 @@ const getHomepageHeroCriticalDataCached = unstable_cache(
 
 const getHomepageSecondarySectionsCached = unstable_cache(
   async () => {
-    const supabase = await createClient();
-    const [trendingResponse, popularResponse, latestUpdatesResponse] = await Promise.all([
-      supabase.from("animes").select(ANIME_CARD_SELECT).order("shikimori_rating", { ascending: false, nullsFirst: false }).limit(12),
-      supabase.from("animes").select(ANIME_CARD_SELECT).order("shikimori_votes", { ascending: false, nullsFirst: false }).limit(12),
-      supabase.from("animes").select(ANIME_CARD_SELECT).order("updated_at_kodik", { ascending: false, nullsFirst: false }).limit(12),
-    ]);
+    const logger = createHomepageLogger("sections_deferred");
 
-    return {
-      trending: mapCarouselData(trendingResponse),
-      popular: mapCarouselData(popularResponse),
-      latestUpdates: mapCarouselData(latestUpdatesResponse),
-    };
+    try {
+      const supabase = await createClient();
+      const [trendingResponse, popularResponse, latestUpdatesResponse] = await Promise.all([
+        supabase.from("animes").select(ANIME_CARD_SELECT).order("shikimori_rating", { ascending: false, nullsFirst: false }).limit(12),
+        supabase.from("animes").select(ANIME_CARD_SELECT).order("shikimori_votes", { ascending: false, nullsFirst: false }).limit(12),
+        supabase.from("animes").select(ANIME_CARD_SELECT).order("updated_at_kodik", { ascending: false, nullsFirst: false }).limit(12),
+      ]);
+
+      if (trendingResponse.error) {
+        logger.error("Ошибка секции trending", trendingResponse.error);
+      }
+      if (popularResponse.error) {
+        logger.error("Ошибка секции popular", popularResponse.error);
+      }
+      if (latestUpdatesResponse.error) {
+        logger.error("Ошибка секции latestUpdates", latestUpdatesResponse.error);
+      }
+
+      const mapped = {
+        trending: mapCarouselData(trendingResponse.data),
+        popular: mapCarouselData(popularResponse.data),
+        latestUpdates: mapCarouselData(latestUpdatesResponse.data),
+      };
+
+      logger.info("Вторичные секции загружены", {
+        trendingCount: mapped.trending.length,
+        popularCount: mapped.popular.length,
+        latestUpdatesCount: mapped.latestUpdates.length,
+      });
+
+      return mapped;
+    } catch (error) {
+      logger.error("Критическая ошибка загрузки вторичных секций", error);
+      return {
+        trending: [],
+        popular: [],
+        latestUpdates: [],
+      };
+    }
   },
   ["homepage-secondary-sections"],
   { revalidate: 300, tags: ["homepage", "homepage:sections"] },
 );
 
 export async function getHomePageData() {
-  const supabase = await createClient();
+  const logger = createHomepageLogger("homepage_full");
 
   try {
+    const supabase = await createClient();
     const {
       data: { user },
+      error: userError,
     } = await supabase.auth.getUser();
+
+    if (userError) {
+      logger.error("Ошибка получения пользователя", userError);
+    }
 
     const hero = await getHomepageHeroCriticalDataCached();
     const secondary = await getHomepageSecondarySectionsCached();
 
-    return {
+    const result = {
       hero: await enrichWithUserStatus(supabase, user, hero),
       trending: await enrichWithUserStatus(supabase, user, secondary.trending),
       popular: await enrichWithUserStatus(supabase, user, secondary.popular),
       latestUpdates: await enrichWithUserStatus(supabase, user, secondary.latestUpdates),
     };
+
+    logger.info("Полный набор данных главной страницы готов", {
+      hasUser: Boolean(user),
+      heroCount: result.hero?.length ?? 0,
+      trendingCount: result.trending?.length ?? 0,
+      popularCount: result.popular?.length ?? 0,
+      latestUpdatesCount: result.latestUpdates?.length ?? 0,
+    });
+
+    return result;
   } catch (error) {
-    console.error("Ошибка при загрузке данных для главной страницы:", error);
+    logger.error("Ошибка при загрузке данных для главной страницы", error);
     return { hero: [], trending: [], popular: [], latestUpdates: [] };
   }
 }

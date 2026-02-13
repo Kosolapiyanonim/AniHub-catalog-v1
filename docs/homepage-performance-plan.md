@@ -45,6 +45,13 @@
 ### Этап E (следующий шаг)
 - Добавить RUM-метрики (LCP p75, TTFB, INP) и compare-before/after дашборд.
 
+
+### Этап F (выполнено)
+- Добавлено структурированное логирование для главной страницы:
+  - `traceId`, `stage`, `elapsedMs`, `message`, `error`.
+  - Логи по этапам: `hero_critical`, `sections_deferred`, `user_enrichment`, `homepage_full`, `page_render`.
+- Теперь в server-логах видно, где именно произошла ошибка (например, конкретная секция) и с каким контекстом.
+
 ---
 
 ## 4) Стратегия перехода

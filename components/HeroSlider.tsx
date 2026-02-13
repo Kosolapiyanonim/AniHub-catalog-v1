@@ -82,6 +82,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
           {validItems.map((anime, index) => {
             const backgroundImageUrl =
               anime.background_image_url || anime.poster_url || "/placeholder.svg?height=1080&width=1920"
+            const mobileHeroImageUrl = anime.poster_url || backgroundImageUrl
 
             let episodeStatusText = ""
             if (anime.episodes_total === 1 && anime.episodes_aired === 1) {
@@ -111,10 +112,10 @@ export function HeroSlider({ items }: HeroSliderProps) {
                 <div className="md:hidden relative w-full h-[calc(100vh-4rem)]">
                   <div className="absolute inset-0 z-0">
                     <Image
-                      src={backgroundImageUrl || "/placeholder.svg"}
+                      src={mobileHeroImageUrl || "/placeholder.svg"}
                       alt={`Фон для ${anime.title}`}
                       fill
-                      className="object-cover transition-transform duration-1000 ease-in-out"
+                      className="object-cover object-center transition-transform duration-1000 ease-in-out"
                       priority={index === 0}
                       quality={60}
                       sizes="100vw"

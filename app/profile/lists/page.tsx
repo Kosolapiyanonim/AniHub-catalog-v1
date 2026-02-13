@@ -48,7 +48,7 @@ function AnimeCardCompact({ item }: { item: ListItem }) {
               alt={item.anime.title}
               fill
               className="object-cover"
-              sizes="(max-width: 640px) 84px, (max-width: 1024px) 110px, 130px"
+              sizes="(max-width: 640px) 44vw, (max-width: 1024px) 28vw, 180px"
             />
           ) : null}
         </div>
@@ -124,9 +124,7 @@ export default function ProfileListsPage() {
       ? Math.min(statusOrder.length - 1, currentIndex + 1)
       : Math.max(0, currentIndex - 1)
 
-    if (nextIndex !== currentIndex) {
-      setActiveStatus(statusOrder[nextIndex])
-    }
+    if (nextIndex !== currentIndex) setActiveStatus(statusOrder[nextIndex])
   }
 
   const handleTouchStart = (event: TouchEvent<HTMLDivElement>) => {
@@ -139,11 +137,8 @@ export default function ProfileListsPage() {
     const deltaX = event.changedTouches[0].clientX - touchStartX
     const threshold = 50
 
-    if (deltaX <= -threshold) {
-      switchStatusBySwipe("next")
-    } else if (deltaX >= threshold) {
-      switchStatusBySwipe("prev")
-    }
+    if (deltaX <= -threshold) switchStatusBySwipe("next")
+    else if (deltaX >= threshold) switchStatusBySwipe("prev")
 
     setTouchStartX(null)
   }
@@ -175,35 +170,15 @@ export default function ProfileListsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 md:py-8 space-y-4">
+    <div className="container mx-auto px-4 py-5 md:py-7 space-y-3">
       <div>
-        <h1 className="text-2xl font-semibold">Мои списки</h1>
-        <p className="text-sm text-muted-foreground">Свайпайте по списку влево/вправо, чтобы переключать вкладки.</p>
+        <h1 className="text-xl md:text-2xl font-semibold">Мои списки</h1>
+        <p className="text-sm text-muted-foreground">Свайп по карточкам: влево/вправо для смены вкладки.</p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
-        <Card className="hidden lg:block">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Фильтр</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            {statusOrder.map((status) => (
-              <button
-                key={status}
-                onClick={() => setActiveStatus(status)}
-                className={`w-full flex items-center justify-between rounded-md px-3 py-2 text-sm ${
-                  activeStatus === status ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary/50"
-                }`}
-              >
-                <span>{statusMeta[status].label}</span>
-                <span>{counts[status]}</span>
-              </button>
-            ))}
-          </CardContent>
-        </Card>
-
-        <div className="space-y-3">
-          <div className="flex gap-2 overflow-x-auto pb-1 lg:hidden">
+      <div className="space-y-3">
+        <div className="-mx-4 px-4 overflow-x-auto">
+          <div className="flex gap-2 w-max pb-1">
             {statusOrder.map((status) => (
               <Button
                 key={status}
@@ -212,48 +187,58 @@ export default function ProfileListsPage() {
                 className="whitespace-nowrap"
                 onClick={() => setActiveStatus(status)}
               >
-                {statusMeta[status].label} ({counts[status]})
+                {statusMeta[status].label} {counts[status]}
               </Button>
             ))}
           </div>
+        </div>
 
-          <div className="flex flex-col sm:flex-row gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Поиск по названию"
-                className="pl-9"
-              />
-            </div>
+        <div className="space-y-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Поиск по названию"
+              className="pl-9"
+            />
+          </div>
 
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortBy)}
-              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant={sortBy === "updated_desc" ? "default" : "outline"}
+              onClick={() => setSortBy("updated_desc")}
+              className="flex-1"
             >
-              <option value="updated_desc">Сначала новые</option>
-              <option value="title_asc">По названию</option>
-            </select>
+              Сначала новые
+            </Button>
+            <Button
+              size="sm"
+              variant={sortBy === "title_asc" ? "default" : "outline"}
+              onClick={() => setSortBy("title_asc")}
+              className="flex-1"
+            >
+              По названию
+            </Button>
           </div>
+        </div>
 
-          <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-            {filteredItems.length === 0 ? (
-              <Card>
-                <CardContent className="p-8 text-center text-muted-foreground flex flex-col items-center gap-2">
-                  <BookmarkX className="h-6 w-6" />
-                  <p>{statusMeta[activeStatus].empty}</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                {filteredItems.map((item) => (
-                  <AnimeCardCompact key={`${item.status}-${item.anime.id}`} item={item} />
-                ))}
-              </div>
-            )}
-          </div>
+        <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+          {filteredItems.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center text-muted-foreground flex flex-col items-center gap-2">
+                <BookmarkX className="h-6 w-6" />
+                <p>{statusMeta[activeStatus].empty}</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              {filteredItems.map((item) => (
+                <AnimeCardCompact key={`${item.status}-${item.anime.id}`} item={item} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

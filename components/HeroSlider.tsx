@@ -116,6 +116,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
                       fill
                       className="object-cover transition-transform duration-1000 ease-in-out"
                       priority={index === 0}
+                      quality={60}
                       sizes="100vw"
                     />
                     {/* Усиленный градиент для лучшей читаемости */}
@@ -171,7 +172,8 @@ export function HeroSlider({ items }: HeroSliderProps) {
                             alt={`Постер для ${anime.title}`}
                             fill
                             className="object-cover transition-transform duration-500 ease-in-out"
-                            sizes="(max-width: 640px) 50vw, 33vw"
+                            sizes="(max-width: 640px) 44vw, 180px"
+                            quality={65}
                           />
                         ) : (
                           <div className="bg-slate-800 w-full h-full flex items-center justify-center">
@@ -217,7 +219,8 @@ export function HeroSlider({ items }: HeroSliderProps) {
                         alt={`Фон для ${anime.title}`}
                         fill
                         className={`object-cover transition-transform duration-1000 ease-in-out ${!isFullscreen ? "rounded-lg" : ""}`}
-                        priority={index === 0}
+                        loading="lazy"
+                        quality={55}
                         sizes="(max-width: 1200px) 50vw, 50vw"
                       />
                     </div>
@@ -322,7 +325,8 @@ export function HeroSlider({ items }: HeroSliderProps) {
                             alt={`Постер для ${anime.title}`}
                             fill
                             className="object-cover transition-transform duration-700 ease-in-out"
-                            sizes="(max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+                            sizes="(max-width: 1024px) 28vw, (max-width: 1280px) 22vw, 16vw"
+                            quality={65}
                           />
                         ) : (
                           <div className="bg-slate-800 w-full h-full flex items-center justify-center">

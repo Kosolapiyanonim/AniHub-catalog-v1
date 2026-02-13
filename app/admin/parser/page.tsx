@@ -1,180 +1,205 @@
-// Рекомендуемый путь: /app/admin/parser/page.tsx
-
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Play, Pause, Square, RefreshCw } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { RefreshCw, Bug, PlayCircle, Clock3 } from "lucide-react";
 
-// Тип для логов, чтобы они были цветными
-type LogEntry = {
-  type: "info" | "success" | "error";
-  message: string;
+type PeriodKey = "24h" | "7d" | "30d" | "180d";
+
+type AnimeChange = {
+  shikimori_id: string;
+  title: string;
+  action: "inserted" | "updated" | "unchanged";
+  changedFields: string[];
 };
 
-// Основной компонент страницы
+type ParserResponse = {
+  message?: string;
+  error?: string;
+  period?: PeriodKey;
+  threshold?: string;
+  pagesScanned?: number;
+  totalFetched?: number;
+  processed?: number;
+  inserted?: number;
+  updated?: number;
+  unchanged?: number;
+  uniqueCandidates?: number;
+  skippedWithoutShikimori?: number;
+  animeChanges?: AnimeChange[];
+  logs?: string[];
+};
+
+const PERIODS: { key: PeriodKey; label: string; hint: string }[] = [
+  { key: "24h", label: "Последние 24 часа", hint: "Вчера → сегодня" },
+  { key: "7d", label: "Последняя неделя", hint: "7 дней" },
+  { key: "30d", label: "Последний месяц", hint: "30 дней" },
+  { key: "180d", label: "Последние 6 месяцев", hint: "180 дней" },
+];
+
 export default function ParserControlPage() {
-  const [isParsing, setIsParsing] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Используем useRef для хранения URL следующей страницы и статуса парсинга,
-  // чтобы избежать лишних перерисовок компонента.
-  const nextPageUrlRef = useRef<string | null>(null);
-  const isParsingRef = useRef(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<ParserResponse | null>(null);
+  const [logs, setLogs] = useState<string[]>([]);
 
-  // Функция дл�� добавления записей в лог
-  const addLog = useCallback((message: string, type: LogEntry['type'] = "info") => {
-    setLogs(prev => [...prev, { type, message: `[${new Date().toLocaleTimeString()}] ${message}` }]);
-  }, []);
+  const addUiLog = (message: string) => {
+    setLogs((prev) => [`[${new Date().toLocaleTimeString()}] ${message}`, ...prev]);
+  };
 
-  // Главная функция управления парсингом
-  const runParsingProcess = useCallback(async () => {
-    // Если уже не парсим (нажали "Стоп"), выходим из цикла
-    if (!isParsingRef.current) {
-        setIsParsing(false);
-        setIsPaused(false);
-        addLog("Парсинг остановлен пользователем.", "error");
-        return;
-    }
-    
-    // Если парсинг на паузе
-    if (isPaused) {
-        addLog("Парсинг на паузе.", "info");
-        return;
-    }
-
-    addLog(`Отправка запроса для: ${nextPageUrlRef.current || "начальной страницы"}...`);
+  const runParser = async (period: PeriodKey, singleAnimeDebug = false) => {
+    setIsLoading(true);
+    setResult(null);
+    addUiLog(
+      `${singleAnimeDebug ? "Debug-режим" : "Полный ручной запуск"}: ${period}${singleAnimeDebug ? " (1 аниме)" : ""}`,
+    );
 
     try {
-      const response = await fetch("/api/parse-single-page", {
+      const response = await fetch("/api/manual-parser", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nextPageUrl: nextPageUrlRef.current }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ period, singleAnimeDebug }),
       });
 
-      const result = await response.json();
+      const data = (await response.json()) as ParserResponse;
+      setResult(data);
 
       if (!response.ok) {
-        throw new Error(result.error || `Ошибка сервера: ${response.status}`);
-      }
-      
-      addLog(`Успешно обработано: ${result.processed || 0} записей. ${result.message}`, "success");
-      
-      // Обновляем прогресс (для примера, можно сделать более сложную логику)
-      setProgress(prev => Math.min(prev + 5, 100)); 
-
-      // Если сервер прислал URL следующей страницы
-      if (result.nextPageUrl) {
-        nextPageUrlRef.current = result.nextPageUrl;
-        // Рекурсивно вызываем себя для следующего шага
-        setTimeout(runParsingProcess, 1000); // Небольшая задержка между запросами
+        addUiLog(`Ошибка: ${data.error || "Неизвестная ошибка"}`);
       } else {
-        // Если URL нет, значит парсинг завершен
-        addLog("Парсинг успешно завершен. Больше страниц нет.", "success");
-        setProgress(100);
-        isParsingRef.current = false;
-        setIsParsing(false);
+        addUiLog(`Готово: обработано ${data.processed ?? 0}, страниц ${data.pagesScanned ?? 0}`);
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Неизвестная ошибка";
-      setError(errorMessage);
-      addLog(`Критическая ошибка: ${errorMessage}`, "error");
-      isParsingRef.current = false;
-      setIsParsing(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Неизвестная ошибка";
+      setResult({ error: message });
+      addUiLog(`Критическая ошибка: ${message}`);
+    } finally {
+      setIsLoading(false);
     }
-  }, [addLog, isPaused]);
-
-  // Обработчики кнопок
-  const handleStart = () => {
-    setLogs([]);
-    setError(null);
-    setProgress(0);
-    setIsPaused(false);
-    setIsParsing(true);
-    isParsingRef.current = true;
-    nextPageUrlRef.current = null; // Начинаем с самого начала
-    addLog("Запуск парсинга...");
-    runParsingProcess();
-  };
-  
-  const handlePause = () => {
-      setIsPaused(true);
   };
 
-  const handleResume = () => {
-      setIsPaused(false);
-      addLog("Возобновление парсинга...");
-      // Запускаем процесс снова, он подхватит текущий nextPageUrl
-      runParsingProcess();
-  };
-
-  const handleStop = () => {
-    isParsingRef.current = false; // Устанавливаем флаг остановки
-    // Состояние isParsing обновится в самом цикле runParsingProcess
-  };
+  const stats = useMemo(
+    () => [
+      { label: "Обработано", value: result?.processed ?? 0 },
+      { label: "Кандидатов", value: result?.uniqueCandidates ?? 0 },
+      { label: "Страниц", value: result?.pagesScanned ?? 0 },
+      { label: "Скачано", value: result?.totalFetched ?? 0 },
+      { label: "Новые", value: result?.inserted ?? 0 },
+      { label: "Обновлённые", value: result?.updated ?? 0 },
+      { label: "Без изменений", value: result?.unchanged ?? 0 },
+    ],
+    [result],
+  );
 
   return (
     <div className="container mx-auto px-4 py-8 pt-24 min-h-screen">
-      <Card className="max-w-4xl mx-auto">
+      <Card className="max-w-6xl mx-auto border-white/10">
         <CardHeader>
           <CardTitle className="text-2xl flex items-center gap-3">
-            <RefreshCw className="text-blue-500"/>
-            Панель управления парсером
+            <RefreshCw className="text-blue-500" />
+            Ручной парсер Kodik
           </CardTitle>
+          <CardDescription>
+            Выберите период и запустите парсинг вручную. Доступны основной запуск и debug-кнопка (1 аниме).
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap items-center gap-4 mb-6">
-            {!isParsing ? (
-              <Button onClick={handleStart} className="bg-blue-600 hover:bg-blue-700">
-                <Play className="mr-2 h-4 w-4" /> Начать парсинг
-              </Button>
-            ) : (
-                <>
-                    {isPaused ? (
-                         <Button onClick={handleResume} className="bg-green-600 hover:bg-green-700">
-                            <Play className="mr-2 h-4 w-4" /> Продолжить
-                        </Button>
-                    ) : (
-                        <Button onClick={handlePause} variant="outline">
-                            <Pause className="mr-2 h-4 w-4" /> Пауза
-                        </Button>
-                    )}
-                    <Button onClick={handleStop} variant="destructive">
-                        <Square className="mr-2 h-4 w-4" /> Стоп
-                    </Button>
-                </>
-            )}
+
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {PERIODS.map((period) => (
+              <Card key={period.key} className="border-white/10 bg-black/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center justify-between">
+                    <span>{period.label}</span>
+                    <Badge variant="secondary" className="text-xs">
+                      {period.key}
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription className="flex items-center gap-2">
+                    <Clock3 className="h-4 w-4" /> {period.hint}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-wrap gap-2">
+                  <Button disabled={isLoading} onClick={() => runParser(period.key)} className="bg-blue-600 hover:bg-blue-700">
+                    <PlayCircle className="mr-2 h-4 w-4" /> Запустить
+                  </Button>
+                  <Button
+                    disabled={isLoading}
+                    variant="outline"
+                    onClick={() => runParser(period.key, true)}
+                    className="border-amber-500/60 text-amber-300"
+                  >
+                    <Bug className="mr-2 h-4 w-4" /> Тест: 1 аниме
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Прогресс:</label>
-              <Progress value={progress} className="w-full mt-1" />
+          <Separator />
+
+          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
+            {stats.map((item) => (
+              <Card key={item.label} className="border-white/10 bg-black/20">
+                <CardContent className="py-4">
+                  <p className="text-xs text-muted-foreground">{item.label}</p>
+                  <p className="text-2xl font-semibold">{item.value}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {result?.threshold && (
+            <div className="text-sm text-muted-foreground">
+              Порог по дате: <span className="font-mono">{result.threshold}</span>
             </div>
-            
-            {error && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-sm font-bold text-red-800">Произошла ошибка:</p>
-                    <p className="text-sm text-red-700 font-mono mt-1">{error}</p>
-                </div>
-            )}
+          )}
+
+          {result?.error && (
+            <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-red-300 text-sm">Ошибка: {result.error}</div>
+          )}
+
+
+
+          <div>
+            <p className="text-sm font-medium mb-2">Изменения в БД (по аниме)</p>
+            <div className="bg-gray-900 text-gray-100 rounded-lg p-3 text-xs h-72 overflow-auto font-mono">
+              {(result?.animeChanges || []).length === 0 ? (
+                <p className="text-gray-400">Пока пусто.</p>
+              ) : (
+                (result?.animeChanges || []).map((change, index) => (
+                  <p key={`${change.shikimori_id}-${index}`}>
+                    {index + 1}. [{change.action.toUpperCase()}] {change.title} ({change.shikimori_id}) fields: {change.changedFields.join(", ") || "none"}
+                  </p>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm font-medium mb-2">Логи API</p>
+              <div className="bg-gray-900 text-gray-100 rounded-lg p-3 text-xs h-72 overflow-auto font-mono">
+                {(result?.logs || []).length === 0 ? (
+                  <p className="text-gray-400">Пока пусто.</p>
+                ) : (
+                  (result?.logs || []).map((line, index) => <p key={`${line}-${index}`}>{line}</p>)
+                )}
+              </div>
+            </div>
 
             <div>
-              <label className="text-sm font-medium">Логи выполнения:</label>
-              <div className="bg-gray-900 text-white font-mono text-xs rounded-lg p-4 mt-1 h-80 overflow-y-auto">
-                {logs.map((log, index) => (
-                  <p key={index} className={
-                    log.type === 'error' ? 'text-red-400' : 
-                    log.type === 'success' ? 'text-green-400' : 'text-gray-300'
-                  }>
-                    {log.message}
-                  </p>
-                ))}
+              <p className="text-sm font-medium mb-2">Логи UI</p>
+              <div className="bg-gray-900 text-gray-100 rounded-lg p-3 text-xs h-72 overflow-auto font-mono">
+                {logs.length === 0 ? (
+                  <p className="text-gray-400">Пока пусто.</p>
+                ) : (
+                  logs.map((line, index) => <p key={`${line}-${index}`}>{line}</p>)
+                )}
               </div>
             </div>
           </div>

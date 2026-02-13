@@ -160,16 +160,22 @@ export function HeroSlider({ items }: HeroSliderProps) {
                       </div>
 
                       {anime.description && (
-                        <div className="mb-3">
-                          <p
-                            className={`text-gray-300 text-[0.7rem] sm:text-xs opacity-90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)] ${expandedDescriptionId === anime.id ? "line-clamp-none" : "line-clamp-3"}`}
+                        <div
+                          className={`mb-3 rounded-md border transition-all duration-300 ${expandedDescriptionId === anime.id ? "bg-black/70 border-white/20 p-2.5 shadow-lg shadow-black/40" : "bg-black/30 border-transparent p-2"}`}
+                        >
+                          <div
+                            className={`origin-top overflow-hidden transition-[max-height] duration-300 ease-in-out ${expandedDescriptionId === anime.id ? "max-h-44 overflow-y-auto" : "max-h-[3.3rem]"}`}
                           >
-                            {anime.description}
-                          </p>
+                            <p
+                              className={`text-[0.7rem] sm:text-xs drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)] ${expandedDescriptionId === anime.id ? "text-gray-100" : "text-gray-300 opacity-90 line-clamp-3"}`}
+                            >
+                              {anime.description}
+                            </p>
+                          </div>
                           <button
                             type="button"
                             onClick={() => setExpandedDescriptionId(expandedDescriptionId === anime.id ? null : anime.id)}
-                            className="mt-1 inline-flex items-center gap-1 text-[0.65rem] sm:text-xs text-purple-300 hover:text-purple-200 transition-colors"
+                            className="mt-2 inline-flex items-center gap-1 text-[0.65rem] sm:text-xs text-purple-300 hover:text-purple-200 transition-colors"
                           >
                             {expandedDescriptionId === anime.id ? (
                               <>

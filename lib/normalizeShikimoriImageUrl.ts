@@ -1,11 +1,12 @@
 /**
- * Нормализует URL изображений Shikimori, приводя все поддомены к основному домену shikimori.one
+ * Нормализует URL изображений Shikimori/Shiki, приводя все поддомены к основному домену shiki.one
  * 
  * Правила нормализации:
  * - trim входной строки
- * - если начинается с "/" => добавляет "https://shikimori.one"
+ * - если начинается с "/" => добавляет "https://shiki.one"
  * - если начинается с "//" => добавляет "https:"
- * - если hostname оканчивается на ".shikimori.one" и не равен "shikimori.one" => заменяет на "shikimori.one"
+ * - если hostname равен shikimori.one или оканчивается на ".shikimori.one" => заменяет на "shiki.one"
+ * - если hostname оканчивается на ".shiki.one" => заменяет на "shiki.one"
  * - сохраняет путь и query параметры как есть
  * - если URL невалиден => возвращает null
  * 
@@ -14,10 +15,10 @@
  * 
  * @example
  * normalizeShikimoriImageUrl("https://nyaa.shikimori.one/uploads/poster/animes/11757/x.jpeg")
- * // => "https://shikimori.one/uploads/poster/animes/11757/x.jpeg"
+ * // => "https://shiki.one/uploads/poster/animes/11757/x.jpeg"
  * 
  * normalizeShikimoriImageUrl("/uploads/poster/animes/199/x.jpeg")
- * // => "https://shikimori.one/uploads/poster/animes/199/x.jpeg"
+ * // => "https://shiki.one/uploads/poster/animes/199/x.jpeg"
  */
 export function normalizeShikimoriImageUrl(url: string | null | undefined): string | null {
   // Если вход null/undefined, возвращаем null
@@ -40,24 +41,27 @@ export function normalizeShikimoriImageUrl(url: string | null | undefined): stri
     if (trimmed.startsWith('//')) {
       urlToNormalize = `https:${trimmed}`;
     }
-    // Если начинается с "/", добавляем "https://shikimori.one"
+    // Если начинается с "/", добавляем "https://shiki.one"
     else if (trimmed.startsWith('/')) {
-      urlToNormalize = `https://shikimori.one${trimmed}`;
+      urlToNormalize = `https://shiki.one${trimmed}`;
     }
 
     // Парсим URL
     const parsedUrl = new URL(urlToNormalize);
 
-    // Проверяем, является ли hostname поддоменом shikimori.one
+    // Нормализуем старые/поддоменные варианты домена к shiki.one
     const hostname = parsedUrl.hostname.toLowerCase();
-    
-    if (hostname.endsWith('.shikimori.one') && hostname !== 'shikimori.one') {
-      // Заменяем hostname на shikimori.one, сохраняя путь и query
-      parsedUrl.hostname = 'shikimori.one';
+
+    const isShikimoriDomain = hostname === 'shikimori.one' || hostname.endsWith('.shikimori.one');
+    const isShikiSubdomain = hostname.endsWith('.shiki.one') && hostname !== 'shiki.one';
+
+    if (isShikimoriDomain || isShikiSubdomain) {
+      // Заменяем hostname на shiki.one, сохраняя путь и query
+      parsedUrl.hostname = 'shiki.one';
       return parsedUrl.toString();
     }
 
-    // Если это уже shikimori.one или другой домен, возвращаем как есть
+    // Если это уже shiki.one или другой домен, возвращаем как есть
     return parsedUrl.toString();
 
   } catch (error) {
@@ -65,4 +69,3 @@ export function normalizeShikimoriImageUrl(url: string | null | undefined): stri
     return null;
   }
 }
-

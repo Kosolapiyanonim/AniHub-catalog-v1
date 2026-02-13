@@ -13,7 +13,7 @@ import Autoplay from "embla-carousel-autoplay"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Play, Info, Star, Clapperboard, Calendar, Maximize, Minimize } from 'lucide-react'
+import { Play, Info, Star, Clapperboard, Calendar } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
 import type { Anime } from "@/lib/types"
 
@@ -24,7 +24,7 @@ interface HeroSliderProps {
 export function HeroSlider({ items }: HeroSliderProps) {
   const plugin = useRef(Autoplay({ delay: 7000, stopOnInteraction: true }))
   const validItems = items?.filter(Boolean) as Anime[]
-  const [isFullscreen, setIsFullscreen] = useState(true)
+  const isFullscreen = false
   const [api, setApi] = useState<CarouselApi>()
   const [current, setCurrent] = useState(0)
   const [count, setCount] = useState(0)
@@ -45,7 +45,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
   if (!validItems || validItems.length === 0) {
     return (
       <div
-        className={`relative w-full ${isFullscreen ? "h-screen" : "h-[70vh] min-h-[500px]"} flex items-center justify-center bg-gradient-to-br from-background to-secondary text-foreground ${!isFullscreen ? "md:container md:mx-auto md:px-4 md:rounded-lg" : ""}`}
+        className="relative w-full h-[70vh] min-h-[500px] flex items-center justify-center bg-gradient-to-br from-background to-secondary text-foreground md:container md:mx-auto md:px-4 md:rounded-lg"
       >
         <p className="text-xl text-center px-4">Отметьте аниме в базе для отображения в Hero-секции...</p>
       </div>
@@ -54,17 +54,8 @@ export function HeroSlider({ items }: HeroSliderProps) {
 
   return (
     <div
-      className={`relative w-full ${isFullscreen ? "h-screen" : "h-[70vh] min-h-[500px]"} overflow-hidden ${!isFullscreen ? "md:container md:mx-auto md:px-4" : ""}`}
+      className="relative w-full h-[70vh] min-h-[500px] overflow-hidden md:container md:mx-auto md:px-4"
     >
-      {/* Кнопка переключения режима - только на десктопе */}
-      <Button
-        onClick={() => setIsFullscreen(!isFullscreen)}
-        className="hidden md:flex absolute top-4 right-4 z-50 bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm rounded-full w-10 h-10 p-0 transition-all duration-300 hover:scale-110"
-        size="sm"
-      >
-        {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
-      </Button>
-
       <Carousel
         setApi={setApi}
         className="w-full h-full"

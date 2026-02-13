@@ -36,13 +36,50 @@ export async function GET(request: Request) {
     const user = await getAuthenticatedUser(supabase);
     if (!user) return NextResponse.json({ subscribed: false }, { headers: response.headers });
 
-    const { data, error } = await supabase
-        .from('user_subscriptions')
-        .select('anime_id')
-        .eq('user_id', user.id)
-        .eq('anime_id', anime_id)
-        .maybeSingle();
+    if (anime_id) {
+      const { data, error } = await supabase
+          .from('user_subscriptions')
+          .select('anime_id')
+          .eq('user_id', user.id)
+          .eq('anime_id', anime_id)
+          .maybeSingle();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500, headers: response.headers });
-    return NextResponse.json({ subscribed: !!data }, { headers: response.headers });
+      if (error) return NextResponse.json({ error: error.message }, { status: 500, headers: response.headers });
+      return NextResponse.json({ subscribed: !!data }, { headers: response.headers });
+    }
+
+    const { data: subscriptions, error: subscriptionsError } = await supabase
+      .from('user_subscriptions')
+      .select('anime_id, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (subscriptionsError) {
+      return NextResponse.json({ error: subscriptionsError.message }, { status: 500, headers: response.headers });
+    }
+
+    const animeIds = [...new Set((subscriptions ?? []).map((row) => row.anime_id).filter(Boolean))];
+
+    if (animeIds.length === 0) {
+      return NextResponse.json({ items: [] }, { headers: response.headers });
+    }
+
+    const { data: animes, error: animeError } = await supabase
+      .from('animes')
+      .select('id, shikimori_id, title, poster_url, year, type')
+      .in('id', animeIds);
+
+    if (animeError) {
+      return NextResponse.json({ error: animeError.message }, { status: 500, headers: response.headers });
+    }
+
+    const animeMap = new Map((animes ?? []).map((anime) => [anime.id, anime]));
+    const items = (subscriptions ?? [])
+      .map((row) => ({
+        created_at: row.created_at,
+        anime: animeMap.get(row.anime_id) ?? null,
+      }))
+      .filter((row) => row.anime && row.anime.shikimori_id);
+
+    return NextResponse.json({ items }, { headers: response.headers });
 }

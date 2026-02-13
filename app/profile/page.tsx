@@ -106,7 +106,7 @@ export default function ProfilePrototypePage() {
               {session?.user?.id ? (
                 <>
                   <Button asChild variant="outline">
-                    <Link href={`/profile/${session.user.id}`}>Редактировать базу</Link>
+                    <Link href="/profile/lists">Открыть мои списки</Link>
                   </Button>
                   <Button asChild>
                     <Link href="/catalog">Подобрать аниме</Link>
@@ -185,8 +185,8 @@ export default function ProfilePrototypePage() {
             <p>4. Мягкая геймификация: ранги, бейджи и челленджи без перегруза интерфейса.</p>
             <Separator />
             <div className="flex flex-wrap gap-2">
-              <Button asChild variant="outline" size="sm"><Link href="/favorites">Открыть закладки</Link></Button>
-              <Button asChild variant="outline" size="sm"><Link href="/notifications">Уведомления</Link></Button>
+              <Button asChild variant="outline" size="sm"><Link href="/profile/lists">Мои списки</Link></Button>
+              <Button asChild variant="outline" size="sm"><Link href="/profile/subscriptions">Подписки</Link></Button>
               <Button asChild variant="outline" size="sm"><Link href="/catalog">Каталог</Link></Button>
             </div>
           </CardContent>

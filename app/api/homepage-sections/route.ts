@@ -7,7 +7,7 @@ import createClient from "@/lib/supabase/server";
 export const dynamic = 'force-dynamic';
 
 const ANIME_CARD_SELECT = "id, shikimori_id, title, poster_url, year, shikimori_rating, episodes_count, type";
-const HERO_ANIME_SELECT = `${ANIME_CARD_SELECT}, description`;
+const HERO_ANIME_SELECT = `${ANIME_CARD_SELECT}, description, hero_position, hero_custom_image_url`;
 
 const getBestQuality = (translations: { quality: string | null }[]): string | null => {
   if (!translations || translations.length === 0) return null;
@@ -37,7 +37,7 @@ export async function GET() {
       recentlyCompleted,
       latestUpdates,
     ] = await Promise.all([
-      supabase.from("animes").select(HERO_ANIME_SELECT).eq("is_featured_in_hero", true).not('shikimori_id', 'is', null).limit(10),
+      supabase.from("animes").select(HERO_ANIME_SELECT).eq("is_featured_in_hero", true).not('shikimori_id', 'is', null).order("hero_position", { ascending: true, nullsFirst: false }).limit(10),
       supabase.from("animes_with_details").select(ANIME_CARD_SELECT).gte("updated_at_kodik", twoMonthsAgo.toISOString()).not('shikimori_id', 'is', null).order("weighted_rating", { ascending: false }).limit(12),
       supabase.from("animes").select(ANIME_CARD_SELECT).not('shikimori_id', 'is', null).order("shikimori_votes", { ascending: false }).limit(12),
       supabase.from("animes_with_details").select(ANIME_CARD_SELECT).eq("status", "released").gte("updated_at_kodik", oneMonthAgo.toISOString()).not('shikimori_id', 'is', null).order("weighted_rating", { ascending: false }).limit(12),
@@ -57,8 +57,10 @@ export async function GET() {
           translationsMap.get(t.anime_id)!.push(t);
         }
       }
-      heroWithDetails = heroAnimesResponse.data.map((anime: any) => ({
+      heroWithDetails = heroAnimesResponse.data.map((anime: any, index: number) => ({
         ...anime,
+        hero_position: anime.hero_position ?? index + 1,
+        background_image_url: anime.hero_custom_image_url || anime.poster_url,
         best_quality: getBestQuality(translationsMap.get(anime.id) || [])
       }));
     }

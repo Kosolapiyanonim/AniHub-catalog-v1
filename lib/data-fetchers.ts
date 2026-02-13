@@ -14,6 +14,7 @@ const ANIME_CARD_SELECT = `
 const HERO_ANIME_SELECT = `
     id, shikimori_id, title, poster_url, screenshots, year, description,
     shikimori_rating, episodes_aired, episodes_total, status, type,
+    hero_position, hero_custom_image_url,
     genres:anime_genres(genres(name))
 `;
 
@@ -134,8 +135,9 @@ const mapHeroData = (heroRows: any[] | null) =>
   heroRows?.map((anime) => ({
     ...anime,
     genres: anime.genres.map((g: any) => g.genres.name),
-    background_image_url: anime.screenshots && anime.screenshots.length > 0 ? anime.screenshots[0] : anime.poster_url,
-  })) || [];
+    background_image_url: anime.hero_custom_image_url || (anime.screenshots && anime.screenshots.length > 0 ? anime.screenshots[0] : anime.poster_url),
+  }))
+  .sort((a, b) => (a.hero_position ?? Number.MAX_SAFE_INTEGER) - (b.hero_position ?? Number.MAX_SAFE_INTEGER)) || [];
 
 const mapCarouselData = (rows: any[] | null) =>
   rows?.map((anime: any) => ({
@@ -153,6 +155,7 @@ const getHomepageHeroCriticalDataCached = unstable_cache(
         .from("animes")
         .select(HERO_ANIME_SELECT)
         .eq("is_featured_in_hero", true)
+        .order("hero_position", { ascending: true, nullsFirst: false })
         .limit(10);
 
       if (error) {

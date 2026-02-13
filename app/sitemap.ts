@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next";
 import { getAnimeSitemapIds } from "@/lib/server/anime-seo";
 
+export const revalidate = 60 * 60 * 6;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://anihub.wtf";
   const now = new Date();

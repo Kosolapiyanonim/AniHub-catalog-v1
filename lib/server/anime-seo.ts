@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { unstable_cache } from "next/cache";
 
 export interface AnimeSeoData {
   shikimori_id: string;
@@ -18,43 +19,59 @@ function getSupabasePublicClient() {
   return createClient(supabaseUrl, supabaseAnonKey);
 }
 
-export async function getAnimeSeoData(shikimoriId: string): Promise<AnimeSeoData | null> {
-  if (!shikimoriId) return null;
+const getAnimeSeoDataCached = unstable_cache(
+  async (shikimoriId: string): Promise<AnimeSeoData | null> => {
+    if (!shikimoriId) return null;
 
-  try {
-    const supabase = getSupabasePublicClient();
-    const { data, error } = await supabase
-      .from("animes")
-      .select("shikimori_id, title, description, poster_url")
-      .eq("shikimori_id", shikimoriId)
-      .single();
+    try {
+      const supabase = getSupabasePublicClient();
+      const { data, error } = await supabase
+        .from("animes")
+        .select("shikimori_id, title, description, poster_url")
+        .eq("shikimori_id", shikimoriId)
+        .single();
 
-    if (error) {
+      if (error) {
+        return null;
+      }
+
+      return data;
+    } catch {
       return null;
     }
+  },
+  ["anime-seo-data"],
+  { revalidate: 60 * 60 }
+);
 
-    return data;
-  } catch {
-    return null;
-  }
+const getAnimeSitemapIdsCached = unstable_cache(
+  async (): Promise<string[]> => {
+    try {
+      const supabase = getSupabasePublicClient();
+      const { data, error } = await supabase
+        .from("animes")
+        .select("shikimori_id")
+        .order("id", { ascending: false });
+
+      if (error || !data) {
+        return [];
+      }
+
+      return data
+        .map((anime) => anime.shikimori_id)
+        .filter((value): value is string => Boolean(value));
+    } catch {
+      return [];
+    }
+  },
+  ["anime-sitemap-ids"],
+  { revalidate: 60 * 60 * 6 }
+);
+
+export async function getAnimeSeoData(shikimoriId: string): Promise<AnimeSeoData | null> {
+  return getAnimeSeoDataCached(shikimoriId);
 }
 
 export async function getAnimeSitemapIds(): Promise<string[]> {
-  try {
-    const supabase = getSupabasePublicClient();
-    const { data, error } = await supabase
-      .from("animes")
-      .select("shikimori_id")
-      .order("id", { ascending: false });
-
-    if (error || !data) {
-      return [];
-    }
-
-    return data
-      .map((anime) => anime.shikimori_id)
-      .filter((value): value is string => Boolean(value));
-  } catch {
-    return [];
-  }
+  return getAnimeSitemapIdsCached();
 }

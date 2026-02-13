@@ -3,12 +3,11 @@ import { Suspense } from "react";
 import { HeroSlider } from "@/components/HeroSlider";
 import { HomeSectionsDeferred } from "@/components/home-sections-deferred";
 import { HomeSectionsSkeleton } from "@/components/home-sections-skeleton";
-import { getHomepageHeroCriticalData, getHomepageSectionsDeferred } from "@/lib/data-fetchers";
+import { getHomepageHeroCriticalData } from "@/lib/data-fetchers";
 
 export default async function HomePage() {
   try {
     const heroItems = await getHomepageHeroCriticalData();
-    const deferredSectionsPromise = getHomepageSectionsDeferred();
 
     console.log("[HOMEPAGE][INFO]", {
       stage: "page_render",
@@ -16,15 +15,25 @@ export default async function HomePage() {
       heroItemsCount: heroItems.length,
     });
 
+    const hasHero = heroItems.length > 0;
+
     return (
       <>
-        <div className="-mt-16">
-          <HeroSlider items={heroItems} />
-        </div>
+        {hasHero ? (
+          <div className="-mt-16">
+            <HeroSlider items={heroItems} />
+          </div>
+        ) : (
+          <section className="container mx-auto px-4 pt-24 pb-6">
+            <div className="rounded-lg border border-border/60 bg-card p-5 text-sm text-muted-foreground">
+              Hero-секция временно недоступна. Ниже отображаются основные подборки каталога.
+            </div>
+          </section>
+        )}
 
-        <main className="container mx-auto px-4 py-12 space-y-16">
+        <main className="container mx-auto px-4 py-8 space-y-16">
           <Suspense fallback={<HomeSectionsSkeleton />}>
-            <HomeSectionsDeferred sectionsPromise={deferredSectionsPromise} />
+            <HomeSectionsDeferred />
           </Suspense>
         </main>
       </>

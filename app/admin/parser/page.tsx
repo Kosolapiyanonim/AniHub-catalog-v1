@@ -4,9 +4,9 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
-import { RefreshCw, Bug, PlayCircle, Clock3, Search } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { RefreshCw, Bug, PlayCircle, Search } from "lucide-react";
 
 type PeriodKey = "24h" | "7d" | "30d" | "180d";
 type AnimeIdType = "shikimori" | "internal";
@@ -19,9 +19,7 @@ type AnimeChange = {
 };
 
 type ParserResponse = {
-  message?: string;
   error?: string;
-  period?: PeriodKey;
   threshold?: string;
   pagesScanned?: number;
   totalFetched?: number;
@@ -30,23 +28,23 @@ type ParserResponse = {
   updated?: number;
   unchanged?: number;
   uniqueCandidates?: number;
-  skippedWithoutShikimori?: number;
   targetShikimoriId?: string | null;
   animeChanges?: AnimeChange[];
   logs?: string[];
 };
 
-const PERIODS: { key: PeriodKey; label: string; hint: string }[] = [
-  { key: "24h", label: "Последние 24 часа", hint: "Вчера → сегодня" },
-  { key: "7d", label: "Последняя неделя", hint: "7 дней" },
-  { key: "30d", label: "Последний месяц", hint: "30 дней" },
-  { key: "180d", label: "Последние 6 месяцев", hint: "180 дней" },
+const PERIODS: { key: PeriodKey; label: string }[] = [
+  { key: "24h", label: "24 часа" },
+  { key: "7d", label: "Неделя" },
+  { key: "30d", label: "Месяц" },
+  { key: "180d", label: "6 месяцев" },
 ];
 
 export default function ParserControlPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<ParserResponse | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
+  const [period, setPeriod] = useState<PeriodKey>("24h");
   const [animeId, setAnimeId] = useState("");
   const [animeIdType, setAnimeIdType] = useState<AnimeIdType>("shikimori");
 
@@ -54,27 +52,29 @@ export default function ParserControlPage() {
     setLogs((prev) => [`[${new Date().toLocaleTimeString()}] ${message}`, ...prev]);
   };
 
-  const runParser = async (params: { period: PeriodKey; singleAnimeDebug?: boolean; animeId?: string; animeIdType?: AnimeIdType }) => {
-    const { period, singleAnimeDebug = false } = params;
+  const runParser = async (opts: { singleAnimeDebug?: boolean; byId?: boolean }) => {
+    const { singleAnimeDebug = false, byId = false } = opts;
+    if (byId && !animeId.trim()) {
+      addUiLog("Введите anime id для точечного парсинга");
+      return;
+    }
 
     setIsLoading(true);
     setResult(null);
 
     addUiLog(
-      `${singleAnimeDebug ? "Debug-режим" : "Полный ручной запуск"}: ${period}${params.animeId ? `, animeId=${params.animeId} (${params.animeIdType})` : ""}`,
+      `${singleAnimeDebug ? "Тест" : "Запуск"}: period=${period}${byId ? `, animeId=${animeId.trim()} (${animeIdType})` : ""}`,
     );
 
     try {
       const response = await fetch("/api/manual-parser", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           period,
           singleAnimeDebug,
-          animeId: params.animeId || undefined,
-          animeIdType: params.animeIdType || undefined,
+          animeId: byId ? animeId.trim() : undefined,
+          animeIdType: byId ? animeIdType : undefined,
         }),
       });
 
@@ -82,9 +82,9 @@ export default function ParserControlPage() {
       setResult(data);
 
       if (!response.ok) {
-        addUiLog(`Ошибка: ${data.error || "Неизвестная ошибка"}`);
+        addUiLog(`Ошибка: ${data.error || "Неизвестная"}`);
       } else {
-        addUiLog(`Готово: обработано ${data.processed ?? 0}, страниц ${data.pagesScanned ?? 0}`);
+        addUiLog(`Готово: processed=${data.processed ?? 0}, pages=${data.pagesScanned ?? 0}`);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Неизвестная ошибка";
@@ -95,60 +95,50 @@ export default function ParserControlPage() {
     }
   };
 
-  const handleParseById = (period: PeriodKey, singleAnimeDebug = false) => {
-    if (!animeId.trim()) {
-      addUiLog("Введите anime id для точечного парсинга");
-      return;
-    }
-
-    runParser({
-      period,
-      singleAnimeDebug,
-      animeId: animeId.trim(),
-      animeIdType,
-    });
-  };
-
-  const stats = useMemo(
-    () => [
-      { label: "Обработано", value: result?.processed ?? 0 },
-      { label: "Кандидатов", value: result?.uniqueCandidates ?? 0 },
-      { label: "Страниц", value: result?.pagesScanned ?? 0 },
-      { label: "Скачано", value: result?.totalFetched ?? 0 },
-      { label: "Новые", value: result?.inserted ?? 0 },
-      { label: "Обновлённые", value: result?.updated ?? 0 },
-      { label: "Без изменений", value: result?.unchanged ?? 0 },
-    ],
-    [result],
-  );
+  const progress = useMemo(() => {
+    const processed = result?.processed ?? 0;
+    const candidates = result?.uniqueCandidates ?? 0;
+    if (!candidates) return 0;
+    return Math.min(100, Math.round((processed / candidates) * 100));
+  }, [result]);
 
   return (
     <div className="container mx-auto px-4 py-8 pt-24 min-h-screen">
-      <Card className="max-w-6xl mx-auto border-white/10">
+      <Card className="max-w-5xl mx-auto">
         <CardHeader>
           <CardTitle className="text-2xl flex items-center gap-3">
             <RefreshCw className="text-blue-500" />
-            Ручной парсер Kodik
+            Панель ручного парсера Kodik
           </CardTitle>
-          <CardDescription>
-            Периодический запуск + точечный запуск по anime id (shikimori или internal id из вашей БД).
-          </CardDescription>
+          <CardDescription>Исходный компактный вид + новые возможности (периоды, ID, расширенные логи).</CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-6">
-          <Card className="border-white/10 bg-black/20">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
+        <CardContent className="space-y-5">
+          <div className="flex flex-wrap gap-2">
+            {PERIODS.map((item) => (
+              <Button key={item.key} variant={period === item.key ? "default" : "outline"} onClick={() => setPeriod(item.key)} disabled={isLoading}>
+                {item.label}
+              </Button>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button disabled={isLoading} className="bg-blue-600 hover:bg-blue-700" onClick={() => runParser({})}>
+              <PlayCircle className="mr-2 h-4 w-4" /> Запустить период
+            </Button>
+            <Button disabled={isLoading} variant="outline" className="border-amber-500/60 text-amber-300" onClick={() => runParser({ singleAnimeDebug: true })}>
+              <Bug className="mr-2 h-4 w-4" /> Тест (1 аниме)
+            </Button>
+          </div>
+
+          <Card className="border-dashed">
+            <CardContent className="pt-6 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
                 <Search className="h-4 w-4" /> Точечный парсинг по ID
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-[1fr_220px] gap-2">
-                <Input
-                  value={animeId}
-                  onChange={(e) => setAnimeId(e.target.value)}
-                  placeholder="Введите anime id (например: 50738 или internal id из БД)"
-                />
+                <Input value={animeId} onChange={(e) => setAnimeId(e.target.value)} placeholder="anime id (shikimori или internal)" />
                 <select
                   className="h-10 rounded-md border border-input bg-background px-3 text-sm"
                   value={animeIdType}
@@ -160,77 +150,46 @@ export default function ParserControlPage() {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <Button disabled={isLoading} onClick={() => handleParseById("24h")} className="bg-indigo-600 hover:bg-indigo-700">
-                  <PlayCircle className="mr-2 h-4 w-4" /> Спарсить по ID (24h)
+                <Button disabled={isLoading} className="bg-indigo-600 hover:bg-indigo-700" onClick={() => runParser({ byId: true })}>
+                  Спарсить по ID
                 </Button>
-                <Button disabled={isLoading} variant="outline" onClick={() => handleParseById("24h", true)}>
-                  <Bug className="mr-2 h-4 w-4" /> Тест по ID (1 аниме)
+                <Button disabled={isLoading} variant="outline" onClick={() => runParser({ byId: true, singleAnimeDebug: true })}>
+                  Тест по ID
                 </Button>
               </div>
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {PERIODS.map((period) => (
-              <Card key={period.key} className="border-white/10 bg-black/20">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center justify-between">
-                    <span>{period.label}</span>
-                    <Badge variant="secondary" className="text-xs">
-                      {period.key}
-                    </Badge>
-                  </CardTitle>
-                  <CardDescription className="flex items-center gap-2">
-                    <Clock3 className="h-4 w-4" /> {period.hint}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-wrap gap-2">
-                  <Button disabled={isLoading} onClick={() => runParser({ period: period.key })} className="bg-blue-600 hover:bg-blue-700">
-                    <PlayCircle className="mr-2 h-4 w-4" /> Запустить
-                  </Button>
-                  <Button disabled={isLoading} variant="outline" onClick={() => runParser({ period: period.key, singleAnimeDebug: true })} className="border-amber-500/60 text-amber-300">
-                    <Bug className="mr-2 h-4 w-4" /> Тест: 1 аниме
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          <Separator />
-
-          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
-            {stats.map((item) => (
-              <Card key={item.label} className="border-white/10 bg-black/20">
-                <CardContent className="py-4">
-                  <p className="text-xs text-muted-foreground">{item.label}</p>
-                  <p className="text-2xl font-semibold">{item.value}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {result?.threshold && (
-            <div className="text-sm text-muted-foreground">
-              Порог по дате: <span className="font-mono">{result.threshold}</span>
-              {result?.targetShikimoriId ? (
-                <span className="ml-3">Целевой shikimori_id: <span className="font-mono">{result.targetShikimoriId}</span></span>
-              ) : null}
+          <div>
+            <div className="flex items-center justify-between text-sm mb-1">
+              <span>Прогресс обработки кандидатов</span>
+              <Badge variant="secondary">{progress}%</Badge>
             </div>
-          )}
+            <Progress value={progress} className="w-full" />
+          </div>
 
-          {result?.error && (
-            <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-red-300 text-sm">Ошибка: {result.error}</div>
-          )}
+          {result?.targetShikimoriId ? (
+            <p className="text-xs text-muted-foreground">Целевой shikimori_id: <span className="font-mono">{result.targetShikimoriId}</span></p>
+          ) : null}
+
+          {result?.error ? <div className="p-3 rounded border border-red-400/50 bg-red-500/10 text-red-300 text-sm">{result.error}</div> : null}
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            <div>Обработано: <b>{result?.processed ?? 0}</b></div>
+            <div>Кандидатов: <b>{result?.uniqueCandidates ?? 0}</b></div>
+            <div>Новые: <b>{result?.inserted ?? 0}</b></div>
+            <div>Обновлённые: <b>{result?.updated ?? 0}</b></div>
+          </div>
 
           <div>
-            <p className="text-sm font-medium mb-2">Изменения в БД (по аниме)</p>
-            <div className="bg-gray-900 text-gray-100 rounded-lg p-3 text-xs h-72 overflow-auto font-mono">
+            <p className="text-sm font-medium mb-2">Изменения в БД</p>
+            <div className="bg-gray-900 text-gray-100 rounded-lg p-3 text-xs h-48 overflow-auto font-mono">
               {(result?.animeChanges || []).length === 0 ? (
                 <p className="text-gray-400">Пока пусто.</p>
               ) : (
                 (result?.animeChanges || []).map((change, index) => (
                   <p key={`${change.shikimori_id}-${index}`}>
-                    {index + 1}. [{change.action.toUpperCase()}] {change.title} ({change.shikimori_id}) fields: {change.changedFields.join(", ") || "none"}
+                    {index + 1}. [{change.action.toUpperCase()}] {change.title} ({change.shikimori_id}) → {change.changedFields.join(", ") || "none"}
                   </p>
                 ))
               )}
@@ -240,23 +199,14 @@ export default function ParserControlPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div>
               <p className="text-sm font-medium mb-2">Логи API</p>
-              <div className="bg-gray-900 text-gray-100 rounded-lg p-3 text-xs h-72 overflow-auto font-mono">
-                {(result?.logs || []).length === 0 ? (
-                  <p className="text-gray-400">Пока пусто.</p>
-                ) : (
-                  (result?.logs || []).map((line, index) => <p key={`${line}-${index}`}>{line}</p>)
-                )}
+              <div className="bg-gray-900 text-gray-100 rounded-lg p-3 text-xs h-80 overflow-auto font-mono">
+                {(result?.logs || []).length === 0 ? <p className="text-gray-400">Пока пусто.</p> : (result?.logs || []).map((line, idx) => <p key={`${line}-${idx}`}>{line}</p>)}
               </div>
             </div>
-
             <div>
               <p className="text-sm font-medium mb-2">Логи UI</p>
-              <div className="bg-gray-900 text-gray-100 rounded-lg p-3 text-xs h-72 overflow-auto font-mono">
-                {logs.length === 0 ? (
-                  <p className="text-gray-400">Пока пусто.</p>
-                ) : (
-                  logs.map((line, index) => <p key={`${line}-${index}`}>{line}</p>)
-                )}
+              <div className="bg-gray-900 text-gray-100 rounded-lg p-3 text-xs h-80 overflow-auto font-mono">
+                {logs.length === 0 ? <p className="text-gray-400">Пока пусто.</p> : logs.map((line, idx) => <p key={`${line}-${idx}`}>{line}</p>)}
               </div>
             </div>
           </div>

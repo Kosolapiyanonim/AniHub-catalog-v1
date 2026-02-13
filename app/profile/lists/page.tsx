@@ -7,13 +7,11 @@ import { useSupabase } from "@/components/supabase-provider"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { BookmarkX, Grid3X3, List, Loader2, Search } from "lucide-react"
+import { BookmarkX, Loader2, Search } from "lucide-react"
 
 type ListStatus = "watching" | "planned" | "completed" | "dropped" | "on_hold"
 type StatusFilter = ListStatus | "all"
-type ViewMode = "grid" | "list"
-type SortBy = "updated_desc" | "updated_asc" | "title_asc"
+type SortBy = "updated_desc" | "title_asc"
 
 type ListItem = {
   status: ListStatus
@@ -29,44 +27,15 @@ type ListItem = {
 }
 
 const statusMeta: Record<StatusFilter, { label: string; empty: string }> = {
-  all: { label: "Все", empty: "Список пуст. Добавьте тайтлы в любой статус." },
-  watching: { label: "Смотрю", empty: "Вы ещё ничего не добавили в «Смотрю»." },
-  planned: { label: "Запланировано", empty: "Пока нет тайтлов в «Запланировано»." },
-  completed: { label: "Просмотрено", empty: "Пока нет завершённых тайтлов." },
-  dropped: { label: "Брошено", empty: "Вы ещё ничего не бросили." },
-  on_hold: { label: "Отложено", empty: "Нет отложенных тайтлов." },
+  all: { label: "Все", empty: "Список пуст." },
+  watching: { label: "Смотрю", empty: "Нет тайтлов в «Смотрю»." },
+  planned: { label: "Запланировано", empty: "Нет тайтлов в «Запланировано»." },
+  completed: { label: "Просмотрено", empty: "Нет завершённых тайтлов." },
+  dropped: { label: "Брошено", empty: "Нет тайтлов в «Брошено»." },
+  on_hold: { label: "Отложено", empty: "Нет тайтлов в «Отложено»." },
 }
 
-function AnimeCompactCard({ item, viewMode }: { item: ListItem; viewMode: ViewMode }) {
-  if (viewMode === "list") {
-    return (
-      <Link href={`/anime/${item.anime.shikimori_id}`} className="block">
-        <Card className="transition-colors hover:border-primary/50">
-          <CardContent className="p-3 flex gap-3 items-center">
-            <div className="relative h-16 w-12 overflow-hidden rounded-md bg-muted shrink-0">
-              {item.anime.poster_url ? (
-                <Image
-                  src={item.anime.poster_url}
-                  alt={item.anime.title}
-                  fill
-                  className="object-cover"
-                  sizes="48px"
-                />
-              ) : null}
-            </div>
-            <div className="min-w-0">
-              <p className="font-medium text-sm line-clamp-1">{item.anime.title}</p>
-              <p className="text-xs text-muted-foreground">
-                {item.anime.year ?? "—"} {item.anime.type ? `• ${item.anime.type}` : ""}
-              </p>
-            </div>
-            <Badge variant="outline" className="ml-auto">{statusMeta[item.status].label}</Badge>
-          </CardContent>
-        </Card>
-      </Link>
-    )
-  }
-
+function AnimeCardCompact({ item }: { item: ListItem }) {
   return (
     <Link href={`/anime/${item.anime.shikimori_id}`} className="block group">
       <div className="space-y-2">
@@ -77,7 +46,7 @@ function AnimeCompactCard({ item, viewMode }: { item: ListItem; viewMode: ViewMo
               alt={item.anime.title}
               fill
               className="object-cover"
-              sizes="(max-width: 640px) 96px, (max-width: 1024px) 120px, 140px"
+              sizes="(max-width: 640px) 84px, (max-width: 1024px) 110px, 130px"
             />
           ) : null}
         </div>
@@ -96,7 +65,6 @@ export default function ProfileListsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [activeStatus, setActiveStatus] = useState<StatusFilter>("all")
   const [search, setSearch] = useState("")
-  const [viewMode, setViewMode] = useState<ViewMode>("grid")
   const [sortBy, setSortBy] = useState<SortBy>("updated_desc")
 
   useEffect(() => {
@@ -113,8 +81,8 @@ export default function ProfileListsPage() {
       .finally(() => setIsLoading(false))
   }, [session?.user?.id])
 
-  const statusCounts = useMemo(() => {
-    const counts: Record<StatusFilter, number> = {
+  const counts = useMemo(() => {
+    const result: Record<StatusFilter, number> = {
       all: items.length,
       watching: 0,
       planned: 0,
@@ -123,33 +91,26 @@ export default function ProfileListsPage() {
       on_hold: 0,
     }
 
-    for (const item of items) {
-      counts[item.status] += 1
-    }
-
-    return counts
+    for (const item of items) result[item.status] += 1
+    return result
   }, [items])
 
   const filteredItems = useMemo(() => {
-    const normalized = search.trim().toLowerCase()
+    const query = search.trim().toLowerCase()
 
-    let result = items.filter((item) => {
-      const statusOk = activeStatus === "all" ? true : item.status === activeStatus
-      const searchOk = normalized.length === 0 ? true : item.anime.title.toLowerCase().includes(normalized)
-      return statusOk && searchOk
+    const statusFiltered = items.filter((item) => {
+      if (activeStatus === "all") return true
+      return item.status === activeStatus
     })
 
-    result = [...result].sort((a, b) => {
-      if (sortBy === "title_asc") {
-        return a.anime.title.localeCompare(b.anime.title, "ru")
-      }
+    const searched = statusFiltered.filter((item) =>
+      query.length === 0 ? true : item.anime.title.toLowerCase().includes(query)
+    )
 
-      const aTime = new Date(a.updated_at).getTime()
-      const bTime = new Date(b.updated_at).getTime()
-      return sortBy === "updated_asc" ? aTime - bTime : bTime - aTime
+    return [...searched].sort((a, b) => {
+      if (sortBy === "title_asc") return a.anime.title.localeCompare(b.anime.title, "ru")
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
     })
-
-    return result
   }, [activeStatus, items, search, sortBy])
 
   if (loading || isLoading) {
@@ -166,7 +127,7 @@ export default function ProfileListsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Мои списки</CardTitle>
-            <CardDescription>Авторизуйтесь, чтобы видеть персональные списки.</CardDescription>
+            <CardDescription>Войдите, чтобы открыть списки.</CardDescription>
           </CardHeader>
           <CardContent>
             <Button asChild>
@@ -179,41 +140,55 @@ export default function ProfileListsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-4">
+    <div className="container mx-auto px-4 py-6 md:py-8 space-y-4">
       <div>
         <h1 className="text-2xl font-semibold">Мои списки</h1>
-        <p className="text-sm text-muted-foreground">Панель фильтрации + компактные карточки для меньшего трафика. Клик ведёт на /anime/id.</p>
+        <p className="text-sm text-muted-foreground">Быстрый фильтр, компактные карточки и переход на страницу тайтла.</p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <Card>
+      <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
+        <Card className="hidden lg:block">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Списки</CardTitle>
+            <CardTitle className="text-base">Фильтр</CardTitle>
           </CardHeader>
           <CardContent className="space-y-1">
             {(Object.keys(statusMeta) as StatusFilter[]).map((status) => (
               <button
                 key={status}
-                className={`w-full flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors ${
-                  activeStatus === status ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary/60"
-                }`}
                 onClick={() => setActiveStatus(status)}
+                className={`w-full flex items-center justify-between rounded-md px-3 py-2 text-sm ${
+                  activeStatus === status ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary/50"
+                }`}
               >
                 <span>{statusMeta[status].label}</span>
-                <span>{statusCounts[status]}</span>
+                <span>{counts[status]}</span>
               </button>
             ))}
           </CardContent>
         </Card>
 
         <div className="space-y-3">
-          <div className="flex flex-col gap-2 md:flex-row md:items-center">
+          <div className="flex gap-2 overflow-x-auto pb-1 lg:hidden">
+            {(Object.keys(statusMeta) as StatusFilter[]).map((status) => (
+              <Button
+                key={status}
+                variant={activeStatus === status ? "default" : "outline"}
+                size="sm"
+                className="whitespace-nowrap"
+                onClick={() => setActiveStatus(status)}
+              >
+                {statusMeta[status].label} ({counts[status]})
+              </Button>
+            ))}
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Фильтр по названию"
+                placeholder="Поиск по названию"
                 className="pl-9"
               />
             </div>
@@ -224,28 +199,8 @@ export default function ProfileListsPage() {
               className="h-10 rounded-md border border-input bg-background px-3 text-sm"
             >
               <option value="updated_desc">Сначала новые</option>
-              <option value="updated_asc">Сначала старые</option>
               <option value="title_asc">По названию</option>
             </select>
-
-            <div className="inline-flex rounded-md border border-input p-1">
-              <Button
-                variant={viewMode === "list" ? "secondary" : "ghost"}
-                size="sm"
-                className="h-8"
-                onClick={() => setViewMode("list")}
-              >
-                <List className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === "grid" ? "secondary" : "ghost"}
-                size="sm"
-                className="h-8"
-                onClick={() => setViewMode("grid")}
-              >
-                <Grid3X3 className="h-4 w-4" />
-              </Button>
-            </div>
           </div>
 
           {filteredItems.length === 0 ? (
@@ -255,16 +210,10 @@ export default function ProfileListsPage() {
                 <p>{statusMeta[activeStatus].empty}</p>
               </CardContent>
             </Card>
-          ) : viewMode === "list" ? (
-            <div className="space-y-2">
-              {filteredItems.map((item) => (
-                <AnimeCompactCard key={`${item.status}-${item.anime.id}`} item={item} viewMode={viewMode} />
-              ))}
-            </div>
           ) : (
-            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6">
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
               {filteredItems.map((item) => (
-                <AnimeCompactCard key={`${item.status}-${item.anime.id}`} item={item} viewMode={viewMode} />
+                <AnimeCardCompact key={`${item.status}-${item.anime.id}`} item={item} />
               ))}
             </div>
           )}

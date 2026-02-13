@@ -9,35 +9,65 @@ type HeroSlidePayload = {
   customImageUrl?: string | null;
 };
 
+const BASE_ADMIN_HERO_SELECT =
+  "id, shikimori_id, title, poster_url, shikimori_rating, shikimori_votes, is_featured_in_hero";
+const EXTENDED_ADMIN_HERO_SELECT = `${BASE_ADMIN_HERO_SELECT}, hero_position, hero_custom_image_url`;
+
+const isMissingHeroColumnsError = (error: { code?: string } | null) => error?.code === "42703";
+
 // GET - получить список аниме для Hero-секции
 export async function GET() {
   const supabase = await createClient();
 
   try {
-    const { data: heroAnimes, error: heroError } = await supabase
+    let heroSelect = EXTENDED_ADMIN_HERO_SELECT;
+
+    let { data: heroAnimes, error: heroError } = await supabase
       .from("animes")
-      .select(
-        "id, shikimori_id, title, poster_url, shikimori_rating, shikimori_votes, is_featured_in_hero, hero_position, hero_custom_image_url"
-      )
+      .select(heroSelect)
       .eq("is_featured_in_hero", true)
       .order("hero_position", { ascending: true, nullsFirst: false })
       .order("shikimori_rating", { ascending: false, nullsFirst: false })
       .limit(20);
+
+    if (isMissingHeroColumnsError(heroError)) {
+      heroSelect = BASE_ADMIN_HERO_SELECT;
+      const fallbackResponse = await supabase
+        .from("animes")
+        .select(BASE_ADMIN_HERO_SELECT)
+        .eq("is_featured_in_hero", true)
+        .order("shikimori_rating", { ascending: false, nullsFirst: false })
+        .limit(20);
+
+      heroAnimes = fallbackResponse.data;
+      heroError = fallbackResponse.error;
+    }
 
     if (heroError) {
       console.error("Ошибка при получении Hero-аниме:", heroError);
       return NextResponse.json({ error: heroError.message }, { status: 500 });
     }
 
-    const { data: popularAnimes, error: popularError } = await supabase
+    let { data: popularAnimes, error: popularError } = await supabase
       .from("animes")
-      .select(
-        "id, shikimori_id, title, poster_url, shikimori_rating, shikimori_votes, is_featured_in_hero, hero_position, hero_custom_image_url"
-      )
+      .select(heroSelect)
       .not("shikimori_id", "is", null)
       .not("poster_url", "is", null)
       .order("shikimori_rating", { ascending: false, nullsFirst: false })
       .limit(100);
+
+    if (isMissingHeroColumnsError(popularError)) {
+      const fallbackResponse = await supabase
+        .from("animes")
+        .select(BASE_ADMIN_HERO_SELECT)
+        .not("shikimori_id", "is", null)
+        .not("poster_url", "is", null)
+        .order("shikimori_rating", { ascending: false, nullsFirst: false })
+        .limit(100);
+
+      popularAnimes = fallbackResponse.data;
+      popularError = fallbackResponse.error;
+    }
 
     if (popularError) {
       console.error("Ошибка при получении популярных аниме:", popularError);
@@ -98,6 +128,16 @@ export async function POST(request: NextRequest) {
         .update({ is_featured_in_hero: false, hero_position: null, hero_custom_image_url: null })
         .eq("is_featured_in_hero", true);
 
+      if (isMissingHeroColumnsError(resetError)) {
+        return NextResponse.json(
+          {
+            error:
+              "В базе отсутствуют hero_position/hero_custom_image_url. Примените миграцию scripts/add-hero-slide-config.sql.",
+          },
+          { status: 400 }
+        );
+      }
+
       if (resetError) {
         console.error("Ошибка при сбросе Hero-аниме:", resetError);
         return NextResponse.json({ error: resetError.message }, { status: 500 });
@@ -140,6 +180,25 @@ export async function POST(request: NextRequest) {
           .from("animes")
           .update({ is_featured_in_hero: false, hero_position: null, hero_custom_image_url: null })
           .in("id", animeIds);
+
+        if (isMissingHeroColumnsError(updateError)) {
+          const { error: fallbackUpdateError } = await serviceSupabase
+            .from("animes")
+            .update({ is_featured_in_hero: false })
+            .in("id", animeIds);
+
+          if (fallbackUpdateError) {
+            console.error("Ошибка при удалении Hero-аниме:", fallbackUpdateError);
+            return NextResponse.json({ error: fallbackUpdateError.message }, { status: 500 });
+          }
+
+          revalidateTag("homepage");
+          revalidateTag("homepage:hero");
+          return NextResponse.json({
+            success: true,
+            message: "Аниме успешно удалены",
+          });
+        }
 
         if (updateError) {
           console.error("Ошибка при удалении Hero-аниме:", updateError);

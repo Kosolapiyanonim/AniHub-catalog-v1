@@ -116,6 +116,8 @@ export function HeroSlider({ items }: HeroSliderProps) {
                       fill
                       className="object-cover transition-transform duration-1000 ease-in-out"
                       priority={index === 0}
+                      fetchPriority={index === 0 ? "high" : "auto"}
+                      quality={65}
                       sizes="100vw"
                     />
                     {/* Усиленный градиент для лучшей читаемости */}
@@ -218,7 +220,9 @@ export function HeroSlider({ items }: HeroSliderProps) {
                         fill
                         className={`object-cover transition-transform duration-1000 ease-in-out ${!isFullscreen ? "rounded-lg" : ""}`}
                         priority={index === 0}
-                        sizes="(max-width: 1200px) 50vw, 50vw"
+                        fetchPriority={index === 0 ? "high" : "auto"}
+                        quality={65}
+                        sizes="(max-width: 768px) 100vw, 50vw"
                       />
                     </div>
                     {/* Усиленный градиент для лучшей читаемости */}

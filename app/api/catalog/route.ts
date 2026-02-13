@@ -13,6 +13,28 @@ const parseIds = (param: string | null): number[] | null => {
 
 export const dynamic = "force-dynamic"
 
+
+const SEARCH_STOP_WORDS = new Set(["аниме", "anime"])
+
+const buildTitleSearchClauses = (rawTitle: string): string[] => {
+  const normalized = rawTitle.trim().toLowerCase()
+  if (!normalized) return []
+
+  const clauses = new Set<string>()
+  clauses.add(`title.ilike.%${normalized}%,title_orig.ilike.%${normalized}%`)
+
+  const tokens = normalized
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 1 && !SEARCH_STOP_WORDS.has(token))
+
+  if (tokens.length > 0) {
+    clauses.add(tokens.map((token) => `title.ilike.%${token}%`).join(","))
+    clauses.add(tokens.map((token) => `title_orig.ilike.%${token}%`).join(","))
+  }
+
+  return Array.from(clauses)
+}
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   
@@ -98,7 +120,12 @@ export async function GET(request: Request) {
 
     // --- ПРИМЕНЯЕМ ВСЕ ФИЛЬТРЫ ---
     const title = searchParams.get("title")
-    if (title) query = query.or(`title.ilike.%${title}%,title_orig.ilike.%${title}%`)
+    if (title) {
+      const searchClauses = buildTitleSearchClauses(title)
+      if (searchClauses.length > 0) {
+        query = query.or(searchClauses.join(","))
+      }
+    }
 
     // ИЗМЕНЕНИЕ: Фильтруем по anime_kind
     const kinds = searchParams.get("kinds")?.split(",")

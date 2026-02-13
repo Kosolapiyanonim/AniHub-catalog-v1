@@ -1,9 +1,29 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 
 import { HeroSlider } from "@/components/HeroSlider";
 import { HomeSectionsDeferred } from "@/components/home-sections-deferred";
 import { HomeSectionsSkeleton } from "@/components/home-sections-skeleton";
 import { getHomepageHeroCriticalData } from "@/lib/data-fetchers";
+
+export const metadata: Metadata = {
+  title: "Смотреть аниме онлайн — Магическая битва и новинки",
+  description:
+    "Смотрите аниме онлайн на AniHub: Магическая битва, Магическая битва 3 сезон, а также популярные и новые релизы.",
+  keywords: ["аниме", "аниме магическая битва", "магическая битва", "магическая битва 3 сезон"],
+};
+
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "AniHub",
+  alternateName: "Анихаб",
+  url: process.env.NEXT_PUBLIC_SITE_URL || "https://anihub.wtf",
+  description:
+    "AniHub — каталог, где можно смотреть аниме онлайн, включая Магическая битва и Магическая битва 3 сезон.",
+  inLanguage: "ru",
+  keywords: "аниме, аниме магическая битва, магическая битва, магическая битва 3 сезон",
+};
 
 export default async function HomePage() {
   try {
@@ -19,6 +39,10 @@ export default async function HomePage() {
 
     return (
       <>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
         {hasHero ? (
           <div className="-mt-16">
             <HeroSlider items={heroItems} />

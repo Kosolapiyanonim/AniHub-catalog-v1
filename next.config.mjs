@@ -12,6 +12,8 @@ const nextConfig = {
     
     // Указываем, с каких доменов можно загружать и оптимизировать картинки
     remotePatterns: [
+      { protocol: 'https', hostname: 'shiki.one' },
+      { protocol: 'https', hostname: '*.shiki.one' },
       { protocol: 'https', hostname: 'shikimori.one' },
       { protocol: 'https', hostname: '*.shikimori.one' }, // Для всех поддоменов, например, nyaa.shikimori.one
       { protocol: 'https', hostname: 'st.kp.yandex.net' },

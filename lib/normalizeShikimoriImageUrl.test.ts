@@ -29,33 +29,33 @@ let total = 0;
 // Тест 1: URL с поддоменом nyaa.shikimori.one
 total++;
 if (testCase(
-  "Поддомен nyaa.shikimori.one → shikimori.one",
+  "Поддомен nyaa.shikimori.one → shiki.one",
   "https://nyaa.shikimori.one/uploads/poster/animes/11757/x.jpeg",
-  "https://shikimori.one/uploads/poster/animes/11757/x.jpeg"
+  "https://shiki.one/uploads/poster/animes/11757/x.jpeg"
 )) passed++;
 
 // Тест 2: URL с поддоменом dere.shikimori.one
 total++;
 if (testCase(
-  "Поддомен dere.shikimori.one → shikimori.one",
+  "Поддомен dere.shikimori.one → shiki.one",
   "https://dere.shikimori.one/uploads/poster/animes/16498/x.jpeg",
-  "https://shikimori.one/uploads/poster/animes/16498/x.jpeg"
+  "https://shiki.one/uploads/poster/animes/16498/x.jpeg"
 )) passed++;
 
 // Тест 3: Относительный путь начинающийся с "/"
 total++;
 if (testCase(
-  "Относительный путь с '/' → добавляется https://shikimori.one",
+  "Относительный путь с '/' → добавляется https://shiki.one",
   "/uploads/poster/animes/199/x.jpeg",
-  "https://shikimori.one/uploads/poster/animes/199/x.jpeg"
+  "https://shiki.one/uploads/poster/animes/199/x.jpeg"
 )) passed++;
 
-// Тест 4: URL уже на shikimori.one (должен остаться без изменений)
+// Тест 4: URL уже на shiki.one (должен остаться без изменений)
 total++;
 if (testCase(
-  "URL уже на shikimori.one (без изменений)",
-  "https://shikimori.one/uploads/poster/animes/199/x.jpeg",
-  "https://shikimori.one/uploads/poster/animes/199/x.jpeg"
+  "URL уже на shiki.one (без изменений)",
+  "https://shiki.one/uploads/poster/animes/199/x.jpeg",
+  "https://shiki.one/uploads/poster/animes/199/x.jpeg"
 )) passed++;
 
 // Тест 5: null
@@ -86,8 +86,8 @@ if (testCase(
 total++;
 if (testCase(
   "URL начинающийся с '//' → добавляется 'https:'",
-  "//shikimori.one/uploads/poster/animes/199/x.jpeg",
-  "https://shikimori.one/uploads/poster/animes/199/x.jpeg"
+  "//shiki.one/uploads/poster/animes/199/x.jpeg",
+  "https://shiki.one/uploads/poster/animes/199/x.jpeg"
 )) passed++;
 
 // Тест 9: URL с другим доменом (должен остаться без изменений)
@@ -103,7 +103,7 @@ total++;
 if (testCase(
   "URL с query параметрами сохраняются",
   "https://nyaa.shikimori.one/uploads/poster/animes/11757/x.jpeg?version=1&size=large",
-  "https://shikimori.one/uploads/poster/animes/11757/x.jpeg?version=1&size=large"
+  "https://shiki.one/uploads/poster/animes/11757/x.jpeg?version=1&size=large"
 )) passed++;
 
 // Тест 11: Невалидный URL
@@ -119,7 +119,23 @@ total++;
 if (testCase(
   "Пробелы обрезаются (trim)",
   "  https://nyaa.shikimori.one/uploads/poster/animes/11757/x.jpeg  ",
-  "https://shikimori.one/uploads/poster/animes/11757/x.jpeg"
+  "https://shiki.one/uploads/poster/animes/11757/x.jpeg"
+)) passed++;
+
+// Тест 13: URL на старом корневом домене shikimori.one
+total++;
+if (testCase(
+  "Корневой shikimori.one → shiki.one",
+  "https://shikimori.one/uploads/poster/animes/199/x.jpeg",
+  "https://shiki.one/uploads/poster/animes/199/x.jpeg"
+)) passed++;
+
+// Тест 14: URL с поддоменом shiki.one
+total++;
+if (testCase(
+  "Поддомен images.shiki.one → shiki.one",
+  "https://images.shiki.one/system/animes/original/1.jpg",
+  "https://shiki.one/system/animes/original/1.jpg"
 )) passed++;
 
 console.log(`\n📊 Результаты: ${passed}/${total} тестов пройдено`);

@@ -53,7 +53,7 @@ export function AnimeCarousel({ title, items, viewAllLink, icon }: AnimeCarousel
         <CarouselContent>
           {validItems.map((anime, index) => (
             <CarouselItem key={anime.id || index} className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/6">
-              <div className="p-1"><AnimeCard anime={anime} priority={index < 5} /></div>
+              <div className="p-1"><AnimeCard anime={anime} /></div>
             </CarouselItem>
           ))}
         </CarouselContent>

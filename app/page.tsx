@@ -1,48 +1,54 @@
-import { HeroSlider } from "@/components/HeroSlider"
-import { AnimeCarousel } from "@/components/anime-carousel"
-import { AnimatedSection } from "@/components/animated-section"
-import { getHomepageSections } from "@/lib/data-fetchers"
+import { Suspense } from "react";
+
+import { HeroSlider } from "@/components/HeroSlider";
+import { HomeSectionsDeferred } from "@/components/home-sections-deferred";
+import { HomeSectionsSkeleton } from "@/components/home-sections-skeleton";
+import { getHomepageHeroCriticalData } from "@/lib/data-fetchers";
 
 export default async function HomePage() {
-  const sections = await getHomepageSections()
+  try {
+    const heroItems = await getHomepageHeroCriticalData();
 
-  return (
-    <>
-      <div className="-mt-16">
-        <HeroSlider items={sections.hero} />
-      </div>
-      
-      <main className="container mx-auto px-4 py-12 space-y-16">
-        {sections.popular && sections.popular.length > 0 && (
-          <AnimatedSection>
-            <AnimeCarousel
-              title="Популярное"
-              items={sections.popular}
-              viewAllLink="/catalog?sort=popular"
-            />
-          </AnimatedSection>
+    console.log("[HOMEPAGE][INFO]", {
+      stage: "page_render",
+      message: "HomePage server render started",
+      heroItemsCount: heroItems.length,
+    });
+
+    const hasHero = heroItems.length > 0;
+
+    return (
+      <>
+        {hasHero ? (
+          <div className="-mt-16">
+            <HeroSlider items={heroItems} />
+          </div>
+        ) : (
+          <section className="container mx-auto px-4 pt-24 pb-6">
+            <div className="rounded-lg border border-border/60 bg-card p-5 text-sm text-muted-foreground">
+              Hero-секция временно недоступна. Ниже отображаются основные подборки каталога.
+            </div>
+          </section>
         )}
 
-        {sections.trending && sections.trending.length > 0 && (
-          <AnimatedSection delay={100}>
-            <AnimeCarousel
-              title="В тренде"
-              items={sections.trending}
-              viewAllLink="/catalog?sort=trending"
-            />
-          </AnimatedSection>
-        )}
+        <main className="container mx-auto px-4 py-8 space-y-16">
+          <Suspense fallback={<HomeSectionsSkeleton />}>
+            <HomeSectionsDeferred />
+          </Suspense>
+        </main>
+      </>
+    );
+  } catch (error) {
+    console.error("[HOMEPAGE][ERROR]", {
+      stage: "page_render",
+      message: "HomePage failed during server render",
+      error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : error,
+    });
 
-        {sections.latestUpdates && sections.latestUpdates.length > 0 && (
-          <AnimatedSection delay={200}>
-            <AnimeCarousel
-              title="Последние обновления"
-              items={sections.latestUpdates}
-              viewAllLink="/catalog?sort=updated"
-            />
-          </AnimatedSection>
-        )}
+    return (
+      <main className="container mx-auto px-4 py-12">
+        <p className="text-muted-foreground">Не удалось загрузить главную страницу. Попробуйте обновить страницу.</p>
       </main>
-    </>
-  )
+    );
+  }
 }

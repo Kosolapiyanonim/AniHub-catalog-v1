@@ -1,10 +1,10 @@
 import { AnimeCarousel } from "@/components/anime-carousel";
 import { AnimatedSection } from "@/components/animated-section";
-import { getHomepageSectionsDeferred } from "@/lib/data-fetchers";
+import { getHomepageSectionsDeferredWithUserStatus } from "@/lib/data-fetchers";
 
 export async function HomeSectionsDeferred() {
   try {
-    const sections = await getHomepageSectionsDeferred();
+    const sections = await getHomepageSectionsDeferredWithUserStatus();
     const hasAnySection =
       (sections.popular?.length ?? 0) > 0 ||
       (sections.trending?.length ?? 0) > 0 ||

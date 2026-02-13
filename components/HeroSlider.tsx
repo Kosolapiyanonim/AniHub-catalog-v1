@@ -109,12 +109,12 @@ export function HeroSlider({ items }: HeroSliderProps) {
               <CarouselItem key={anime.id} className="w-full min-w-full pl-0 pr-0 overflow-hidden h-full">
                 {/* --- МОБИЛЬНАЯ АДАПТАЦИЯ (только полноэкранный режим) --- */}
                 <div className="md:hidden relative w-full h-[calc(100vh-4rem)]">
-                  <div className="absolute inset-0 z-0">
+                  <div className="absolute inset-0 z-0 bg-black">
                     <Image
                       src={backgroundImageUrl || "/placeholder.svg"}
                       alt={`Фон для ${anime.title}`}
                       fill
-                      className="object-cover transition-transform duration-1000 ease-in-out"
+                      className="object-contain object-center scale-[1.04] transition-transform duration-700 ease-out"
                       priority={index === 0}
                       fetchPriority={index === 0 ? "high" : "auto"}
                       quality={65}

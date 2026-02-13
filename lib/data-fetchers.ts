@@ -277,6 +277,31 @@ export async function getHomepageSectionsDeferred() {
   return getHomepageSecondarySectionsCached();
 }
 
+
+export async function getHomepageSectionsDeferredWithUserStatus() {
+  const logger = createHomepageLogger("homepage_full");
+
+  try {
+    const sections = await getHomepageSecondarySectionsCached();
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError) logger.error("Ошибка получения пользователя для секций", userError);
+
+    return {
+      trending: await enrichWithUserStatus(supabase, user, sections.trending),
+      popular: await enrichWithUserStatus(supabase, user, sections.popular),
+      latestUpdates: await enrichWithUserStatus(supabase, user, sections.latestUpdates),
+    };
+  } catch (error) {
+    logger.error("Ошибка getHomepageSectionsDeferredWithUserStatus", error);
+    return { trending: [], popular: [], latestUpdates: [] };
+  }
+}
+
 export async function getHomepageSections() {
   const [hero, sections] = await Promise.all([getHomepageHeroCriticalDataCached(), getHomepageSecondarySectionsCached()]);
   return { hero, ...sections };

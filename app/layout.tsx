@@ -13,9 +13,51 @@ const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter" }
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk" });
 
 export const metadata: Metadata = {
-  title: "AniHub - Смотри аниме онлайн бесплатно",
-  description: "Смотри любимое аниме онлайн бесплатно в высоком качестве на AniHub. Большая коллекция, удобный поиск и регулярные обновления.",
-    generator: 'v0.app'
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://anihub.wtf"),
+  title: {
+    default: "AniHub — аниме онлайн бесплатно",
+    template: "%s | AniHub",
+  },
+  description:
+    "AniHub — сайт для просмотра аниме онлайн бесплатно. Смотрите Магическая битва, Магическая битва 3 сезон и другие тайтлы в хорошем качестве.",
+  keywords: [
+    "анихаб",
+    "аниме",
+    "аниме онлайн",
+    "аниме магическая битва",
+    "магическая битва",
+    "магическая битва 3 сезон",
+  ],
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "AniHub — аниме онлайн бесплатно",
+    description:
+      "Смотрите аниме онлайн на AniHub: Магическая битва, Магическая битва 3 сезон и другие популярные аниме-сериалы.",
+    url: "/",
+    siteName: "AniHub",
+    locale: "ru_RU",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "AniHub — аниме онлайн бесплатно",
+    description:
+      "AniHub: аниме онлайн, включая Магическая битва и Магическая битва 3 сезон.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  generator: "v0.app",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode; }) {

@@ -4,6 +4,52 @@ import { createClientForRouteHandler, getAuthenticatedUser } from "@/lib/supabas
 
 export const dynamic = 'force-dynamic';
 
+export async function GET() {
+  const response = new NextResponse();
+  const supabase = await createClientForRouteHandler(response);
+  const user = await getAuthenticatedUser(supabase);
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: response.headers });
+  }
+
+  const { data: listRows, error: listsError } = await supabase
+    .from("user_lists")
+    .select("anime_id, status, updated_at")
+    .eq("user_id", user.id)
+    .order("updated_at", { ascending: false });
+
+  if (listsError) {
+    return NextResponse.json({ error: listsError.message }, { status: 500, headers: response.headers });
+  }
+
+  const animeIds = [...new Set((listRows ?? []).map((row) => row.anime_id).filter(Boolean))];
+
+  if (animeIds.length === 0) {
+    return NextResponse.json({ items: [] }, { headers: response.headers });
+  }
+
+  const { data: animes, error: animeError } = await supabase
+    .from("animes")
+    .select("id, shikimori_id, title, poster_url, year, type")
+    .in("id", animeIds);
+
+  if (animeError) {
+    return NextResponse.json({ error: animeError.message }, { status: 500, headers: response.headers });
+  }
+
+  const animeMap = new Map((animes ?? []).map((anime) => [anime.id, anime]));
+  const items = (listRows ?? [])
+    .map((row) => ({
+      status: row.status,
+      updated_at: row.updated_at,
+      anime: animeMap.get(row.anime_id) ?? null,
+    }))
+    .filter((row) => row.anime && row.anime.shikimori_id);
+
+  return NextResponse.json({ items }, { headers: response.headers });
+}
+
 export async function POST(request: Request) {
   const { anime_id, status } = await request.json();
   if (!anime_id || !status) {

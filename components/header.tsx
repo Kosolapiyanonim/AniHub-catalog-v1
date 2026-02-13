@@ -181,13 +181,13 @@ export function Header() {
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link href={`/profile/${user.id}`}>
+                      <Link href="/profile">
                         <User className="mr-2 h-4 w-4" />
                         <span>Профиль</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href={`/profile/${user.id}/lists`}>
+                      <Link href="/profile/lists">
                         <Heart className="mr-2 h-4 w-4" />
                         <span>Мои списки</span>
                       </Link>
@@ -282,7 +282,7 @@ export function Header() {
                       </div>
 
                       <Link
-                        href={`/profile/${user.id}`}
+                        href="/profile"
                         className="flex items-center py-3 px-2 text-foreground hover:text-primary transition-colors rounded-lg hover:bg-secondary"
                         onClick={() => setMobileMenuOpen(false)}
                       >
@@ -291,7 +291,7 @@ export function Header() {
                       </Link>
 
                       <Link
-                        href={`/profile/${user.id}/lists`}
+                        href="/profile/lists"
                         className="flex items-center py-3 px-2 text-foreground hover:text-primary transition-colors rounded-lg hover:bg-secondary"
                         onClick={() => setMobileMenuOpen(false)}
                       >

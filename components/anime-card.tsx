@@ -43,9 +43,10 @@ export function AnimeCard({ anime, priority = false, onStatusChange }: AnimeCard
                   src={anime.poster_url}
                   alt={anime.title}
                   fill
-                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                  sizes="(max-width: 640px) 45vw, (max-width: 768px) 30vw, (max-width: 1024px) 22vw, (max-width: 1280px) 18vw, 140px"
                   className="object-cover transition-transform duration-500 group-hover:scale-110"
                   priority={priority}
+                  quality={65}
               />
           ) : (
               <div className="flex items-center justify-center h-full text-muted-foreground text-xs p-2">Постер отсутствует</div>

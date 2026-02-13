@@ -13,7 +13,7 @@ import Autoplay from "embla-carousel-autoplay"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Play, Info, Star, Clapperboard, Calendar, Maximize, Minimize } from 'lucide-react'
+import { Play, Info, Star, Clapperboard, Calendar, Maximize, Minimize, ChevronDown, ChevronUp } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
 import type { Anime } from "@/lib/types"
 
@@ -28,6 +28,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
   const [api, setApi] = useState<CarouselApi>()
   const [current, setCurrent] = useState(0)
   const [count, setCount] = useState(0)
+  const [expandedDescriptionId, setExpandedDescriptionId] = useState<number | null>(null)
 
   useEffect(() => {
     if (!api) {
@@ -159,9 +160,30 @@ export function HeroSlider({ items }: HeroSliderProps) {
                       </div>
 
                       {anime.description && (
-                        <p className="text-gray-300 mb-3 line-clamp-3 text-[0.7rem] sm:text-xs opacity-90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
-                          {anime.description}
-                        </p>
+                        <div className="mb-3">
+                          <p
+                            className={`text-gray-300 text-[0.7rem] sm:text-xs opacity-90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)] ${expandedDescriptionId === anime.id ? "line-clamp-none" : "line-clamp-3"}`}
+                          >
+                            {anime.description}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setExpandedDescriptionId(expandedDescriptionId === anime.id ? null : anime.id)}
+                            className="mt-1 inline-flex items-center gap-1 text-[0.65rem] sm:text-xs text-purple-300 hover:text-purple-200 transition-colors"
+                          >
+                            {expandedDescriptionId === anime.id ? (
+                              <>
+                                Свернуть
+                                <ChevronUp className="w-3 h-3" />
+                              </>
+                            ) : (
+                              <>
+                                Развернуть
+                                <ChevronDown className="w-3 h-3" />
+                              </>
+                            )}
+                          </button>
+                        </div>
                       )}
                     </div>
 

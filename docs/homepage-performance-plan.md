@@ -51,6 +51,7 @@
   - `traceId`, `stage`, `elapsedMs`, `message`, `error`.
   - Логи по этапам: `hero_critical`, `sections_deferred`, `user_enrichment`, `homepage_full`, `page_render`.
 - Теперь в server-логах видно, где именно произошла ошибка (например, конкретная секция) и с каким контекстом.
+- Добавлен fallback для Hero: если нет `is_featured_in_hero=true`, используется топ по рейтингу, чтобы главная не оставалась пустой.
 
 ---
 

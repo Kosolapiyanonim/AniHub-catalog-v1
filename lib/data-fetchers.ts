@@ -58,7 +58,7 @@ const createHomepageLogger = (stage: HomepageStage) => {
     });
   };
 
-  return { traceId, info, error };
+  return { info, error };
 };
 
 const enrichWithUserStatus = async (supabase: SupabaseClient, user: User | null, animeList: any[] | null) => {
@@ -145,7 +145,25 @@ const getHomepageHeroCriticalDataCached = unstable_cache(
         return [];
       }
 
-      const mapped = mapHeroData(data);
+      let mapped = mapHeroData(data);
+
+      if (mapped.length === 0) {
+        logger.info("Не найдено аниме с is_featured_in_hero=true, включаем fallback", { fallback: "top_rated" });
+
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from("animes")
+          .select(HERO_ANIME_SELECT)
+          .order("shikimori_rating", { ascending: false, nullsFirst: false })
+          .limit(10);
+
+        if (fallbackError) {
+          logger.error("Ошибка fallback-запроса hero", fallbackError);
+          return [];
+        }
+
+        mapped = mapHeroData(fallbackData);
+      }
+
       logger.info("Hero-данные загружены", { itemsCount: mapped.length });
       return mapped;
     } catch (error) {
@@ -169,15 +187,9 @@ const getHomepageSecondarySectionsCached = unstable_cache(
         supabase.from("animes").select(ANIME_CARD_SELECT).order("updated_at_kodik", { ascending: false, nullsFirst: false }).limit(12),
       ]);
 
-      if (trendingResponse.error) {
-        logger.error("Ошибка секции trending", trendingResponse.error);
-      }
-      if (popularResponse.error) {
-        logger.error("Ошибка секции popular", popularResponse.error);
-      }
-      if (latestUpdatesResponse.error) {
-        logger.error("Ошибка секции latestUpdates", latestUpdatesResponse.error);
-      }
+      if (trendingResponse.error) logger.error("Ошибка секции trending", trendingResponse.error);
+      if (popularResponse.error) logger.error("Ошибка секции popular", popularResponse.error);
+      if (latestUpdatesResponse.error) logger.error("Ошибка секции latestUpdates", latestUpdatesResponse.error);
 
       const mapped = {
         trending: mapCarouselData(trendingResponse.data),
@@ -215,9 +227,7 @@ export async function getHomePageData() {
       error: userError,
     } = await supabase.auth.getUser();
 
-    if (userError) {
-      logger.error("Ошибка получения пользователя", userError);
-    }
+    if (userError) logger.error("Ошибка получения пользователя", userError);
 
     const hero = await getHomepageHeroCriticalDataCached();
     const secondary = await getHomepageSecondarySectionsCached();

@@ -12,6 +12,10 @@ interface HomeSectionsDeferredProps {
 
 export function HomeSectionsDeferred({ sectionsPromise }: HomeSectionsDeferredProps) {
   const sections = use(sectionsPromise);
+  const hasAnySection =
+    (sections.popular?.length ?? 0) > 0 ||
+    (sections.trending?.length ?? 0) > 0 ||
+    (sections.latestUpdates?.length ?? 0) > 0;
 
   return (
     <>
@@ -31,6 +35,12 @@ export function HomeSectionsDeferred({ sectionsPromise }: HomeSectionsDeferredPr
         <AnimatedSection delay={200}>
           <AnimeCarousel title="Последние обновления" items={sections.latestUpdates} viewAllLink="/catalog?sort=updated" />
         </AnimatedSection>
+      )}
+
+      {!hasAnySection && (
+        <section className="rounded-lg border border-border/60 bg-card p-6 text-sm text-muted-foreground">
+          Сейчас нет контента для главной страницы. Проверьте логи [HOMEPAGE] на сервере и наполнение таблицы animes.
+        </section>
       )}
     </>
   );

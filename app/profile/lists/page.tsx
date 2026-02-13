@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { useEffect, useMemo, useState } from "react"
+import { type TouchEvent, useEffect, useMemo, useState } from "react"
 import { useSupabase } from "@/components/supabase-provider"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -25,6 +25,8 @@ type ListItem = {
     type: string | null
   }
 }
+
+const statusOrder: StatusFilter[] = ["all", "watching", "planned", "completed", "dropped", "on_hold"]
 
 const statusMeta: Record<StatusFilter, { label: string; empty: string }> = {
   all: { label: "Все", empty: "Список пуст." },
@@ -66,6 +68,7 @@ export default function ProfileListsPage() {
   const [activeStatus, setActiveStatus] = useState<StatusFilter>("all")
   const [search, setSearch] = useState("")
   const [sortBy, setSortBy] = useState<SortBy>("updated_desc")
+  const [touchStartX, setTouchStartX] = useState<number | null>(null)
 
   useEffect(() => {
     if (!session?.user?.id) {
@@ -113,6 +116,38 @@ export default function ProfileListsPage() {
     })
   }, [activeStatus, items, search, sortBy])
 
+  const switchStatusBySwipe = (direction: "next" | "prev") => {
+    const currentIndex = statusOrder.indexOf(activeStatus)
+    if (currentIndex === -1) return
+
+    const nextIndex = direction === "next"
+      ? Math.min(statusOrder.length - 1, currentIndex + 1)
+      : Math.max(0, currentIndex - 1)
+
+    if (nextIndex !== currentIndex) {
+      setActiveStatus(statusOrder[nextIndex])
+    }
+  }
+
+  const handleTouchStart = (event: TouchEvent<HTMLDivElement>) => {
+    setTouchStartX(event.touches[0].clientX)
+  }
+
+  const handleTouchEnd = (event: TouchEvent<HTMLDivElement>) => {
+    if (touchStartX === null) return
+
+    const deltaX = event.changedTouches[0].clientX - touchStartX
+    const threshold = 50
+
+    if (deltaX <= -threshold) {
+      switchStatusBySwipe("next")
+    } else if (deltaX >= threshold) {
+      switchStatusBySwipe("prev")
+    }
+
+    setTouchStartX(null)
+  }
+
   if (loading || isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 flex justify-center">
@@ -143,7 +178,7 @@ export default function ProfileListsPage() {
     <div className="container mx-auto px-4 py-6 md:py-8 space-y-4">
       <div>
         <h1 className="text-2xl font-semibold">Мои списки</h1>
-        <p className="text-sm text-muted-foreground">Быстрый фильтр, компактные карточки и переход на страницу тайтла.</p>
+        <p className="text-sm text-muted-foreground">Свайпайте по списку влево/вправо, чтобы переключать вкладки.</p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
@@ -152,7 +187,7 @@ export default function ProfileListsPage() {
             <CardTitle className="text-base">Фильтр</CardTitle>
           </CardHeader>
           <CardContent className="space-y-1">
-            {(Object.keys(statusMeta) as StatusFilter[]).map((status) => (
+            {statusOrder.map((status) => (
               <button
                 key={status}
                 onClick={() => setActiveStatus(status)}
@@ -169,7 +204,7 @@ export default function ProfileListsPage() {
 
         <div className="space-y-3">
           <div className="flex gap-2 overflow-x-auto pb-1 lg:hidden">
-            {(Object.keys(statusMeta) as StatusFilter[]).map((status) => (
+            {statusOrder.map((status) => (
               <Button
                 key={status}
                 variant={activeStatus === status ? "default" : "outline"}
@@ -203,20 +238,22 @@ export default function ProfileListsPage() {
             </select>
           </div>
 
-          {filteredItems.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-center text-muted-foreground flex flex-col items-center gap-2">
-                <BookmarkX className="h-6 w-6" />
-                <p>{statusMeta[activeStatus].empty}</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-              {filteredItems.map((item) => (
-                <AnimeCardCompact key={`${item.status}-${item.anime.id}`} item={item} />
-              ))}
-            </div>
-          )}
+          <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+            {filteredItems.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center text-muted-foreground flex flex-col items-center gap-2">
+                  <BookmarkX className="h-6 w-6" />
+                  <p>{statusMeta[activeStatus].empty}</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                {filteredItems.map((item) => (
+                  <AnimeCardCompact key={`${item.status}-${item.anime.id}`} item={item} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@
 import { unstable_cache } from "next/cache";
 
 import createClient from "@/lib/supabase/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 
 const ANIME_CARD_SELECT = `
@@ -31,6 +32,20 @@ const toErrorDetails = (error: unknown) => {
     name: "UnknownError",
     message: typeof error === "string" ? error : JSON.stringify(error),
   };
+};
+
+
+const createReadonlySupabaseClient = () => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY for readonly homepage fetch");
+  }
+
+  return createSupabaseClient(supabaseUrl, supabaseAnonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 };
 
 const createHomepageLogger = (stage: HomepageStage) => {
@@ -133,7 +148,7 @@ const getHomepageHeroCriticalDataCached = unstable_cache(
     const logger = createHomepageLogger("hero_critical");
 
     try {
-      const supabase = await createClient();
+      const supabase = createReadonlySupabaseClient();
       const { data, error } = await supabase
         .from("animes")
         .select(HERO_ANIME_SELECT)
@@ -180,7 +195,7 @@ const getHomepageSecondarySectionsCached = unstable_cache(
     const logger = createHomepageLogger("sections_deferred");
 
     try {
-      const supabase = await createClient();
+      const supabase = createReadonlySupabaseClient();
       const [trendingResponse, popularResponse, latestUpdatesResponse] = await Promise.all([
         supabase.from("animes").select(ANIME_CARD_SELECT).order("shikimori_rating", { ascending: false, nullsFirst: false }).limit(12),
         supabase.from("animes").select(ANIME_CARD_SELECT).order("shikimori_votes", { ascending: false, nullsFirst: false }).limit(12),

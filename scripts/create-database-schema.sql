@@ -63,6 +63,8 @@ CREATE TABLE IF NOT EXISTS animes (
   shikimori_votes INT,
   weighted_rating NUMERIC(5, 3) DEFAULT 0,
   is_featured_in_hero BOOLEAN DEFAULT FALSE,
+  hero_position INTEGER,
+  hero_custom_image_url TEXT,
   screenshots JSONB DEFAULT '[]'::jsonb,
   ts_document TSVECTOR,
   updated_at_kodik TIMESTAMPTZ,

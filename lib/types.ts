@@ -137,6 +137,8 @@ export interface Anime {
   year?: number
   poster_url?: string
   background_image_url?: string
+  hero_position?: number | null
+  hero_custom_image_url?: string | null
   player_link?: string
   description?: string
   type?: string

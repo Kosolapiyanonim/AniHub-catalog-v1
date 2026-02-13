@@ -29,4 +29,7 @@ Disable new behavior by setting env vars:
 - `NEXT_PUBLIC_HOME_SERVER_FIRST_HERO=false`
 - `NEXT_PUBLIC_HOME_DEFERRED_SECTIONS=false`
 
-When either flag is `false`, homepage falls back to the legacy server-rendered hero slider and server-rendered secondary sections.
+Each flag controls its own area:
+
+- `NEXT_PUBLIC_HOME_SERVER_FIRST_HERO=false` → legacy server-rendered hero slider.
+- `NEXT_PUBLIC_HOME_DEFERRED_SECTIONS=false` → legacy server-rendered secondary sections.

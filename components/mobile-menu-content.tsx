@@ -11,7 +11,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { Sun, Moon, Users, Globe, Newspaper, BookOpen, ChevronDown, ArrowRightToLine } from 'lucide-react' // Удалены MessageCircle, Music, Instagram
+import { Sun, Moon, Users, Globe, Newspaper, BookOpen, ChevronDown, ArrowRightToLine, Heart } from 'lucide-react'
 import { SheetClose } from '@/components/ui/sheet'
 
 interface MobileMenuContentProps {
@@ -61,24 +61,34 @@ export function MobileMenuContent({ onClose }: MobileMenuContentProps) {
 
         <nav className="flex flex-col space-y-2">
           <SheetClose asChild>
-            <Button variant="ghost" className="justify-start gap-3 text-lg p-3 h-auto" onClick={onClose}>
-              <Users className="w-6 h-6" />
-              Смотреть Вместе
-            </Button>
-          </SheetClose>
-          <SheetClose asChild>
             <Button variant="ghost" className="justify-start gap-3 text-lg p-3 h-auto" asChild>
-              <Link href="/blog">
-                <BookOpen className="w-6 h-6" />
-                Наш Блог
+              <Link href="/news" onClick={onClose}>
+                <Newspaper className="w-6 h-6" />
+                Новости
               </Link>
             </Button>
           </SheetClose>
           <SheetClose asChild>
             <Button variant="ghost" className="justify-start gap-3 text-lg p-3 h-auto" asChild>
-              <Link href="/news">
-                <Newspaper className="w-6 h-6" />
-                Новости
+              <Link href="/menu" onClick={onClose}>
+                <Users className="w-6 h-6" />
+                Сообщество
+              </Link>
+            </Button>
+          </SheetClose>
+          <SheetClose asChild>
+            <Button variant="ghost" className="justify-start gap-3 text-lg p-3 h-auto" asChild>
+              <Link href="/popular" onClick={onClose}>
+                <Heart className="w-6 h-6" />
+                Популярное
+              </Link>
+            </Button>
+          </SheetClose>
+          <SheetClose asChild>
+            <Button variant="ghost" className="justify-start gap-3 text-lg p-3 h-auto" asChild>
+              <Link href="/blog" onClick={onClose}>
+                <BookOpen className="w-6 h-6" />
+                Наш блог
               </Link>
             </Button>
           </SheetClose>

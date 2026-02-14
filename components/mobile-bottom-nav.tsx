@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Bookmark, LayoutGrid, Bell, Menu, Home } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { MobileMenuContent } from './mobile-menu-content'
+import { MobileMainMenuContent } from './mobile-main-menu-content'
 import { useState } from 'react'
 
 export function MobileBottomNav() {
@@ -45,7 +45,7 @@ export function MobileBottomNav() {
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-[300px] p-0 bg-background border-border">
-              <MobileMenuContent onClose={handleCloseMenu} />
+              <MobileMainMenuContent onClose={handleCloseMenu} />
             </SheetContent>
           </Sheet>
         </div>

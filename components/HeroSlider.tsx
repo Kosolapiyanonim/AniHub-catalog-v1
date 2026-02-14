@@ -116,8 +116,8 @@ export function HeroSlider({ items }: HeroSliderProps) {
                     <div className="absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
                   </div>
 
-                  <div className="relative z-10 h-full w-full flex flex-col justify-end px-4 sm:px-6 pb-5">
-                    <div className="text-white mb-3">
+                  <div className="relative z-10 h-full w-full flex flex-col justify-end px-4 sm:px-6 pb-4">
+                    <div className="text-white mb-2.5">
                       <Badge
                         variant="secondary"
                         className="mb-2 text-[0.6rem] sm:text-xs bg-white/10 text-purple-300 border border-purple-500/30 backdrop-blur-sm"
@@ -156,24 +156,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
                       )}
                     </div>
 
-                    <div className="flex flex-col items-center gap-2.5">
-                      <div className="relative w-[7.5rem] h-44 sm:w-32 sm:h-48 rounded-lg overflow-hidden shadow-xl ring-1 ring-white/20">
-                        {anime.poster_url ? (
-                          <Image
-                            src={anime.poster_url || "/placeholder.svg"}
-                            alt={`Постер для ${anime.title}`}
-                            fill
-                            className="object-cover transition-transform duration-500 ease-in-out"
-                            sizes="(max-width: 640px) 44vw, 180px"
-                            quality={65}
-                          />
-                        ) : (
-                          <div className="bg-slate-800 w-full h-full flex items-center justify-center">
-                            <span className="text-slate-500 text-[0.6rem]">Нет постера</span>
-                          </div>
-                        )}
-                      </div>
-
+                    <div className="flex flex-col items-center">
                       <div className="flex gap-2.5 w-full justify-center">
                         <Link href={`/anime/${anime.shikimori_id}/watch`} className="flex-1 max-w-[45%]">
                           <Button
@@ -195,6 +178,21 @@ export function HeroSlider({ items }: HeroSliderProps) {
                           </Button>
                         </Link>
                       </div>
+
+                      {validItems.length > 1 && (
+                        <div className="mt-2.5 flex gap-2">
+                          {validItems.map((_, dotIndex) => (
+                            <button
+                              key={`mobile-dot-${dotIndex}`}
+                              onClick={() => api?.scrollTo(dotIndex)}
+                              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                                dotIndex + 1 === current ? "bg-white scale-125 shadow-lg" : "bg-white/40"
+                              }`}
+                              aria-label={`Перейти к слайду ${dotIndex + 1}`}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -343,7 +341,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
 
       {/* --- ИНТЕРАКТИВНЫЕ ИНДИКАТОРЫ СЛАЙДОВ (показываются всегда) --- */}
       {validItems.length > 0 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex gap-2">
+        <div className="hidden md:flex absolute bottom-4 left-1/2 -translate-x-1/2 z-50 gap-2">
           {validItems.map((_, index) => (
             <button
               key={index}

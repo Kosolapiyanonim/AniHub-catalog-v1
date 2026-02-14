@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { AnimeListPopover } from './AnimeListPopover';
 import { AnimeCardListButton } from './anime-card-list-button';
 import { Progress } from './ui/progress'; // <-- [ИЗМЕНЕНИЕ] Импортируем прогресс-бар
+import { Star } from 'lucide-react';
 
 const formatAnimeType = (type: string | null | undefined): string => {
     if (!type) return '';
@@ -38,6 +39,12 @@ export function AnimeCard({ anime, priority = false, onStatusChange }: AnimeCard
             initialStatus={anime.user_list_status}
             onStatusChange={(animeId, newStatus) => onStatusChange?.(animeId, newStatus)}
           />
+          {anime.shikimori_rating && (
+            <div className="absolute top-2 right-2 z-20 flex items-center gap-1 rounded-md bg-black/65 px-1.5 py-1 text-[10px] font-medium text-white backdrop-blur-sm">
+              <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
+              <span>{Number(anime.shikimori_rating).toFixed(1)}</span>
+            </div>
+          )}
           {anime.poster_url ? (
               <Image
                   src={anime.poster_url}

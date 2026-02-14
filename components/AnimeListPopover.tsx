@@ -87,10 +87,10 @@ export function AnimeListPopover({ anime, onStatusChange }: AnimeListPopoverProp
         <Button
           variant="secondary"
           size="icon"
-          className="h-8 w-8 rounded-full bg-black/55 text-white border border-white/35 backdrop-blur-sm hover:bg-black/75"
+          className="h-7 w-7 rounded-full bg-black/35 text-white/90 border border-white/20 backdrop-blur-sm hover:bg-black/50"
           aria-label={`Информация об аниме ${anime.title}`}
         >
-          <Info className="h-4 w-4" />
+          <Info className="h-3.5 w-3.5" />
         </Button>
       </PopoverTrigger>
       <PopoverContent 

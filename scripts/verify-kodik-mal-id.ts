@@ -7,6 +7,11 @@
 
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
+import { config as loadEnv } from 'dotenv'
+
+// Fallback for shells where variables from `.env.local` are not exported
+// (common in Git Bash when using `source .env.local` with plain KEY=VALUE lines).
+loadEnv({ path: '.env.local' })
 
 type KodikItem = {
   id: string

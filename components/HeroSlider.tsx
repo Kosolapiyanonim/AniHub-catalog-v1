@@ -106,7 +106,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
                 className="w-full min-w-full pl-0 pr-0 overflow-hidden h-full"
               >
                 {/* --- МОБИЛЬНАЯ АДАПТАЦИЯ (только полноэкранный режим) --- */}
-                <div className="md:hidden relative w-full h-full">
+                <div className="md:hidden relative w-full h-[calc(100svh-4rem)] min-h-[520px]">
                   <div className="absolute inset-0 z-0">
                     <Image
                       src={mobileHeroImageUrl || "/placeholder.svg"}

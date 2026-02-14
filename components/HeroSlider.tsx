@@ -116,8 +116,8 @@ export function HeroSlider({ items }: HeroSliderProps) {
                     <div className="absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
                   </div>
 
-                  <div className="relative z-10 h-full w-full flex flex-col justify-end px-4 sm:px-6 pb-8">
-                    <div className="text-white mb-6">
+                  <div className="relative z-10 h-full w-full flex flex-col justify-end px-4 sm:px-6 pb-5">
+                    <div className="text-white mb-3">
                       <Badge
                         variant="secondary"
                         className="mb-2 text-[0.6rem] sm:text-xs bg-white/10 text-purple-300 border border-purple-500/30 backdrop-blur-sm"
@@ -150,14 +150,14 @@ export function HeroSlider({ items }: HeroSliderProps) {
                       </div>
 
                       {anime.description && (
-                        <p className="text-gray-300 mb-3 line-clamp-3 text-[0.7rem] sm:text-xs opacity-90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
+                        <p className="text-gray-300 mb-2 line-clamp-2 text-[0.68rem] sm:text-xs opacity-90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
                           {anime.description}
                         </p>
                       )}
                     </div>
 
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="relative w-28 h-42 sm:w-32 sm:h-48 rounded-lg overflow-hidden shadow-xl ring-1 ring-white/20">
+                    <div className="flex flex-col items-center gap-2.5">
+                      <div className="relative w-[7.5rem] h-44 sm:w-32 sm:h-48 rounded-lg overflow-hidden shadow-xl ring-1 ring-white/20">
                         {anime.poster_url ? (
                           <Image
                             src={anime.poster_url || "/placeholder.svg"}
@@ -174,7 +174,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
                         )}
                       </div>
 
-                      <div className="flex gap-3 w-full justify-center">
+                      <div className="flex gap-2.5 w-full justify-center">
                         <Link href={`/anime/${anime.shikimori_id}/watch`} className="flex-1 max-w-[45%]">
                           <Button
                             size="sm"

@@ -39,19 +39,19 @@ export function AnimeCarousel({ title, items, viewAllLink, icon }: AnimeCarousel
   return (
     <section className="relative">
       <div className="absolute -left-4 top-0 w-1 h-12 bg-gradient-to-b from-primary to-accent rounded-full hidden md:block" />
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
+      <div className="flex items-start sm:items-center justify-between gap-3 mb-4 sm:mb-6">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           {displayIcon && (
-            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10 text-primary shrink-0">
               {displayIcon}
             </div>
           )}
-          <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground tracking-tight">{title}</h2>
+          <h2 className="text-lg sm:text-2xl md:text-3xl font-display font-bold text-foreground tracking-tight leading-tight">{title}</h2>
         </div>
         {viewAllLink && (
-          <Button variant="outline" asChild className="group border-border hover:border-primary hover:bg-primary/10 transition-all">
-            <Link href={viewAllLink} className="flex items-center">
-              Смотреть все 
+          <Button variant="outline" asChild className="group border-border hover:border-primary hover:bg-primary/10 transition-all h-8 sm:h-10 px-2.5 sm:px-4 text-xs sm:text-sm">
+            <Link href={viewAllLink} className="flex items-center gap-1">
+              <span className="hidden sm:inline">Смотреть все</span><span className="sm:hidden">Все</span>
               <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
             </Link>
           </Button>
@@ -68,7 +68,7 @@ export function AnimeCarousel({ title, items, viewAllLink, icon }: AnimeCarousel
       >
         <CarouselContent>
           {validItems.map((anime, index) => (
-            <CarouselItem key={anime.id || index} className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/6">
+            <CarouselItem key={anime.id || index} className="basis-[46%] sm:basis-1/3 md:basis-1/4 lg:basis-1/6">
               <div className="p-1"><AnimeCard anime={anime} /></div>
             </CarouselItem>
           ))}

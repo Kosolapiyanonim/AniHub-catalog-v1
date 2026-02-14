@@ -3,8 +3,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { LoadingSpinner } from "@/components/loading-spinner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Star, Calendar, Flame } from "lucide-react"
 import { AnimeCard } from "@/components/anime-card"
@@ -55,7 +53,7 @@ export default function PopularPage() {
     if (loading) {
       // Скелетный загрузчик для единообразия
       return (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-4">
           {Array.from({ length: 20 }).map((_, i) => (
             <div key={i} className="aspect-[2/3] bg-slate-800 rounded-lg animate-pulse" />
           ))}
@@ -66,7 +64,7 @@ export default function PopularPage() {
       return <p className="text-center text-muted-foreground py-8">Не удалось загрузить данные.</p>
     }
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-4">
         {animeList.map((anime, index) => (
           <AnimeCard key={anime.shikimori_id} anime={anime} priority={index < 10} />
         ))}
@@ -76,21 +74,21 @@ export default function PopularPage() {
 
   return (
     <div className="min-h-screen bg-slate-900 pt-16 pb-16">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center gap-3 mb-8">
-          <h1 className="text-4xl font-bold text-white">Популярное аниме</h1>
+      <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
+        <div className="flex items-center gap-3 mb-5 sm:mb-8">
+          <h1 className="text-2xl sm:text-4xl font-bold text-white">Популярное аниме</h1>
         </div>
 
         <Tabs defaultValue="rating" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
-            <TabsTrigger value="rating" className="flex items-center gap-2">
-              <Star className="w-4 h-4" /> Топ рейтинг
+          <TabsList className="grid w-full grid-cols-3 mb-5 sm:mb-8 h-10 sm:h-11">
+            <TabsTrigger value="rating" className="flex items-center justify-center gap-1 sm:gap-2 px-1.5 sm:px-3 text-[0.65rem] sm:text-sm">
+              <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> <span className="truncate">Топ рейтинг</span>
             </TabsTrigger>
-            <TabsTrigger value="newest" className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" /> Новинки
+            <TabsTrigger value="newest" className="flex items-center justify-center gap-1 sm:gap-2 px-1.5 sm:px-3 text-[0.65rem] sm:text-sm">
+              <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> <span className="truncate">Новинки</span>
             </TabsTrigger>
-            <TabsTrigger value="trending" className="flex items-center gap-2">
-              <Flame className="w-4 h-4" /> В тренде
+            <TabsTrigger value="trending" className="flex items-center justify-center gap-1 sm:gap-2 px-1.5 sm:px-3 text-[0.65rem] sm:text-sm">
+              <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> <span className="truncate">В тренде</span>
             </TabsTrigger>
           </TabsList>
 

@@ -30,8 +30,8 @@ export function AnimeCard({ anime, priority = false, onStatusChange }: AnimeCard
     : null;
 
   return (
-    <AnimeListPopover anime={anime} onStatusChange={onStatusChange}>
-      <Link href={`/anime/${anime.shikimori_id}`} className="block group">
+    <div className="group relative">
+      <Link href={`/anime/${anime.shikimori_id}`} className="block">
         <div className="aspect-[2/3] overflow-hidden rounded-lg bg-card relative shadow-md shadow-black/20 ring-1 ring-border/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-primary/10 group-hover:ring-primary/30">
           <AnimeCardListButton
             animeId={anime.id}
@@ -63,6 +63,9 @@ export function AnimeCard({ anime, priority = false, onStatusChange }: AnimeCard
             </p>
         </div>
       </Link>
-    </AnimeListPopover>
+      <div className="absolute top-2 left-2 z-20">
+        <AnimeListPopover anime={anime} onStatusChange={onStatusChange} />
+      </div>
+    </div>
   );
 }

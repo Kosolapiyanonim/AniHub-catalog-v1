@@ -14,9 +14,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Menu, Bell, User, LogOut, Settings, Heart, Search, CheckCheck, Home, Bookmark } from "lucide-react"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Menu, Bell, User, LogOut, Settings, Heart, Search, CheckCheck } from "lucide-react"
 import { CommandPalette } from "./command-palette"
+import { MobileMainMenuContent } from "./mobile-main-menu-content"
 import { toast } from "sonner"
 import { useSupabase } from "@/components/supabase-provider"
 import { useSearchStore } from "@/hooks/use-search-store"
@@ -226,117 +227,8 @@ export function Header() {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[280px] sm:w-[350px] bg-background border-border">
-                <SheetHeader>
-                  <SheetTitle className="text-left text-foreground font-display">Меню</SheetTitle>
-                </SheetHeader>
-
-                <div className="flex flex-col space-y-4 mt-8">
-                  {/* Search Button */}
-                  <Button
-                    variant="outline"
-                    className="justify-start h-12 border-border hover:bg-secondary"
-                    onClick={() => {
-                      toggleSearch()
-                      setMobileMenuOpen(false)
-                    }}
-                  >
-                    <Search className="mr-3 h-5 w-5" />
-                    Поиск аниме
-                  </Button>
-
-                  {/* Navigation Links */}
-                  <Link
-                    href="/"
-                    className="flex items-center py-3 px-2 text-foreground hover:text-primary transition-colors rounded-lg hover:bg-secondary"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <Home className="mr-3 h-5 w-5" />
-                    Главная
-                  </Link>
-
-                  <Link
-                    href="/catalog"
-                    className="flex items-center py-3 px-2 text-foreground hover:text-primary transition-colors rounded-lg hover:bg-secondary"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <Bookmark className="mr-3 h-5 w-5" />
-                    Каталог
-                  </Link>
-
-                  <Link
-                    href="/popular"
-                    className="flex items-center py-3 px-2 text-foreground hover:text-primary transition-colors rounded-lg hover:bg-secondary"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <Heart className="mr-3 h-5 w-5" />
-                    Популярное
-                  </Link>
-
-                  {/* User Section */}
-                  {user ? (
-                    <div className="pt-4 border-t border-border space-y-2">
-                      <div className="px-2 py-2">
-                        <p className="text-sm font-medium text-foreground truncate">{getUserName(user)}</p>
-                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                      </div>
-
-                      <Link
-                        href="/profile"
-                        className="flex items-center py-3 px-2 text-foreground hover:text-primary transition-colors rounded-lg hover:bg-secondary"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <User className="mr-3 h-5 w-5" />
-                        Профиль
-                      </Link>
-
-                      <Link
-                        href="/profile/lists"
-                        className="flex items-center py-3 px-2 text-foreground hover:text-primary transition-colors rounded-lg hover:bg-secondary"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <Heart className="mr-3 h-5 w-5" />
-                        Мои списки
-                      </Link>
-
-                      <Link
-                        href="/settings"
-                        className="flex items-center py-3 px-2 text-foreground hover:text-primary transition-colors rounded-lg hover:bg-secondary"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <Settings className="mr-3 h-5 w-5" />
-                        Настройки
-                      </Link>
-
-                      <button
-                        onClick={handleSignOut}
-                        className="flex items-center py-3 px-2 w-full text-left text-red-400 hover:text-red-300 transition-colors"
-                      >
-                        <LogOut className="mr-3 h-5 w-5" />
-                        Выйти
-                      </button>
-
-                      <div className="sm:hidden pt-2">
-                        <NotificationsDropdown />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="pt-4 border-t border-border space-y-2">
-                      <Link href={getLoginUrl(pathname)} onClick={() => setMobileMenuOpen(false)}>
-                        <Button variant="outline" className="w-full justify-start h-12 border-border">
-                          <User className="mr-3 h-5 w-5" />
-                          Войти
-                        </Button>
-                      </Link>
-                      <Link href={getRegisterUrl(pathname)} onClick={() => setMobileMenuOpen(false)}>
-                        <Button className="w-full justify-start h-12">
-                          <User className="mr-3 h-5 w-5" />
-                          Регистрация
-                        </Button>
-                      </Link>
-                    </div>
-                  )}
-                </div>
+              <SheetContent side="right" className="w-[300px] p-0 bg-background border-border">
+                <MobileMainMenuContent onClose={() => setMobileMenuOpen(false)} />
               </SheetContent>
             </Sheet>
           </div>

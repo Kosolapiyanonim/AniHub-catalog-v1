@@ -100,7 +100,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
             return (
               <CarouselItem key={anime.id} className="w-full min-w-full pl-0 pr-0 overflow-hidden h-full">
                 {/* --- МОБИЛЬНАЯ АДАПТАЦИЯ (только полноэкранный режим) --- */}
-                <div className="md:hidden relative w-full h-[calc(100vh-4rem)]">
+                <div className="md:hidden relative w-full h-[calc(100dvh-4rem)] min-h-[520px]">
                   <div className="absolute inset-0 z-0">
                     <Image
                       src={mobileHeroImageUrl || "/placeholder.svg"}
@@ -116,19 +116,19 @@ export function HeroSlider({ items }: HeroSliderProps) {
                     <div className="absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
                   </div>
 
-                  <div className="relative z-10 h-full w-full flex flex-col justify-end px-4 sm:px-6 pb-4">
-                    <div className="text-white mb-2.5">
+                  <div className="relative z-10 h-full w-full flex flex-col justify-end px-4 sm:px-6 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+                    <div className="text-white mb-3 max-w-[28rem]">
                       <Badge
                         variant="secondary"
                         className="mb-2 text-[0.6rem] sm:text-xs bg-white/10 text-purple-300 border border-purple-500/30 backdrop-blur-sm"
                       >
                         #{index + 1} В центре внимания
                       </Badge>
-                      <h1 className="text-xl sm:text-2xl font-bold mb-2 leading-tight drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
+                      <h1 className="text-[1.65rem] min-[380px]:text-[1.85rem] font-bold mb-2 leading-[1.08] drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] line-clamp-2">
                         {anime.title}
                       </h1>
 
-                      <div className="flex flex-wrap items-center gap-2 text-gray-300 mb-2 text-[0.65rem] sm:text-xs">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-gray-300 mb-2 text-[0.68rem] min-[380px]:text-xs">
                         {anime.shikimori_rating && (
                           <div className="flex items-center gap-1">
                             <Star className="w-3 h-3 text-yellow-400 fill-current" />
@@ -150,28 +150,28 @@ export function HeroSlider({ items }: HeroSliderProps) {
                       </div>
 
                       {anime.description && (
-                        <p className="text-gray-300 mb-2 line-clamp-2 text-[0.68rem] sm:text-xs opacity-90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
+                        <p className="text-gray-300 mb-0 line-clamp-2 min-[390px]:line-clamp-3 [@media(max-height:760px)]:line-clamp-1 text-[0.72rem] min-[380px]:text-xs opacity-90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
                           {anime.description}
                         </p>
                       )}
                     </div>
 
-                    <div className="flex flex-col items-center">
-                      <div className="flex gap-2.5 w-full justify-center">
-                        <Link href={`/anime/${anime.shikimori_id}/watch`} className="flex-1 max-w-[45%]">
+                    <div className="flex flex-col items-center w-full">
+                      <div className="flex gap-2.5 w-full max-w-[26rem] justify-center">
+                        <Link href={`/anime/${anime.shikimori_id}/watch`} className="flex-1">
                           <Button
                             size="sm"
-                            className="w-full bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800 text-white shadow-md h-8 sm:h-10 text-[0.7rem] sm:text-sm transition-all duration-300"
+                            className="w-full bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800 text-white shadow-md h-9 min-[380px]:h-10 text-xs min-[380px]:text-sm transition-all duration-300"
                           >
                             <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                             <span className="truncate">Смотреть</span>
                           </Button>
                         </Link>
-                        <Link href={`/anime/${anime.shikimori_id}`} className="flex-1 max-w-[45%]">
+                        <Link href={`/anime/${anime.shikimori_id}`} className="flex-1">
                           <Button
                             size="sm"
                             variant="outline"
-                            className="w-full bg-white/10 hover:bg-white/20 border-white/30 text-white backdrop-blur-sm shadow-md h-8 sm:h-10 text-[0.7rem] sm:text-sm transition-all duration-300"
+                            className="w-full bg-white/10 hover:bg-white/20 border-white/30 text-white backdrop-blur-sm shadow-md h-9 min-[380px]:h-10 text-xs min-[380px]:text-sm transition-all duration-300"
                           >
                             <Info className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                             <span className="truncate">Подробнее</span>
@@ -180,7 +180,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
                       </div>
 
                       {validItems.length > 1 && (
-                        <div className="mt-2.5 flex gap-2">
+                        <div className="mt-3 flex gap-2">
                           {validItems.map((_, dotIndex) => (
                             <button
                               key={`mobile-dot-${dotIndex}`}

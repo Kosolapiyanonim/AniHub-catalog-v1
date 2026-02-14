@@ -1,7 +1,7 @@
 // components/AnimeListPopover.tsx
 "use client";
 
-import { useState, useEffect, useRef } from 'react'; // <--- ИСПРАВЛЕНИЕ: Добавлен useRef
+import { useState, useEffect } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Badge } from './ui/badge';
 import Link from 'next/link';
 import { useSupabase } from './supabase-provider';
 import { toast } from 'sonner';
-import { Check, Loader2, Bookmark, Info, Star, Eye, CalendarCheck, XCircle, History, Clock, Plus, Trash2, X } from 'lucide-react';
+import { Loader2, Bookmark, Info, Star, Eye, CalendarCheck, XCircle, History, Clock, Plus, Trash2, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { getLoginUrl } from '@/lib/auth-utils';
 
@@ -40,18 +40,16 @@ interface AnimeData {
 
 interface AnimeListPopoverProps {
   anime: AnimeData;
-  children: React.ReactNode;
   onStatusChange?: (animeId: number, newStatus: string | null) => void;
 }
 
-export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListPopoverProps) {
+export function AnimeListPopover({ anime, onStatusChange }: AnimeListPopoverProps) {
   const { session } = useSupabase();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState(anime.user_list_status);
   const [loading, setLoading] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setCurrentStatus(anime.user_list_status);
@@ -80,29 +78,23 @@ export function AnimeListPopover({ anime, children, onStatusChange }: AnimeListP
     }
   };
 
-  const handleMouseEnter = () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    setIsOpen(true);
-  };
-
-  const handleMouseLeave = () => {
-    timerRef.current = setTimeout(() => {
-      setIsOpen(false);
-    }, 200);
-  };
-
   const statusInfo = session && currentStatus ? statusMap.get(currentStatus) : null;
   const CurrentIcon = statusInfo ? statusInfo.icon : Plus;
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-        {children}
+      <PopoverTrigger asChild>
+        <Button
+          variant="secondary"
+          size="icon"
+          className="h-7 w-7 rounded-full bg-black/35 text-white/90 border border-white/20 backdrop-blur-sm hover:bg-black/50"
+          aria-label={`Информация об аниме ${anime.title}`}
+        >
+          <Info className="h-3.5 w-3.5" />
+        </Button>
       </PopoverTrigger>
       <PopoverContent 
         className="w-80 bg-slate-900/80 backdrop-blur-sm border-slate-700 text-white p-4 space-y-3" 
-        onMouseEnter={handleMouseEnter} 
-        onMouseLeave={handleMouseLeave}
         side="right" align="start" sideOffset={10}
       >
         <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => setIsOpen(false)}>

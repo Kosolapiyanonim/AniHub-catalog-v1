@@ -1,4 +1,4 @@
-# Пошагово: как проверить гипотезу `kodik_id == MAL anime_id`
+# Пошагово: как проверить маппинг `shikimori_id == MAL anime_id`
 
 Этот гайд — «с нуля», если ты только зарегистрировался в Kodik API.
 
@@ -62,7 +62,7 @@ npm run verify:kodik-mal-id -- --limit 50 --sample 20 --out logs/kodik-mal-repor
 - `Matches by shikimori_id -> MAL: X/Y`
 - `Matches by kodik_id     -> MAL: X/Y`
 
-Если первая строка сильно выше второй — гипотеза про `kodik_id == MAL anime_id` скорее **неверная**, а `shikimori_id` лучше подходит как MAL id-связка.
+Если первая строка сильно выше второй — это подтверждает рабочее правило: `shikimori_id` — основной кандидат на MAL `anime_id`, а `kodik_id` использовать для этого не нужно.
 
 ## 5) Как интерпретировать JSON-отчёт
 

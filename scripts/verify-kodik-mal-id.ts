@@ -1,5 +1,5 @@
 /*
- * Verify hypothesis: Kodik id == MAL anime id
+ * Verify mapping: shikimori_id == MAL anime id (and disproves kodik_id mapping)
  *
  * Usage:
  *   KODIK_API_TOKEN=xxx npx tsx scripts/verify-kodik-mal-id.ts --limit 20 --sample 10 --out logs/kodik-mal-report.json
@@ -158,14 +158,14 @@ async function main() {
     matches_by_kodik_id: kidMatches,
     interpretation:
       sidMatches > kidMatches
-        ? 'shikimori_id maps to MAL much better than kodik_id'
+        ? 'shikimori_id is the correct MAL mapping candidate; kodik_id is not'
         : sidMatches === kidMatches
           ? 'inconclusive, increase sample'
           : 'unexpected: kodik_id looked better on this sample',
   }
 
   console.log('🧮 Step 3/4: Building summary...')
-  console.log('\n=== Hypothesis Check: kodik_id == MAL anime_id ===')
+  console.log('\n=== Mapping Check: shikimori_id == MAL anime_id ===')
   console.log(`Sample size: ${results.length}`)
   console.log(`Matches by shikimori_id -> MAL: ${sidMatches}/${results.length}`)
   console.log(`Matches by kodik_id     -> MAL: ${kidMatches}/${results.length}`)

@@ -17,7 +17,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Menu, Bell, User, LogOut, Settings, Heart, Search, CheckCheck } from "lucide-react"
 import { CommandPalette } from "./command-palette"
-import { MobileMenuContent } from "./mobile-menu-content"
+import { MobileMainMenuContent } from "./mobile-main-menu-content"
 import { toast } from "sonner"
 import { useSupabase } from "@/components/supabase-provider"
 import { useSearchStore } from "@/hooks/use-search-store"
@@ -228,7 +228,7 @@ export function Header() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[300px] p-0 bg-background border-border">
-                <MobileMenuContent onClose={() => setMobileMenuOpen(false)} />
+                <MobileMainMenuContent onClose={() => setMobileMenuOpen(false)} />
               </SheetContent>
             </Sheet>
           </div>

@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { useRef, useState, useEffect } from "react"
+import { useRef, useState, useEffect } from "react";
 import {
   Carousel,
   CarouselContent,
@@ -8,54 +8,52 @@ import {
   CarouselNext,
   CarouselPrevious,
   type CarouselApi,
-} from "@/components/ui/carousel"
-import Autoplay from "embla-carousel-autoplay"
-import Image from "next/image"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Play, Info, Star, Clapperboard, Calendar } from 'lucide-react'
-import { Badge } from "@/components/ui/badge"
-import type { Anime } from "@/lib/types"
+} from "@/components/ui/carousel";
+import Autoplay from "embla-carousel-autoplay";
+import Image from "next/image";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Play, Info, Star, Clapperboard, Calendar } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import type { Anime } from "@/lib/types";
 
 interface HeroSliderProps {
-  items?: Anime[] | null
+  items?: Anime[] | null;
 }
 
 export function HeroSlider({ items }: HeroSliderProps) {
-  const plugin = useRef(Autoplay({ delay: 7000, stopOnInteraction: true }))
-  const validItems = items?.filter(Boolean) as Anime[]
-  const isFullscreen = false
-  const [api, setApi] = useState<CarouselApi>()
-  const [current, setCurrent] = useState(0)
-  const [count, setCount] = useState(0)
+  const plugin = useRef(Autoplay({ delay: 7000, stopOnInteraction: true }));
+  const validItems = items?.filter(Boolean) as Anime[];
+  const isFullscreen = false;
+  const [api, setApi] = useState<CarouselApi>();
+  const [current, setCurrent] = useState(0);
+  const [count, setCount] = useState(0);
 
   useEffect(() => {
     if (!api) {
-      return
+      return;
     }
 
-    setCount(api.scrollSnapList().length)
-    setCurrent(api.selectedScrollSnap() + 1)
+    setCount(api.scrollSnapList().length);
+    setCurrent(api.selectedScrollSnap() + 1);
 
     api.on("select", () => {
-      setCurrent(api.selectedScrollSnap() + 1)
-    })
-  }, [api])
+      setCurrent(api.selectedScrollSnap() + 1);
+    });
+  }, [api]);
 
   if (!validItems || validItems.length === 0) {
     return (
-      <div
-        className="relative w-full h-[70vh] min-h-[500px] flex items-center justify-center bg-gradient-to-br from-background to-secondary text-foreground md:container md:mx-auto md:px-4 md:rounded-lg"
-      >
-        <p className="text-xl text-center px-4">Отметьте аниме в базе для отображения в Hero-секции...</p>
+      <div className="relative w-full h-[70vh] min-h-[500px] flex items-center justify-center bg-gradient-to-br from-background to-secondary text-foreground md:container md:mx-auto md:px-4 md:rounded-lg">
+        <p className="text-xl text-center px-4">
+          Отметьте аниме в базе для отображения в Hero-секции...
+        </p>
       </div>
-    )
+    );
   }
 
   return (
-    <div
-      className="relative w-full h-[70vh] min-h-[500px] overflow-hidden md:container md:mx-auto md:px-4"
-    >
+    <div className="relative w-full h-[calc(100svh-4rem)] min-h-[520px] overflow-hidden md:h-[70vh] md:min-h-[500px] md:container md:mx-auto md:px-4">
       <Carousel
         setApi={setApi}
         className="w-full h-full"
@@ -72,35 +70,43 @@ export function HeroSlider({ items }: HeroSliderProps) {
         <CarouselContent className="flex h-full -ml-0">
           {validItems.map((anime, index) => {
             const backgroundImageUrl =
-              anime.background_image_url || anime.poster_url || "/placeholder.svg?height=1080&width=1920"
-            const mobileHeroImageUrl = anime.poster_url || backgroundImageUrl
+              anime.background_image_url ||
+              anime.poster_url ||
+              "/placeholder.svg?height=1080&width=1920";
+            const mobileHeroImageUrl = anime.poster_url || backgroundImageUrl;
 
-            let episodeStatusText = ""
+            let episodeStatusText = "";
             if (anime.episodes_total === 1 && anime.episodes_aired === 1) {
-              episodeStatusText = "Полнометражное"
-            } else if (anime.episodes_total != null && anime.episodes_aired != null) {
+              episodeStatusText = "Полнометражное";
+            } else if (
+              anime.episodes_total != null &&
+              anime.episodes_aired != null
+            ) {
               if (anime.episodes_aired < anime.episodes_total) {
-                episodeStatusText = `${anime.episodes_aired} из ${anime.episodes_total} эп.`
+                episodeStatusText = `${anime.episodes_aired} из ${anime.episodes_total} эп.`;
               } else {
-                episodeStatusText = `${anime.episodes_total} эп.`
+                episodeStatusText = `${anime.episodes_total} эп.`;
               }
             } else if (anime.episodes_aired != null) {
-              episodeStatusText = `${anime.episodes_aired} эп.`
+              episodeStatusText = `${anime.episodes_aired} эп.`;
             }
 
             // Динамическое количество строк описания
             const getDescriptionLines = () => {
               if (isFullscreen) {
-                return "line-clamp-4 sm:line-clamp-5 md:line-clamp-6 lg:line-clamp-7 xl:line-clamp-8"
+                return "line-clamp-4 sm:line-clamp-5 md:line-clamp-6 lg:line-clamp-7 xl:line-clamp-8";
               } else {
-                return "line-clamp-3 sm:line-clamp-4 md:line-clamp-5"
+                return "line-clamp-3 sm:line-clamp-4 md:line-clamp-5";
               }
-            }
+            };
 
             return (
-              <CarouselItem key={anime.id} className="w-full min-w-full pl-0 pr-0 overflow-hidden h-full">
+              <CarouselItem
+                key={anime.id}
+                className="w-full min-w-full pl-0 pr-0 overflow-hidden h-full"
+              >
                 {/* --- МОБИЛЬНАЯ АДАПТАЦИЯ (только полноэкранный режим) --- */}
-                <div className="md:hidden relative w-full h-[calc(100vh-4rem)]">
+                <div className="md:hidden relative w-full h-[calc(100svh-4rem)] min-h-[520px]">
                   <div className="absolute inset-0 z-0">
                     <Image
                       src={mobileHeroImageUrl || "/placeholder.svg"}
@@ -116,84 +122,92 @@ export function HeroSlider({ items }: HeroSliderProps) {
                     <div className="absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
                   </div>
 
-                  <div className="relative z-10 h-full w-full flex flex-col justify-end px-4 sm:px-6 pb-8">
-                    <div className="text-white mb-6">
-                      <Badge
-                        variant="secondary"
-                        className="mb-2 text-[0.6rem] sm:text-xs bg-white/10 text-purple-300 border border-purple-500/30 backdrop-blur-sm"
-                      >
-                        #{index + 1} В центре внимания
-                      </Badge>
-                      <h1 className="text-xl sm:text-2xl font-bold mb-2 leading-tight drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
-                        {anime.title}
-                      </h1>
+                  <div className="relative z-10 h-full w-full px-4 sm:px-6 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+                    <div className="mx-auto flex h-full w-full max-w-[28rem] flex-col justify-end text-white">
+                      <div className="text-white mb-6">
+                        <Badge
+                          variant="secondary"
+                          className="mb-2 text-[0.6rem] sm:text-xs bg-white/10 text-purple-300 border border-purple-500/30 backdrop-blur-sm"
+                        >
+                          #{index + 1} В центре внимания
+                        </Badge>
+                        <h1 className="text-[1.55rem] min-[380px]:text-[1.8rem] font-bold mb-2 leading-[1.08] drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] line-clamp-2">
+                          {anime.title}
+                        </h1>
 
-                      <div className="flex flex-wrap items-center gap-2 text-gray-300 mb-2 text-[0.65rem] sm:text-xs">
-                        {anime.shikimori_rating && (
-                          <div className="flex items-center gap-1">
-                            <Star className="w-3 h-3 text-yellow-400 fill-current" />
-                            <span>{anime.shikimori_rating.toFixed(1)}</span>
-                          </div>
-                        )}
-                        {anime.year && (
-                          <div className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            <span>{anime.year}</span>
-                          </div>
-                        )}
-                        {episodeStatusText && (
-                          <div className="flex items-center gap-1">
-                            <Clapperboard className="w-3 h-3" />
-                            <span>{episodeStatusText}</span>
-                          </div>
-                        )}
-                      </div>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-gray-300 mb-2 text-[0.68rem] min-[380px]:text-xs">
+                          {anime.shikimori_rating && (
+                            <div className="flex items-center gap-1">
+                              <Star className="w-3 h-3 text-yellow-400 fill-current" />
+                              <span>{anime.shikimori_rating.toFixed(1)}</span>
+                            </div>
+                          )}
+                          {anime.year && (
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              <span>{anime.year}</span>
+                            </div>
+                          )}
+                          {episodeStatusText && (
+                            <div className="flex items-center gap-1">
+                              <Clapperboard className="w-3 h-3" />
+                              <span>{episodeStatusText}</span>
+                            </div>
+                          )}
+                        </div>
 
-                      {anime.description && (
-                        <p className="text-gray-300 mb-3 line-clamp-3 text-[0.7rem] sm:text-xs opacity-90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
-                          {anime.description}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="relative w-28 h-42 sm:w-32 sm:h-48 rounded-lg overflow-hidden shadow-xl ring-1 ring-white/20">
-                        {anime.poster_url ? (
-                          <Image
-                            src={anime.poster_url || "/placeholder.svg"}
-                            alt={`Постер для ${anime.title}`}
-                            fill
-                            className="object-cover transition-transform duration-500 ease-in-out"
-                            sizes="(max-width: 640px) 44vw, 180px"
-                            quality={65}
-                          />
-                        ) : (
-                          <div className="bg-slate-800 w-full h-full flex items-center justify-center">
-                            <span className="text-slate-500 text-[0.6rem]">Нет постера</span>
-                          </div>
+                        {anime.description && (
+                          <p className="text-gray-300 mb-0 line-clamp-2 min-[390px]:line-clamp-3 [@media(max-height:760px)]:line-clamp-1 text-[0.72rem] min-[380px]:text-xs opacity-90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
+                            {anime.description}
+                          </p>
                         )}
                       </div>
 
-                      <div className="flex gap-3 w-full justify-center">
-                        <Link href={`/anime/${anime.shikimori_id}/watch`} className="flex-1 max-w-[45%]">
-                          <Button
-                            size="sm"
-                            className="w-full bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800 text-white shadow-md h-8 sm:h-10 text-[0.7rem] sm:text-sm transition-all duration-300"
+                      <div className="flex flex-col items-center w-full">
+                        <div className="mb-2.5 flex gap-2.5 w-full max-w-[26rem] justify-center">
+                          <Link
+                            href={`/anime/${anime.shikimori_id}/watch`}
+                            className="flex-1"
                           >
-                            <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                            <span className="truncate">Смотреть</span>
-                          </Button>
-                        </Link>
-                        <Link href={`/anime/${anime.shikimori_id}`} className="flex-1 max-w-[45%]">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="w-full bg-white/10 hover:bg-white/20 border-white/30 text-white backdrop-blur-sm shadow-md h-8 sm:h-10 text-[0.7rem] sm:text-sm transition-all duration-300"
+                            <Button
+                              size="sm"
+                              className="w-full bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800 text-white shadow-md h-9 min-[380px]:h-10 text-xs min-[380px]:text-sm transition-all duration-300"
+                            >
+                              <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                              <span className="truncate">Смотреть</span>
+                            </Button>
+                          </Link>
+                          <Link
+                            href={`/anime/${anime.shikimori_id}`}
+                            className="flex-1"
                           >
-                            <Info className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                            <span className="truncate">Подробнее</span>
-                          </Button>
-                        </Link>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full bg-white/10 hover:bg-white/20 border-white/30 text-white backdrop-blur-sm shadow-md h-9 min-[380px]:h-10 text-xs min-[380px]:text-sm transition-all duration-300"
+                            >
+                              <Info className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                              <span className="truncate">Подробнее</span>
+                            </Button>
+                          </Link>
+                        </div>
+
+                        {validItems.length > 1 && (
+                          <div className="mt-2.5 flex gap-2">
+                            {validItems.map((_, dotIndex) => (
+                              <button
+                                key={`mobile-dot-${dotIndex}`}
+                                onClick={() => api?.scrollTo(dotIndex)}
+                                className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                                  dotIndex + 1 === current
+                                    ? "bg-white scale-125 shadow-lg"
+                                    : "bg-white/40"
+                                }`}
+                                aria-label={`Перейти к слайду ${dotIndex + 1}`}
+                              />
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -322,7 +336,9 @@ export function HeroSlider({ items }: HeroSliderProps) {
                           />
                         ) : (
                           <div className="bg-slate-800 w-full h-full flex items-center justify-center">
-                            <span className="text-slate-500 text-xs">Нет постера</span>
+                            <span className="text-slate-500 text-xs">
+                              Нет постера
+                            </span>
                           </div>
                         )}
                       </div>
@@ -331,7 +347,7 @@ export function HeroSlider({ items }: HeroSliderProps) {
                 </div>
                 {/* --- КОНЕЦ ДЕСКТОПНОЙ ВЕРСИИ --- */}
               </CarouselItem>
-            )
+            );
           })}
         </CarouselContent>
 
@@ -343,13 +359,15 @@ export function HeroSlider({ items }: HeroSliderProps) {
 
       {/* --- ИНТЕРАКТИВНЫЕ ИНДИКАТОРЫ СЛАЙДОВ (показываются всегда) --- */}
       {validItems.length > 0 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex gap-2">
+        <div className="hidden md:flex absolute bottom-4 left-1/2 -translate-x-1/2 z-50 gap-2">
           {validItems.map((_, index) => (
             <button
               key={index}
               onClick={() => api?.scrollTo(index)}
               className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                index + 1 === current ? "bg-white scale-125 shadow-lg" : "bg-white/40 hover:bg-white/60 hover:scale-110"
+                index + 1 === current
+                  ? "bg-white scale-125 shadow-lg"
+                  : "bg-white/40 hover:bg-white/60 hover:scale-110"
               }`}
               aria-label={`Перейти к слайду ${index + 1}`}
             />
@@ -357,5 +375,5 @@ export function HeroSlider({ items }: HeroSliderProps) {
         </div>
       )}
     </div>
-  )
+  );
 }

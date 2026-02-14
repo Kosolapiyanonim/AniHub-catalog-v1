@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Bookmark, Bell, CheckCircle2, Loader2 } from "lucide-react"
+import { Bookmark, Bell, CheckCircle2, Heart, Loader2, Star } from "lucide-react"
 
 type Profile = {
   id: string
@@ -19,6 +19,8 @@ type Profile = {
 
 type ListItem = { status: "watching" | "planned" | "completed" | "dropped" | "on_hold" }
 type SubscriptionItem = { anime: { id: number } }
+type AnimeRatingItem = { rating: number }
+type FavoriteEpisodeItem = { episode_number: number; animes?: { title: string; shikimori_id: string } | null }
 
 export default function ProfilePage() {
   const { session, loading } = useSupabase()
@@ -26,6 +28,8 @@ export default function ProfilePage() {
   const [listItems, setListItems] = useState<ListItem[]>([])
   const [subscriptionItems, setSubscriptionItems] = useState<SubscriptionItem[]>([])
   const [statsLoading, setStatsLoading] = useState(true)
+  const [animeRatings, setAnimeRatings] = useState<AnimeRatingItem[]>([])
+  const [favoriteEpisodes, setFavoriteEpisodes] = useState<FavoriteEpisodeItem[]>([])
 
   useEffect(() => {
     if (!session?.user?.id) {
@@ -33,6 +37,8 @@ export default function ProfilePage() {
       setListItems([])
       setSubscriptionItems([])
       setStatsLoading(false)
+      setAnimeRatings([])
+      setFavoriteEpisodes([])
       return
     }
 
@@ -41,16 +47,22 @@ export default function ProfilePage() {
       fetch("/api/profile", { cache: "no-store" }).then((res) => (res.ok ? res.json() : null)),
       fetch("/api/lists", { cache: "no-store" }).then((res) => (res.ok ? res.json() : { items: [] })),
       fetch("/api/subscriptions", { cache: "no-store" }).then((res) => (res.ok ? res.json() : { items: [] })),
+      fetch("/api/ratings/anime", { cache: "no-store" }).then((res) => (res.ok ? res.json() : { items: [] })),
+      fetch("/api/ratings/episodes?favorites=1", { cache: "no-store" }).then((res) => (res.ok ? res.json() : { items: [] })),
     ])
-      .then(([profileData, listsData, subscriptionsData]) => {
+      .then(([profileData, listsData, subscriptionsData, ratingsData, episodesData]) => {
         setProfile(profileData)
         setListItems(Array.isArray(listsData?.items) ? listsData.items : [])
         setSubscriptionItems(Array.isArray(subscriptionsData?.items) ? subscriptionsData.items : [])
+        setAnimeRatings(Array.isArray(ratingsData?.items) ? ratingsData.items : [])
+        setFavoriteEpisodes(Array.isArray(episodesData?.items) ? episodesData.items : [])
       })
       .catch(() => {
         setProfile(null)
         setListItems([])
         setSubscriptionItems([])
+        setAnimeRatings([])
+        setFavoriteEpisodes([])
       })
       .finally(() => setStatsLoading(false))
   }, [session?.user?.id])
@@ -59,6 +71,12 @@ export default function ProfilePage() {
     () => listItems.filter((item) => item.status === "completed").length,
     [listItems]
   )
+
+  const avgRating = useMemo(() => {
+    if (!animeRatings.length) return null
+    const total = animeRatings.reduce((sum, item) => sum + item.rating, 0)
+    return (total / animeRatings.length).toFixed(1)
+  }, [animeRatings])
 
   if (loading || statsLoading) {
     return (
@@ -115,7 +133,7 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -143,6 +161,27 @@ export default function ProfilePage() {
               <Bell className="h-4 w-4 text-muted-foreground" />
             </div>
             <p className="text-2xl font-semibold mt-2">{subscriptionItems.length}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Оценено тайтлов</span>
+              <Star className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <p className="text-2xl font-semibold mt-2">{animeRatings.length}</p>
+            <p className="text-xs text-muted-foreground mt-1">Средняя: {avgRating ?? "—"}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Любимые серии</span>
+              <Heart className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <p className="text-2xl font-semibold mt-2">{favoriteEpisodes.length}</p>
           </CardContent>
         </Card>
       </div>

@@ -38,12 +38,22 @@ export async function GET() {
     return NextResponse.json({ error: animeError.message }, { status: 500, headers: response.headers });
   }
 
+
+  const { data: animeRatings } = await supabase
+    .from("user_anime_ratings")
+    .select("anime_id, rating")
+    .eq("user_id", user.id)
+    .in("anime_id", animeIds);
+
+  const ratingsMap = new Map((animeRatings ?? []).map((item) => [item.anime_id, item.rating]));
+
   const animeMap = new Map((animes ?? []).map((anime) => [anime.id, anime]));
   const items = (listRows ?? [])
     .map((row) => ({
       status: row.status,
       updated_at: row.updated_at,
       anime: animeMap.get(row.anime_id) ?? null,
+      user_anime_rating: ratingsMap.get(row.anime_id) ?? null,
     }))
     .filter((row) => row.anime && row.anime.shikimori_id);
 

@@ -11,7 +11,7 @@ import { BookmarkX, Loader2, Search } from "lucide-react"
 
 type ListStatus = "watching" | "planned" | "completed" | "dropped" | "on_hold"
 type StatusFilter = ListStatus | "all"
-type SortBy = "updated_desc" | "title_asc"
+type SortBy = "updated_desc" | "title_asc" | "my_rating_desc"
 
 type ListItem = {
   status: ListStatus
@@ -24,6 +24,7 @@ type ListItem = {
     year: number | null
     type: string | null
   }
+  user_anime_rating?: number | null
 }
 
 const statusOrder: StatusFilter[] = ["all", "watching", "planned", "completed", "dropped", "on_hold"]
@@ -55,6 +56,7 @@ function AnimeCardCompact({ item }: { item: ListItem }) {
         <div>
           <p className="text-sm font-medium line-clamp-2 leading-tight">{item.anime.title}</p>
           <p className="text-xs text-muted-foreground">{item.anime.year ?? "—"}</p>
+          {item.user_anime_rating ? <p className="text-xs text-amber-400">Моя оценка: {item.user_anime_rating}/10</p> : null}
         </div>
       </div>
     </Link>
@@ -112,6 +114,7 @@ export default function ProfileListsPage() {
 
     return [...searched].sort((a, b) => {
       if (sortBy === "title_asc") return a.anime.title.localeCompare(b.anime.title, "ru")
+      if (sortBy === "my_rating_desc") return (b.user_anime_rating ?? 0) - (a.user_anime_rating ?? 0)
       return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
     })
   }, [activeStatus, items, search, sortBy])
@@ -204,7 +207,7 @@ export default function ProfileListsPage() {
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <Button
               size="sm"
               variant={sortBy === "updated_desc" ? "default" : "outline"}
@@ -220,6 +223,14 @@ export default function ProfileListsPage() {
               className="flex-1"
             >
               По названию
+            </Button>
+            <Button
+              size="sm"
+              variant={sortBy === "my_rating_desc" ? "default" : "outline"}
+              onClick={() => setSortBy("my_rating_desc")}
+              className="flex-1"
+            >
+              По оценке
             </Button>
           </div>
         </div>

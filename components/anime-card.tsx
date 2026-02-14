@@ -45,6 +45,12 @@ export function AnimeCard({ anime, priority = false, onStatusChange }: AnimeCard
               <span>{Number(anime.shikimori_rating).toFixed(1)}</span>
             </div>
           )}
+          {anime.user_anime_rating ? (
+            <div className="absolute bottom-2 right-2 z-20 flex items-center gap-1 rounded-md bg-amber-500/90 px-1.5 py-1 text-[10px] font-semibold text-black backdrop-blur-sm">
+              <Star className="h-3 w-3" />
+              <span>Моя {anime.user_anime_rating}</span>
+            </div>
+          ) : null}
           {anime.poster_url ? (
               <Image
                   src={anime.poster_url}

@@ -8,13 +8,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Star, Play } from "lucide-react";
+import { ArrowLeft, Play } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { AnimeCarousel } from "@/components/AnimeCarousel";
 import { SubscribeButton } from "@/components/SubscribeButton";
 import Comments from "@/components/Comments";
 // --- [ИЗМЕНЕНИЕ] Импортируем правильную кнопку для этой страницы ---
 import { AnimePageListButton } from "@/components/anime-page-list-button";
+import { UserAnimeRating } from "@/components/ratings/user-anime-rating";
 
 // Интерфейсы данных
 interface RelatedAnime {
@@ -35,6 +36,7 @@ interface AnimeData {
   tags: { id: number; name: string; slug: string }[];
   related: RelatedAnime[];
   user_list_status?: string | null;
+  user_anime_rating?: number | null;
 }
 
 export default function AnimePage() {
@@ -92,9 +94,6 @@ export default function AnimePage() {
             <div className="sticky top-24 space-y-4">
               <div className="aspect-[3/4] relative rounded-lg overflow-hidden bg-slate-800">
                 <Image src={anime.poster_url || "/placeholder.svg"} alt={anime.title} fill className="object-cover" priority />
-                <Button variant="secondary" size="sm" className="absolute top-2 right-2 flex items-center gap-1 opacity-80 hover:opacity-100">
-                    <Star className="w-4 h-4" /> Оценить
-                </Button>
               </div>
               <div className="flex items-center gap-2">
                 <Link href={`/anime/${animeId}/watch`} className="w-full">
@@ -108,6 +107,9 @@ export default function AnimePage() {
                 initialStatus={anime.user_list_status}
                 onStatusChange={handleStatusUpdate}
               />
+              <div className="rounded-lg border border-slate-700 bg-slate-800 p-3">
+                <UserAnimeRating animeId={anime.id} initialRating={anime.user_anime_rating ?? null} compact />
+              </div>
             </div>
           </aside>
 

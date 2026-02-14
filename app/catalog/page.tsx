@@ -15,6 +15,7 @@ interface Anime {
   poster_url?: string | null;
   year?: number | null;
   user_list_status?: string | null;
+  user_anime_rating?: number | null;
   // Добавляем поля для HoverCard
   description?: string;
   type?: string;

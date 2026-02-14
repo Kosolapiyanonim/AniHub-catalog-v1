@@ -6,8 +6,6 @@ import {
   ArrowLeft,
   Play,
   Settings,
-  Volume2,
-  Maximize,
   MoreHorizontal,
   Star,
   Clock,
@@ -153,10 +151,7 @@ export default async function WatchPage({ params }: { params: { id: string } }) 
                     <p className="text-slate-400">Первая серия</p>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Button variant="outline" size="sm" className="border-slate-600 text-slate-300 bg-transparent">
-                      <Star className="w-4 h-4 mr-1" />
-                      Оценить
-                    </Button>
+
                   </div>
                 </div>
 
@@ -186,7 +181,7 @@ export default async function WatchPage({ params }: { params: { id: string } }) 
 
           {/* Боковая панель */}
           <div className="xl:col-span-1 space-y-6">
-            <WatchControls translations={translations as any} episodesAired={animeData.episodes_aired} episodesTotal={animeData.episodes_total} />
+            <WatchControls animeId={animeData.id} translations={translations as any} episodesAired={animeData.episodes_aired} episodesTotal={animeData.episodes_total} />
 
             {/* Информация об аниме */}
             <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">

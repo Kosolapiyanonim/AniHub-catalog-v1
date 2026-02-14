@@ -141,7 +141,8 @@ export async function GET(request: Request) {
     if (year_to) query = query.lte("year", Number.parseInt(year_to))
 
     const isAsc = order === "asc"
-    query = query.order(sort, { ascending: isAsc, nullsFirst: false })
+    const dbSort = sort === "user_rating" ? "shikimori_votes" : sort
+    query = query.order(dbSort, { ascending: isAsc, nullsFirst: false })
     query = query.order("id", { ascending: false })
     query = query.range(offset, offset + limit - 1)
 
@@ -160,26 +161,41 @@ export async function GET(request: Request) {
       studios: anime.studios.map((s: any) => s.studios).filter(Boolean),
     }))
 
-    // Добавляем user_list_status только если есть пользователь
+    // Добавляем user_list_status и user_anime_rating только если есть пользователь
     if (user && finalResults && finalResults.length > 0) {
       try {
         const authClient = await createClientAuth()
         const resultIds = finalResults.map((r) => r.id)
-        const { data: userListsData } = await authClient
-          .from("user_lists")
-          .select("anime_id, status")
-          .eq("user_id", user.id)
-          .in("anime_id", resultIds)
+        const [{ data: userListsData }, { data: userRatingsData }] = await Promise.all([
+          authClient
+            .from("user_lists")
+            .select("anime_id, status")
+            .eq("user_id", user.id)
+            .in("anime_id", resultIds),
+          authClient
+            .from("user_anime_ratings")
+            .select("anime_id, rating")
+            .eq("user_id", user.id)
+            .in("anime_id", resultIds),
+        ])
 
-        if (userListsData) {
-          const statusMap = new Map(userListsData.map((item) => [item.anime_id, item.status]))
-          finalResults.forEach((anime: any) => {
-            anime.user_list_status = statusMap.get(anime.id) || null
+        const statusMap = new Map((userListsData ?? []).map((item) => [item.anime_id, item.status]))
+        const ratingMap = new Map((userRatingsData ?? []).map((item) => [item.anime_id, item.rating]))
+
+        finalResults.forEach((anime: any) => {
+          anime.user_list_status = statusMap.get(anime.id) || null
+          anime.user_anime_rating = ratingMap.get(anime.id) || null
+        })
+
+        if (sort === "user_rating") {
+          finalResults.sort((a: any, b: any) => {
+            const byRating = (b.user_anime_rating || 0) - (a.user_anime_rating || 0)
+            if (byRating !== 0) return byRating
+            return b.id - a.id
           })
         }
       } catch (listError) {
-        // Игнорируем ошибки при получении списков пользователя
-        console.log("Failed to fetch user lists:", listError)
+        console.log("Failed to fetch user lists/ratings:", listError)
       }
     }
 

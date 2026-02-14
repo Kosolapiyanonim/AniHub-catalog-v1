@@ -170,6 +170,7 @@ export function CatalogFilters({ initialFilters, onApply }: CatalogFiltersProps)
               <SelectItem value="year">Году выпуска</SelectItem>
               <SelectItem value="shikimori_rating">Рейтингу</SelectItem>
               <SelectItem value="title">Названию</SelectItem>
+              {session ? <SelectItem value="user_rating">Моей оценке</SelectItem> : null}
               <SelectItem value="updated_at_kodik">Обновлению</SelectItem>
             </SelectContent>
           </Select>

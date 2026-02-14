@@ -66,6 +66,7 @@ export async function GET(
 
     // --- ШАГ 3: Получаем статус аниме в списке пользователя (если он авторизован) ---
     let userListStatus: string | null = null;
+    let userAnimeRating: number | null = null;
     if (user) {
       try {
         const authClient = await createClientAuth();
@@ -78,6 +79,17 @@ export async function GET(
         
         if (listData) {
           userListStatus = listData.status;
+        }
+
+        const { data: ratingData } = await authClient
+          .from('user_anime_ratings')
+          .select('rating')
+          .eq('user_id', user.id)
+          .eq('anime_id', anime.id)
+          .maybeSingle();
+
+        if (ratingData) {
+          userAnimeRating = ratingData.rating;
         }
       } catch (listError) {
         // Игнорируем ошибки при получении списков пользователя
@@ -125,6 +137,7 @@ export async function GET(
       translations: translations,
       related: relatedAnimesWithInfo,
       user_list_status: userListStatus,
+      user_anime_rating: userAnimeRating,
     };
 
     return NextResponse.json(responseData);

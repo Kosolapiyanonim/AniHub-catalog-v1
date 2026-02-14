@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { getLoginUrl, getRegisterUrl } from "@/lib/auth-utils"
 import { Button } from "@/components/ui/button"
 import { SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Menu, Bell, User, LogOut, Settings, Heart, Search, CheckCheck, Home, Bookmark } from "lucide-react"
+import { Menu, Bell, User, LogOut, Settings, Heart, Search, CheckCheck, Newspaper, Users, ArrowRightToLine } from "lucide-react"
 import { toast } from "sonner"
 import { useSupabase } from "@/components/supabase-provider"
 import { useSearchStore } from "@/hooks/use-search-store"
@@ -112,21 +112,21 @@ export function MobileMainMenuContent({ onClose }: MobileMainMenuContentProps) {
         </Button>
 
         <Link
-          href="/"
+          href="/news"
           className="flex items-center py-3 px-2 text-foreground hover:text-primary transition-colors rounded-lg hover:bg-secondary"
           onClick={onClose}
         >
-          <Home className="mr-3 h-5 w-5" />
-          Главная
+          <Newspaper className="mr-3 h-5 w-5" />
+          Новости
         </Link>
 
         <Link
-          href="/catalog"
+          href="/menu"
           className="flex items-center py-3 px-2 text-foreground hover:text-primary transition-colors rounded-lg hover:bg-secondary"
           onClick={onClose}
         >
-          <Bookmark className="mr-3 h-5 w-5" />
-          Каталог
+          <Users className="mr-3 h-5 w-5" />
+          Сообщество
         </Link>
 
         <Link
@@ -200,6 +200,14 @@ export function MobileMainMenuContent({ onClose }: MobileMainMenuContentProps) {
             </Link>
           </div>
         )}
+
+        <button
+          onClick={onClose}
+          className="mt-auto flex items-center py-3 px-2 w-full text-left text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowRightToLine className="mr-3 h-5 w-5" />
+          Закрыть меню
+        </button>
       </div>
     </>
   )
